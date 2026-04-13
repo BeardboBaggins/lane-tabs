@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ford MEL Individual Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>try{Object.keys(localStorage).filter(k=>k.startsWith('babel')).forEach(k=>localStorage.removeItem(k))}catch(e){}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  /* ── Avenger Logistics Brand Variables ── */
+  :root {
+    --avb:   #659AD2;   /* Avenger Blue */
+    --avr:   #AC171C;   /* Avenger Red  */
+    --dark:  #192633;   /* Dark Blue    */
+    --dgray: #808285;   /* Dark Gray    */
+    --mgray: #BCBEC0;   /* Medium Gray  */
+    --lgray: #F0F0F0;   /* Light Gray   */
+    --green: #2e7d32;
+    --yellow:#b97a00;
+    --border:#BCBEC0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Lato', 'Segoe UI', Arial, sans-serif; font-weight: 400; background: var(--lgray); color: #1a1a1a; font-size: 13px; }
+  a { color: var(--avb); cursor: pointer; text-decoration: none; }
+
+  /* ── Layout ── */
+  .app-header { background: var(--dark); color: white; padding: 0; position: relative; }
+  .app-header-inner { display: flex; align-items: center; gap: 18px; padding: 14px 24px; }
+  .app-header-accent { height: 4px; background: linear-gradient(90deg, var(--avr) 0%, var(--avr) 40%, var(--avb) 60%, var(--avb) 100%); }
+  .app-header .app-title { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: white; }
+  .app-header .subtitle { font-family: 'Lato', Arial, sans-serif; font-size: 12px; color: var(--mgray); margin-top: 2px; }
+  .header-logo { height: 40px; }
+  .header-divider { width: 1px; height: 36px; background: rgba(255,255,255,0.18); }
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid var(--border); padding: 0 24px; }
+  .tab { padding: 11px 22px; cursor: pointer; border-bottom: 3px solid transparent; font-family: 'Lato', Arial, sans-serif; font-weight: 700; color: var(--dgray); font-size: 13px; transition: color 0.15s; }
+  .tab.active { border-bottom-color: var(--avb); color: var(--dark); }
+  .tab:hover:not(.active) { color: var(--avb); }
+  .content { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Upload ── */
+  .drop-zone { border: 2px dashed var(--mgray); border-radius: 10px; background: #fff; padding: 44px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--avb); background: #f0f6ff; }
+  .drop-zone-icon { font-size: 40px; margin-bottom: 10px; }
+  .drop-zone h3 { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--dark); margin-bottom: 8px; }
+  .drop-zone p { color: var(--dgray); font-size: 12px; }
+  .file-input { display: none; }
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Lato', inherit; font-weight: 700; }
+  .btn-primary { background: var(--avb); color: white; }
+  .btn-primary:hover { background: #4d80b8; }
+  .btn-danger { background: var(--avr); color: white; }
+  .btn-danger:hover { background: #8c1115; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .loaded-files { margin-top: 16px; }
+  .summary-bar { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 24px; margin-top: 16px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .summary-stat { text-align: center; }
+  .summary-stat .val { font-family: 'Barlow', Arial, sans-serif; font-size: 26px; font-weight: 700; color: var(--dark); }
+  .summary-stat .lbl { font-size: 11px; color: var(--dgray); margin-top: 2px; }
+  .summary-divider { width: 1px; height: 44px; background: var(--border); }
+
+  /* ── Leaderboard header ── */
+  .leaderboard-header { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .page-title { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--dark); }
+  .note { font-size: 11px; color: var(--dgray); font-style: italic; margin-top: 2px; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  thead th { background: var(--dark); color: white; padding: 10px 11px; text-align: center; white-space: nowrap; font-family: 'Barlow', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none; }
+  thead th:hover { background: #243546; }
+  thead th.sort-asc::after { content: ' ▲'; font-size: 9px; }
+  thead th.sort-desc::after { content: ' ▼'; font-size: 9px; }
+  tbody tr { border-bottom: 1px solid #e8e8e8; cursor: pointer; transition: background 0.1s; }
+  tbody tr:nth-child(even) { background: #fafafa; }
+  tbody tr:hover { background: #eef4fb; }
+  tbody tr.carrier-row { background: #e8f0f8; cursor: default; border-bottom: 2px solid var(--avb); }
+  tbody tr.carrier-row:hover { background: #ddeaf6; }
+  td { padding: 8px 11px; text-align: center; white-space: nowrap; }
+  td.name-cell { text-align: left; font-weight: 700; color: var(--dark); }
+  .rank { color: var(--mgray); font-size: 11px; }
+  .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 700; font-family: 'Barlow', Arial, sans-serif; }
+  .rank-badge.gold   { background: #b8860b; color: #fff8dc; }
+  .rank-badge.silver { background: #808285; color: #ffffff; }
+  .rank-badge.bronze { background: #8b5e3c; color: #fff0e0; }
+  .rank-badge.other  { background: transparent; color: var(--mgray); }
+
+  /* ── Score cells ── */
+  .score { font-family: 'Lato', Arial, sans-serif; font-weight: 700; font-size: 13px; }
+  .score.green  { color: var(--green); }
+  .score.yellow { color: var(--yellow); }
+  .score.red    { color: var(--avr); }
+  .score.gray   { color: var(--mgray); }
+  .score-cell { min-width: 72px; }
+  .score-cell-bg-green  { background: rgba(46,125,50,0.07); }
+  .score-cell-bg-yellow { background: rgba(185,122,0,0.07); }
+  .score-cell-bg-red    { background: rgba(172,23,28,0.07); }
+  .delta { font-size: 11px; font-weight: 400; }
+  .delta.neg { color: var(--avr); }
+  .delta.pos { color: var(--green); }
+  .low-n { color: var(--mgray); font-style: italic; font-size: 11px; }
+
+  /* ── Individual view ── */
+  .back-btn { background: none; border: 1.5px solid var(--avb); color: var(--avb); border-radius: 6px; padding: 5px 14px; cursor: pointer; font-family: 'Lato', Arial, sans-serif; font-weight: 700; font-size: 12px; margin-bottom: 16px; transition: background 0.15s, color 0.15s; }
+  .back-btn:hover { background: var(--avb); color: white; }
+  .person-header { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 24px; }
+  .person-name { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--dark); }
+  .person-composite { font-family: 'Barlow', Arial, sans-serif; font-size: 38px; font-weight: 700; }
+  .person-composite.green  { color: var(--green); }
+  .person-composite.yellow { color: var(--yellow); }
+  .person-composite.red    { color: var(--avr); }
+  .score-breakdown { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+  .score-breakdown table thead th { font-size: 11px; padding: 8px 11px; }
+  .category-row td { font-weight: 700; background: #eef4fb; color: var(--dark); }
+
+  /* ── Defect tables ── */
+  .defect-section { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+  .defect-section-header { padding: 10px 16px; background: #f5f5f5; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .defect-section-header:hover { background: #eef4fb; }
+  .defect-section-title { font-family: 'Lato', Arial, sans-serif; font-weight: 700; color: var(--dark); font-size: 13px; }
+  .defect-count { font-size: 11px; color: var(--dgray); }
+  .toggle-icon { color: var(--dgray); font-size: 11px; }
+  .defect-table-wrap { overflow-x: auto; }
+  .defect-table { font-size: 11px; }
+  .defect-table thead th { background: #364d60; font-size: 11px; padding: 6px 9px; }
+  .defect-table td { padding: 5px 9px; font-size: 11px; }
+  .fail-row td { background: #fff; }
+  .fail-row.row-alt td { background: #eef3fa !important; }
+
+  /* ── Footnote ── */
+  .footnote { font-size: 11px; color: var(--dgray); font-style: italic; padding: 8px 16px; border-top: 1px solid var(--border); background: #fafafa; }
+
+  /* ── Empty / loading states ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--dgray); }
+  .empty-state h3 { margin-bottom: 8px; color: var(--dark); font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; }
+  .loading { text-align: center; padding: 40px; color: var(--avb); font-size: 14px; font-family: 'Lato', Arial, sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useCallback, useRef, useMemo, useEffect } = React;
+
+// ─── Supabase config ──────────────────────────────────────────────────────────
+const SB_URL = 'https://oiclnaqsxiuiltnogzss.supabase.co';
+const SB_KEY = 'sb_publishable_EcKSFysP8AIbdC7k3MrN_Q_J0Kq_vCo';
+
+async function sbSave(weekLabel, data) {
+  const res = await fetch(`${SB_URL}/rest/v1/mel_snapshots`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ week_label: weekLabel, data })
+  });
+  if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+}
+
+async function sbLoad() {
+  const res = await fetch(
+    `${SB_URL}/rest/v1/mel_snapshots?order=created_at.desc&limit=1`,
+    { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+  );
+  if (!res.ok) throw new Error(`Load failed: ${res.status}`);
+  const rows = await res.json();
+  return rows.length ? rows[0] : null;
+}
+
+// ─── Sortable hook ────────────────────────────────────────────────────────────
+function useSortable(rows) {
+  const [sortCol, setSortCol] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
+  function handleSort(col) {
+    if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { setSortCol(col); setSortDir('asc'); }
+  }
+  const sorted = useMemo(() => {
+    if (!sortCol) return rows;
+    return [...rows].sort((a, b) => {
+      let av = a[sortCol], bv = b[sortCol];
+      if (av instanceof Date) av = av.getTime();
+      if (bv instanceof Date) bv = bv.getTime();
+      if (av == null) return 1; if (bv == null) return -1;
+      const an = parseFloat(av), bn = parseFloat(bv);
+      if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an;
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av));
+    });
+  }, [rows, sortCol, sortDir]);
+  return { sorted, sortCol, sortDir, handleSort };
+}
+function STh({ col, sk, sd, onSort, children }) {
+  return (
+    <th onClick={() => onSort(col)} style={{cursor:'pointer',userSelect:'none'}}>
+      {children}{sk===col ? (sd==='asc' ? ' ▲' : ' ▼') : ''}
+    </th>
+  );
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const TARGETS = {
+  composite: { green: 0.97, yellow: 0.90 },
+  otp:       { green: 0.98, yellow: 0.90 },
+  comm:      { green: 0.95, yellow: 0.88 },
+  asn:       { green: 0.98, yellow: 0.90 },
+};
+
+const MIN_LOADS = 5;
+
+function getColor(score, type) {
+  if (score === null || score === undefined) return 'gray';
+  const t = TARGETS[type] || TARGETS.composite;
+  if (score >= t.green) return 'green';
+  if (score >= t.yellow) return 'yellow';
+  return 'red';
+}
+
+function pct(v, decimals = 1) {
+  if (v === null || v === undefined) return '—';
+  return (v * 100).toFixed(decimals) + '%';
+}
+
+function toTitleCase(str) {
+  if (!str) return str;
+  return String(str).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function normName(name) {
+  return toTitleCase(String(name || '').trim());
+}
+
+// ─── Excel Parser ─────────────────────────────────────────────────────────────
+function detectFileType(sheetNames) {
+  if (sheetNames.includes('OTP_Defect')) return 'scorecard';
+  if (sheetNames.includes('Worksheet'))  return 'loadlist';
+  return 'unknown';
+}
+
+function parseWorkbook(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+        const sheets = {};
+        wb.SheetNames.forEach(name => {
+          sheets[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: null });
+        });
+        const fileType = detectFileType(wb.SheetNames);
+        resolve({ sheets, fileType, fileName: file.name });
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsBinaryString(file);
+  });
+}
+
+// ─── Data Processing ──────────────────────────────────────────────────────────
+// parsedFiles is an array of { sheets, fileType, fileName }
+function processData(parsedFiles) {
+  const SKIP_NAMES = new Set(['Ford', 'Ford Admin', 'Ford Inbound', 'House Account', '',
+    'Trey Elliott', 'Sunny Tate']);
+
+  const merged = {
+    otp: [], otc: [], gps: [], eta: [], asn: [],
+    carrierScore: [], commSummary: [], checkCall: []
+  };
+
+  // Per-person load counts from Load List files (deduplicated by LOAD#)
+  const loadListLoads = new Set();   // track LOAD# already counted
+  const loadListCounts = {};         // person → load count from Load List
+  let hasLoadList = false;
+
+  // Fallback: Raw Data sheet load counts (deduplicated by LOAD#)
+  const rawDataLoads = new Set();
+  const rawDataCounts = {};
+
+  parsedFiles.forEach(({ sheets, fileType }) => {
+    if (fileType === 'loadlist') {
+      hasLoadList = true;
+      (sheets['Worksheet'] || []).forEach(r => {
+        const loadNum = String(r['LOAD#'] || '').trim();
+        const person = normName(r['LOAD ACCT MANAGER'] || '');
+        if (!loadNum || !person || SKIP_NAMES.has(person)) return;
+        if (loadListLoads.has(loadNum)) return; // deduplicate across weeks
+        loadListLoads.add(loadNum);
+        loadListCounts[person] = (loadListCounts[person] || 0) + 1;
+      });
+    }
+
+    if (fileType === 'scorecard') {
+      const push = (key, sheetName, dedup) => {
+        const rows = sheets[sheetName] || [];
+        if (!dedup) { merged[key].push(...rows); return; }
+        const existing = new Set(merged[key].map(r => dedup(r)));
+        rows.forEach(r => { if (!existing.has(dedup(r))) merged[key].push(r); });
+      };
+      push('otp', 'OTP_Defect',         r => `${r['Load ID']}|${r['214 Event']}`);
+      push('otc', 'OTC_Defect',         r => `${r['Load ID']}|${r['Event Description']}`);
+      push('gps', 'GPS_Defect',         r => `${r['Load ID']}`);
+      push('eta', 'ETA_Defect',         r => `${r['Load ID']}`);
+      push('asn', 'ASN_Defect',         r => `${r['Load ID']}`);
+      push('checkCall', 'Check_Call_Defect', null);
+      // Always use the most recently uploaded scorecard for carrier benchmarks
+      if (sheets['Carrier_Score'])  merged.carrierScore  = sheets['Carrier_Score'];
+      if (sheets['Comm_Summary'])   merged.commSummary   = sheets['Comm_Summary'];
+
+      // Build Raw Data fallback counts (deduplicated)
+      (sheets['Raw Data'] || []).forEach(r => {
+        const loadNum = String(r['LOAD#'] || '').trim();
+        const person = normName(r['LOAD ACCT MANAGER'] || '');
+        if (!loadNum || !person || SKIP_NAMES.has(person)) return;
+        if (rawDataLoads.has(loadNum)) return;
+        rawDataLoads.add(loadNum);
+        rawDataCounts[person] = (rawDataCounts[person] || 0) + 1;
+      });
+    }
+  });
+
+  // Use Load List counts if available, otherwise fall back to Raw Data
+  const loadCounts = hasLoadList ? loadListCounts : rawDataCounts;
+  const totalLoads = Object.values(loadCounts).reduce((s, n) => s + n, 0);
+
+  // Carrier totals
+  const csRow = k => (merged.carrierScore.find(r => r['Category'] === k) || {});
+  const commRow = k => (merged.commSummary.find(r => r['Category'] === k) || {});
+  const carrier = {
+    otpOpps:     csRow('On Time Performance')['Opportunities'] || 0,
+    otpSucc:     csRow('On Time Performance')['Success'] || 0,
+    otpScore:    csRow('On Time Performance')['Score'] || 0,
+    commOpps:    csRow('Communication')['Opportunities'] || 0,
+    commSucc:    csRow('Communication')['Success'] || 0,
+    commScore:   csRow('Communication')['Score'] || 0,
+    asnOpps:     csRow('ASN Containment')['Opportunities'] || 0,
+    asnSucc:     csRow('ASN Containment')['Success'] || 0,
+    asnScore:    csRow('ASN Containment')['Score'] || 0,
+    overall:     csRow('Overall')['Score'] || 0,
+    overallOpps: csRow('Overall')['Opportunities'] || 0,
+    overallSucc: csRow('Overall')['Success'] || 0,
+    etaOpps:     commRow('ETA')['SumOfOpportunities'] || 0,
+    gpsOpps:     commRow('GPS')['SumOfOpportunities'] || 0,
+    otcOpps:     commRow('On Time Communication')['SumOfOpportunities'] || 0,
+    etaScore:    commRow('ETA')['Comm Score'] || 0,
+    gpsScore:    commRow('GPS')['Comm Score'] || 0,
+    otcScore:    commRow('On Time Communication')['Comm Score'] || 0,
+  };
+
+  // Collect all lane admins from defect sheets + load counts
+  const allPeople = new Set();
+  ['otp','otc','gps','eta','asn'].forEach(key => {
+    merged[key].forEach(r => {
+      const n = normName(r['Lane Admin']);
+      if (n && !SKIP_NAMES.has(n)) allPeople.add(n);
+    });
+  });
+  Object.keys(loadCounts).forEach(n => { if (!SKIP_NAMES.has(n)) allPeople.add(n); });
+
+  // Compute scores per person
+  const people = [];
+  allPeople.forEach(person => {
+    const loads = loadCounts[person] || 0;
+    const loadShare = totalLoads > 0 ? loads / totalLoads : 0;
+
+    // ── OTP ──────────────────────────────────────────────────────
+    const otpRows = merged.otp.filter(r => normName(r['Lane Admin']) === person);
+    const otpDefects = otpRows.filter(r => r['Success'] === 0 || r['Success'] === '0');
+    const otpDefectsDA = otpDefects.filter(r => r['214 Event'] === 'DA');
+    const otpDefectsPA = otpDefects.filter(r => r['214 Event'] === 'PA');
+
+    const estOtpOpps = loadShare * carrier.otpOpps;
+    const estDAOpps = estOtpOpps * 0.50;
+    const estPAOpps = estOtpOpps * 0.50;
+    const daScore = estDAOpps > 0 ? Math.max(0, (estDAOpps - otpDefectsDA.length) / estDAOpps) : 1.0;
+    const paScore = estPAOpps > 0 ? Math.max(0, (estPAOpps - otpDefectsPA.length) / estPAOpps) : 1.0;
+    const otpScore = estOtpOpps > 0
+      ? daScore * 0.60 + paScore * 0.40
+      : null;
+    const otpOppsEst = Math.round(estOtpOpps);
+
+    // ── GPS ──────────────────────────────────────────────────────
+    const gpsRows = merged.gps.filter(r => normName(r['Lane Admin']) === person);
+    const gpsDefects = gpsRows.filter(r => r['Success'] === 0 || r['Success'] === '0');
+    const estGpsOpps = loadShare * carrier.gpsOpps;
+    const gpsScore = estGpsOpps > 0
+      ? Math.max(0, (estGpsOpps - gpsDefects.length) / estGpsOpps)
+      : 1.0;
+    const gpsOppsEst = Math.round(estGpsOpps);
+
+    // ── OTC (Stop Updates) ────────────────────────────────────────
+    const otcRows = merged.otc.filter(r => normName(r['Lane Admin']) === person);
+    const otcDefects = otcRows.filter(r => {
+      const d = parseFloat(r['Communication Delay']);
+      return !isNaN(d) && d > 30;
+    });
+    const estOtcOpps = loadShare * carrier.otcOpps;
+    const otcScore = estOtcOpps > 0
+      ? Math.max(0, (estOtcOpps - otcDefects.length) / estOtcOpps)
+      : 1.0;
+    const otcOppsEst = Math.round(estOtcOpps);
+
+    // ── ETA ──────────────────────────────────────────────────────
+    const etaRows = merged.eta.filter(r => normName(r['Lane Admin']) === person);
+    // All ETA_Defect rows are failures; count them
+    const etaDefects = etaRows.length;
+    const estEtaOpps = loadShare * carrier.etaOpps;
+    const etaScore = estEtaOpps > 0
+      ? Math.max(0, (estEtaOpps - etaDefects) / estEtaOpps)
+      : 1.0;
+    const etaOppsEst = Math.round(estEtaOpps);
+
+    // ── Comm ─────────────────────────────────────────────────────
+    // Telematics (10%) not available — assumed 100% for all; weights: StopUpd 45 + ETA 25 + GPS 20 + Telematics 10 = 100
+    const commScore = otcScore * 0.45 + etaScore * 0.25 + gpsScore * 0.20 + 0.10;
+
+    // ── ASN ──────────────────────────────────────────────────────
+    const asnRows = merged.asn.filter(r => normName(r['Lane Admin']) === person);
+    let asnScore, asnOpps, asnSucc;
+    if (asnRows.length === 0) {
+      asnScore = 1.0; asnOpps = 0; asnSucc = 0;
+    } else {
+      const asnCompliant = asnRows.filter(r => {
+        const atFault = String(r['Carrier at Fault?'] || '').toLowerCase();
+        const delayed = String(r['Delayed Response'] || '').toLowerCase();
+        return atFault !== 'yes' && atFault !== 'true' && delayed !== 'yes' && delayed !== 'true';
+      });
+      asnOpps = asnRows.length;
+      asnSucc = asnCompliant.length;
+      asnScore = asnOpps > 0 ? asnSucc / asnOpps : 1.0;
+    }
+
+    // ── Composite ────────────────────────────────────────────────
+    const composite = otpScore !== null
+      ? otpScore * 0.60 + commScore * 0.30 + asnScore * 0.10
+      : null;
+
+    people.push({
+      name: person,
+      loads,
+      composite,
+      otp: { score: otpScore, opps: otpOppsEst, defects: otpDefects.length,
+             daDefects: otpDefectsDA.length, paDefects: otpDefectsPA.length,
+             daScore, paScore,
+             daOpps: Math.ceil(estOtpOpps / 2), paOpps: Math.floor(estOtpOpps / 2),
+             allRows: otpRows },
+      comm: { score: commScore,
+              otc: { score: otcScore, opps: otcOppsEst, defects: otcDefects.length, rows: otcRows },
+              eta: { score: etaScore, opps: etaOppsEst, defects: etaRows.length, rows: etaRows },
+              gps: { score: gpsScore, opps: gpsOppsEst, defects: gpsDefects.length, rows: gpsRows } },
+      asn: { score: asnScore, opps: asnOpps, succ: asnSucc, rows: asnRows },
+    });
+  });
+
+  const ccTotal = merged.checkCall.length;
+  const ccLate = merged.checkCall.filter(r => r['Late Response'] == 1 || r['NO Response'] == 1).length;
+  return { people, carrier, ccTotal, ccLate, hasLoadList, totalLoads };
+}
+
+// ─── Score Cell ───────────────────────────────────────────────────────────────
+function ScoreCell({ score, type, showDelta, minN, n }) {
+  const insufficient = minN && n < MIN_LOADS;
+  if (score === null || score === undefined || insufficient) {
+    return <td className="score-cell"><span className="low-n">{insufficient ? `n<${MIN_LOADS}` : '—'}</span></td>;
+  }
+  const color = getColor(score, type);
+  const target = TARGETS[type]?.green;
+  return (
+    <td className={`score-cell score-cell-bg-${color}`}>
+      <span className={`score ${color}`}>{pct(score)}</span>
+      {showDelta && target && (
+        <div className={`delta ${score >= target ? 'pos' : 'neg'}`}>
+          {score >= target ? '+' : ''}{pct(score - target, 1)}
+        </div>
+      )}
+    </td>
+  );
+}
+
+function StatusDot({ score, type, n }) {
+  if (n !== undefined && n < MIN_LOADS) return <span>⬜</span>;
+  if (score === null) return <span>—</span>;
+  const color = getColor(score, type);
+  if (color === 'green') return <span>🟢</span>;
+  if (color === 'yellow') return <span>🟡</span>;
+  return <span>🔴</span>;
+}
+
+// ─── Defect Detail Tables ──────────────────────────────────────────────────────
+function CollapsibleDefect({ title, count, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="defect-section">
+      <div className="defect-section-header" onClick={() => setOpen(o => !o)}>
+        <span className="defect-section-title">{title}</span>
+        <span style={{display:'flex',gap:'8px',alignItems:'center'}}>
+          <span className="defect-count">{count} defect{count !== 1 ? 's' : ''}</span>
+          <span className="toggle-icon">{open ? '▲' : '▼'}</span>
+        </span>
+      </div>
+      {open && <div className="defect-table-wrap">{children}</div>}
+    </div>
+  );
+}
+
+function fmtDT(val) {
+  if (!val) return '—';
+  const raw = val instanceof Date ? val : new Date(val);
+  if (isNaN(raw)) return String(val);
+  // Round to nearest minute to avoid floating point artifacts from Excel serial conversion
+  const d = new Date(Math.round(raw.getTime() / 60000) * 60000);
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  const yr = String(d.getFullYear()).slice(2);
+  const hr = String(d.getHours()).padStart(2, '0');
+  const mn = String(d.getMinutes()).padStart(2, '0');
+  return `${mo}/${dy}/${yr} ${hr}:${mn}`;
+}
+
+function OTPDefectTable({ rows }) {
+  const defects = rows.filter(r => r['Success'] === 0 || r['Success'] === '0');
+  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(defects);
+  if (!defects.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No controllable late events.</p>;
+  return (
+    <table className="defect-table">
+      <thead><tr>
+        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
+        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
+        <STh col="Route Number" sk={sk} sd={sd} onSort={handleSort}>Route</STh>
+        <STh col="214 Event" sk={sk} sd={sd} onSort={handleSort}>Event</STh>
+        <STh col="Scheduled Arrival" sk={sk} sd={sd} onSort={handleSort}>Schd Time</STh>
+        <STh col="Reported DTT Local" sk={sk} sd={sd} onSort={handleSort}>Rptd Time</STh>
+      </tr></thead>
+      <tbody>
+        {sorted.map((r, i) => (
+          <tr key={i} className="fail-row">
+            <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
+            <td>{r['Load ID'] || '—'}</td>
+            <td>{r['Route Number']}</td>
+            <td><strong>{r['214 Event']}</strong></td>
+            <td>{fmtDT(r['Scheduled Arrival'])}</td>
+            <td>{fmtDT(r['Reported DTT Local'])}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function OTCDefectTable({ rows }) {
+  const defects = rows.filter(r => { const d = parseFloat(r['Communication Delay']); return !isNaN(d) && d > 30; });
+  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(defects);
+  if (!defects.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No late stop updates.</p>;
+  const abbrevEvent = v => {
+    if (!v) return '—';
+    const s = v.toLowerCase();
+    if (s.includes('pickup') && s.includes('arrival'))   return 'PA';
+    if (s.includes('pickup') && s.includes('departure')) return 'PD';
+    if (s.includes('delivery') && s.includes('arrival')) return 'DA';
+    if (s.includes('delivery') && s.includes('departure')) return 'DD';
+    return v;
+  };
+  const srcColor = v => {
+    if (!v) return {};
+    const s = v.toUpperCase();
+    if (s === 'EDI') return {color:'var(--green)', fontWeight:700};
+    if (s === 'WEB') return {color:'var(--yellow)', fontWeight:700};
+    return {};
+  };
+  return (
+    <table className="defect-table">
+      <thead><tr>
+        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
+        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
+        <STh col="Completed Date" sk={sk} sd={sd} onSort={handleSort}>Date</STh>
+        <STh col="Stop No" sk={sk} sd={sd} onSort={handleSort}>Stop</STh>
+        <STh col="Event Description" sk={sk} sd={sd} onSort={handleSort}>Event</STh>
+        <STh col="Reported DTT ET" sk={sk} sd={sd} onSort={handleSort}>Act Time (ET)</STh>
+        <STh col="Communication DTT ET" sk={sk} sd={sd} onSort={handleSort}>Sent Time (ET)</STh>
+        <STh col="Communication Delay" sk={sk} sd={sd} onSort={handleSort}>Delay (min)</STh>
+        <STh col="Source" sk={sk} sd={sd} onSort={handleSort}>Source</STh>
+      </tr></thead>
+      <tbody>
+        {(() => {
+          const grouping = sk === null || sk === 'Load#';
+          let gIdx = 0;
+          return sorted.map((r, i) => {
+            if (grouping && (i === 0 || r['Load#'] !== sorted[i-1]['Load#'])) gIdx++;
+            const showLoad = !grouping || i === 0 || r['Load#'] !== sorted[i-1]['Load#'];
+            const altRow = grouping && gIdx % 2 === 0;
+          return (
+          <tr key={i} className={`fail-row${altRow ? ' row-alt' : ''}`}>
+            <td>{showLoad ? <a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a> : ''}</td>
+            <td>{showLoad ? (r['Load ID'] || '—') : ''}</td>
+            <td>{r['Completed Date'] ? new Date(r['Completed Date']).toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}) : '—'}</td>
+            <td>{r['Stop No']} — {r['Stop Site']}</td>
+            <td>{abbrevEvent(r['Event Description'])}</td>
+            <td>{fmtDT(r['Reported DTT ET']) || r['Reported Time ET'] || '—'}</td>
+            <td>{fmtDT(r['Communication DTT ET']) || r['Communication Time ET'] || '—'}</td>
+            <td><strong style={{color:'#c62828'}}>{Math.round(r['Communication Delay'])}</strong></td>
+            <td><span style={srcColor(r['Source'])}>{r['Source'] || '—'}</span></td>
+          </tr>
+          );
+          });
+        })()}
+      </tbody>
+    </table>
+  );
+}
+
+function ETADefectTable({ rows }) {
+  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(rows);
+  if (!rows.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No ETA defects.</p>;
+  const okX = v => (v === 1 || v === '1' || v === 'YES') ? '✅' : '❌';
+  return (
+    <table className="defect-table">
+      <thead><tr>
+        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
+        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
+        <STh col="Origin ID" sk={sk} sd={sd} onSort={handleSort}>Lane</STh>
+        <STh col="Route Name" sk={sk} sd={sd} onSort={handleSort}>Route</STh>
+        <STh col="Start Date" sk={sk} sd={sd} onSort={handleSort}>Start Date</STh>
+        <STh col="Actual Final Pick Departure Date/Time ET" sk={sk} sd={sd} onSort={handleSort}>Act PD</STh>
+        <STh col="First ETA Rcvd" sk={sk} sd={sd} onSort={handleSort}>1st ETA Rcvd</STh>
+        <STh col="First ETA Reported" sk={sk} sd={sd} onSort={handleSort}>1st ETA Rptd</STh>
+        <STh col="First ETA Success" sk={sk} sd={sd} onSort={handleSort}>1st ET OK</STh>
+        <STh col="Scheduled Delivery Arrival Date/Time" sk={sk} sd={sd} onSort={handleSort}>Sch Del</STh>
+        <STh col="Actual Delivery Arrival Date/Time" sk={sk} sd={sd} onSort={handleSort}>Act Del</STh>
+        <STh col="Late Delivery" sk={sk} sd={sd} onSort={handleSort}>Late?</STh>
+        <STh col="Last ETA Reported" sk={sk} sd={sd} onSort={handleSort}>Last ETA Rptd</STh>
+        <STh col="Last ETA Rcvd" sk={sk} sd={sd} onSort={handleSort}>Last ETA Rcvd</STh>
+        <STh col="Late Delivery ETA Success" sk={sk} sd={sd} onSort={handleSort}>Late Del ETA OK</STh>
+        <STh col="CutOff" sk={sk} sd={sd} onSort={handleSort}>ETA Cutoff</STh>
+        <STh col="Last ETA Accurate" sk={sk} sd={sd} onSort={handleSort}>ETA Accurate</STh>
+      </tr></thead>
+      <tbody>
+        {sorted.map((r, i) => {
+          const fe = r['First ETA Success'];
+          const ld = r['Late Delivery ETA Success'];
+          const la = r['Last ETA Accurate'];
+          const late = String(r['Late Delivery'] || '').toUpperCase();
+          const lastRptdSame = r['Last ETA Reported'] && r['First ETA Reported'] && String(r['Last ETA Reported']) === String(r['First ETA Reported']);
+          const lastRcvdSame = r['Last ETA Rcvd'] && r['First ETA Rcvd'] && String(r['Last ETA Rcvd']) === String(r['First ETA Rcvd']);
+          return (
+            <tr key={i} className="fail-row">
+              <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
+              <td>{r['Load ID'] || '—'}</td>
+              <td>{r['Origin ID'] && r['Destination ID'] ? `${r['Origin ID']} - ${r['Destination ID']}` : '—'}</td>
+              <td>{r['Route Name']}</td>
+              <td>{r['Start Date'] ? new Date(r['Start Date']).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}) : '—'}</td>
+              <td>{fmtDT(r['Actual Final Pick Departure Date/Time ET'])}</td>
+              <td>{fmtDT(r['First ETA Rcvd'])}</td>
+              <td>{fmtDT(r['First ETA Reported'])}</td>
+              <td>{fe !== undefined && fe !== null && fe !== '' ? okX(fe) : '—'}</td>
+              <td>{fmtDT(r['Scheduled Delivery Arrival Date/Time'])}</td>
+              <td>{fmtDT(r['Actual Delivery Arrival Date/Time'])}</td>
+              <td>{late === 'YES' ? '✅' : late === 'NO' ? '❌' : '—'}</td>
+              <td>{lastRptdSame ? '—' : fmtDT(r['Last ETA Reported'])}</td>
+              <td>{lastRcvdSame ? '—' : fmtDT(r['Last ETA Rcvd'])}</td>
+              <td>{r['Late Delivery'] === 'YES' ? okX(ld) : 'N/A'}</td>
+              <td>{fmtDT(r['CutOff'])}</td>
+              <td>{la !== undefined && la !== null && la !== '' ? okX(la) : '—'}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function GPSDefectTable({ rows }) {
+  const defects = rows.filter(r => r['Success'] === 0 || r['Success'] === '0');
+  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(defects);
+  if (!defects.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No GPS defects.</p>;
+  return (
+    <table className="defect-table">
+      <thead><tr>
+        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
+        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
+        <STh col="Origin ID" sk={sk} sd={sd} onSort={handleSort}>Lane</STh>
+        <STh col="Route Name" sk={sk} sd={sd} onSort={handleSort}>Route</STh>
+        <STh col="Start Date" sk={sk} sd={sd} onSort={handleSort}>Start Date</STh>
+        <STh col="Drive Time" sk={sk} sd={sd} onSort={handleSort}>Drive Time (hrs)</STh>
+        <STh col="Expected Pings" sk={sk} sd={sd} onSort={handleSort}>Expected Pings</STh>
+        <STh col="Actual Transactions" sk={sk} sd={sd} onSort={handleSort}>Actual Pings</STh>
+        <th>Result</th>
+      </tr></thead>
+      <tbody>
+        {sorted.map((r, i) => (
+          <tr key={i} className="fail-row">
+            <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
+            <td>{r['Load ID'] || '—'}</td>
+            <td>{r['Origin ID'] && r['Destination ID'] ? `${r['Origin ID']} - ${r['Destination ID']}` : '—'}</td>
+            <td>{r['Route Name']}</td>
+            <td>{r['Start Date'] ? new Date(r['Start Date']).toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}) : '—'}</td>
+            <td>{r['Drive Time'] ? Number(r['Drive Time']).toFixed(1) : '—'}</td>
+            <td>{r['Expected Pings']}</td>
+            <td>{r['Actual Transactions']}</td>
+            <td><span style={{color:'#c62828',fontWeight:700}}>FAIL</span></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ASNDefectTable({ rows }) {
+  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(rows);
+  if (!rows.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No ASN defects this period.</p>;
+  return (
+    <table className="defect-table">
+      <thead><tr>
+        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
+        <STh col="Route Type" sk={sk} sd={sd} onSort={handleSort}>Route Type</STh>
+        <STh col="Delayed Response" sk={sk} sd={sd} onSort={handleSort}>Delayed Response</STh>
+        <STh col="Carrier at Fault?" sk={sk} sd={sd} onSort={handleSort}>Carrier at Fault</STh>
+      </tr></thead>
+      <tbody>
+        {sorted.map((r, i) => (
+          <tr key={i} className="fail-row">
+            <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
+            <td>{r['Route Type']}</td>
+            <td>{String(r['Delayed Response'] || '—')}</td>
+            <td>{String(r['Carrier at Fault?'] || '—')}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// ─── Individual View ───────────────────────────────────────────────────────────
+function IndividualView({ person, carrier, onBack }) {
+  const c = getColor(person.composite, 'composite');
+  const rows = [
+    { cat: 'On-Time Performance', sub: null,               opps: person.otp.opps,   def: person.otp.defects,  defDetail: null, score: person.otp.score,  type: 'otp' },
+    { cat: null, sub: 'Delivery (60%)',  opps: person.otp.daOpps, def: person.otp.daDefects, defDetail: null, score: person.otp.daScore, type: 'otp' },
+    { cat: null, sub: 'Pickup (40%)',    opps: person.otp.paOpps, def: person.otp.paDefects, defDetail: null, score: person.otp.paScore, type: 'otp' },
+    { cat: 'Communication', sub: null, opps: null, def: null, score: person.comm.score, type: 'comm' },
+    { cat: null, sub: 'Stop Updates', opps: person.comm.otc.opps, def: person.comm.otc.defects, score: person.comm.otc.score, type: 'comm' },
+    { cat: null, sub: 'ETA',          opps: person.comm.eta.opps, def: person.comm.eta.defects, score: person.comm.eta.score, type: 'comm' },
+    { cat: null, sub: 'GPS',          opps: person.comm.gps.opps, def: person.comm.gps.defects, score: person.comm.gps.score, type: 'comm' },
+    { cat: 'ASN Containment', sub: null, opps: person.asn.opps || 0, def: person.asn.rows.length - person.asn.succ, score: person.asn.score, type: 'asn' },
+  ];
+
+  return (
+    <div>
+      <button className="back-btn" onClick={onBack}>← Back to Leaderboard</button>
+
+      <div className="person-header">
+        <div>
+          <div className="person-name">{person.name}</div>
+          <div style={{fontSize:'12px',color:'#888',marginTop:'4px'}}>{person.loads} loads</div>
+        </div>
+        <div>
+          <div className={`person-composite ${c}`}>{pct(person.composite)}</div>
+          <div style={{fontSize:'11px',color:'#888',textAlign:'center'}}>Composite MEL Score</div>
+        </div>
+        <div style={{flex:1}}/>
+        <div style={{textAlign:'right',fontSize:'12px',color:'#555'}}>
+          <div>Carrier Overall: <strong>{pct(carrier.overall)}</strong></div>
+          <div>Carrier OTP: <strong>{pct(carrier.otpScore)}</strong></div>
+          <div>Carrier Comm: <strong>{pct(carrier.commScore)}</strong></div>
+          <div>Carrier ASN: <strong>{pct(carrier.asnScore)}</strong></div>
+        </div>
+      </div>
+
+      <div className="score-breakdown">
+        <div className="table-wrap" style={{borderRadius:0,border:'none'}}>
+          <table>
+            <thead>
+              <tr>
+                <th style={{textAlign:'left',minWidth:'140px'}}>Category</th>
+                <th style={{textAlign:'left',minWidth:'120px'}}>Sub-Category</th>
+                <th>Est. Opps</th>
+                <th>Defects</th>
+                <th>Score</th>
+                <th>Target</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const target = TARGETS[r.type]?.green;
+                return (
+                  <tr key={i} className={r.cat ? 'category-row' : ''}>
+                    <td style={{textAlign:'left'}}>{r.cat || ''}</td>
+                    <td style={{textAlign:'left',paddingLeft: r.cat ? '' : '24px'}}>{r.sub || ''}</td>
+                    <td>{r.opps !== null && r.opps !== undefined ? r.opps : '—'}</td>
+                    <td>{r.def !== null && r.def !== undefined
+                      ? <span>{r.def}{r.defDetail ? <span style={{fontSize:'10px',color:'#888',marginLeft:'4px'}}>({r.defDetail})</span> : null}</span>
+                      : '—'}</td>
+                    <td><span className={`score ${r.score !== null ? getColor(r.score, r.type) : 'gray'}`}>{pct(r.score)}</span></td>
+                    <td>{target ? pct(target) : '—'}</td>
+                    <td><StatusDot score={r.score} type={r.type} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="footnote">
+          Opportunities estimated from this person's share of total loads (Load List used when available; otherwise Raw Data tab).
+          Telematics excluded — data not yet available.
+          Check Call data attributed at carrier level only.
+          Scores reflect Ford-scored events only as exported from BTMS.
+        </div>
+      </div>
+
+      <CollapsibleDefect title="OTP Defects — Controllable Late Events" count={person.otp.allRows.filter(r => r['Success'] === 0 || r['Success'] === '0').length}>
+        <OTPDefectTable rows={person.otp.allRows} />
+      </CollapsibleDefect>
+
+      <CollapsibleDefect title="Communication — Stop Updates (Late 214s)" count={person.comm.otc.defects}>
+        <OTCDefectTable rows={person.comm.otc.rows} />
+      </CollapsibleDefect>
+
+      <CollapsibleDefect title="Communication — ETA Defects" count={person.comm.eta.defects}>
+        <ETADefectTable rows={person.comm.eta.rows} />
+      </CollapsibleDefect>
+
+      <CollapsibleDefect title="Communication — GPS Defects" count={person.comm.gps.defects}>
+        <GPSDefectTable rows={person.comm.gps.rows} />
+      </CollapsibleDefect>
+
+      <CollapsibleDefect title="ASN Containment Defects" count={person.asn.rows.length}>
+        <ASNDefectTable rows={person.asn.rows} />
+      </CollapsibleDefect>
+    </div>
+  );
+}
+
+// ─── Leaderboard ──────────────────────────────────────────────────────────────
+function Leaderboard({ data, onSelectPerson, onSaveToTeam, saving, saveMsg }) {
+  const { people, carrier, totalLoads } = data;
+  const [sortKey, setSortKey] = useState('composite');
+  const [sortDir, setSortDir] = useState('desc');
+
+  const getSortVal = useCallback((p, key) => {
+    const m = {
+      composite: p.composite,
+      otp: p.otp.score,
+      comm: p.comm.score,
+      otc: p.comm.otc.score,
+      eta: p.comm.eta.score,
+      gps: p.comm.gps.score,
+      asn: p.asn.score,
+      loads: p.loads,
+    };
+    return m[key] ?? -Infinity;
+  }, []);
+
+  const sorted = useMemo(() => {
+    return [...people].sort((a, b) => {
+      const va = getSortVal(a, sortKey);
+      const vb = getSortVal(b, sortKey);
+      return sortDir === 'desc' ? vb - va : va - vb;
+    });
+  }, [people, sortKey, sortDir]);
+
+  const handleSort = key => {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const Th = ({ k, children }) => (
+    <th onClick={() => handleSort(k)}
+        className={sortKey === k ? `sort-${sortDir}` : ''}>
+      {children}
+    </th>
+  );
+
+  const carrierComposite = carrier.otpScore * 0.60 + carrier.commScore * 0.30 + carrier.asnScore * 0.10;
+
+  return (
+    <div>
+      <div className="leaderboard-header">
+        <div>
+          <div className="page-title">Individual Scorecard</div>
+          <div className="note">Scores estimated from load-share allocation. See methodology note below.</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:'12px',color:'#666'}}>{carrier.overallOpps.toLocaleString()} total opportunities</div>
+          </div>
+          {onSaveToTeam && (
+            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
+              <button className="btn btn-primary btn-sm" onClick={onSaveToTeam} disabled={saving}
+                title="Save current scores so the whole team sees them">
+                {saving ? 'Saving…' : '☁ Save to Team'}
+              </button>
+              {saveMsg && <div style={{fontSize:'11px',color:saveMsg.startsWith('✓')?'var(--green)':'var(--avr)'}}>{saveMsg}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <Th k="composite">Composite</Th>
+              <th style={{textAlign:'left'}}>Name</th>
+              <Th k="otp">OTP</Th>
+              <Th k="comm">OTC</Th>
+              <Th k="otc">Event Upd.</Th>
+              <Th k="eta">ETA</Th>
+              <Th k="gps">GPS</Th>
+              <Th k="asn">ASN</Th>
+              <Th k="loads">Loads</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Carrier benchmark row */}
+            <tr className="carrier-row">
+              <td style={{color:'#003087',fontWeight:700}}>★</td>
+              <td className="score-cell">
+                <span className={`score ${getColor(carrierComposite, 'composite')}`}>{pct(carrierComposite)}</span>
+              </td>
+              <td className="name-cell" style={{color:'#003087'}}>Carrier AVGD (Benchmark)</td>
+              <td className="score-cell"><span className={`score ${getColor(carrier.otpScore, 'otp')}`}>{pct(carrier.otpScore)}</span></td>
+              <td className="score-cell"><span className={`score ${getColor(carrier.commScore, 'comm')}`}>{pct(carrier.commScore)}</span></td>
+              <td className="score-cell"><span className={`score ${getColor(carrier.otcScore, 'comm')}`}>{pct(carrier.otcScore)}</span></td>
+              <td className="score-cell"><span className={`score ${getColor(carrier.etaScore, 'comm')}`}>{pct(carrier.etaScore)}</span></td>
+              <td className="score-cell"><span className={`score ${getColor(carrier.gpsScore, 'comm')}`}>{pct(carrier.gpsScore)}</span></td>
+              <td className="score-cell"><span className={`score ${getColor(carrier.asnScore, 'asn')}`}>{pct(carrier.asnScore)}</span></td>
+              <td style={{color:'#888'}}>{totalLoads.toLocaleString()}</td>
+            </tr>
+            {sorted.map((p, i) => (
+              <tr key={p.name} onClick={() => onSelectPerson(p)}>
+                <td className="rank">
+                  <span className={`rank-badge ${i===0?'gold':i===1?'silver':i===2?'bronze':'other'}`}>{i+1}</span>
+                </td>
+                <ScoreCell score={p.composite} type="composite" showDelta={true} minN={false} />
+                <td className="name-cell">{p.name}</td>
+                <ScoreCell score={p.otp.score} type="otp" minN={true} n={p.otp.opps} />
+                <ScoreCell score={p.comm.score} type="comm" minN={false} />
+                <ScoreCell score={p.comm.otc.score} type="comm" minN={false} />
+                <ScoreCell score={p.comm.eta.score} type="comm" minN={false} />
+                <ScoreCell score={p.comm.gps.score} type="comm" minN={false} />
+                <ScoreCell score={p.asn.score} type="asn" minN={false} />
+                <td>{p.loads}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="footnote" style={{marginTop:'8px',padding:'8px 12px',borderRadius:'4px',border:'1px solid #e0e0e0',background:'#fafafa'}}>
+        Individual opportunities estimated from each person's share of total loads (📋 Load List used when uploaded; otherwise Raw Data tab).
+        Scores reflect Ford-scored events only as exported from BTMS. Telematics excluded — data not yet available. Check Call data at carrier level only.
+        Color coding: 🟢 At/above target &nbsp;|&nbsp; 🟡 Below target &nbsp;|&nbsp; 🔴 Critical
+      </div>
+    </div>
+  );
+}
+
+// ─── Upload View ──────────────────────────────────────────────────────────────
+const FILE_TYPE_META = {
+  scorecard: { label: 'Scorecard',  icon: '📊', chipStyle: { background: '#e8f0fe', border: '1px solid #c5d8ff', color: '#003087' } },
+  loadlist:  { label: 'Load List',  icon: '📋', chipStyle: { background: '#e8f5e9', border: '1px solid #a5d6a7', color: '#2e7d32' } },
+  unknown:   { label: 'Unknown',    icon: '❓', chipStyle: { background: '#fafafa', border: '1px solid #ccc',    color: '#888'    } },
+};
+
+function UploadView({ parsedFiles, onFiles, onClear, summary }) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef();
+
+  const handleDrop = useCallback(e => {
+    e.preventDefault();
+    setDragging(false);
+    const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.xlsx'));
+    if (dropped.length) onFiles(dropped);
+  }, [onFiles]);
+
+  const handleChange = e => {
+    const sel = Array.from(e.target.files);
+    if (sel.length) onFiles(sel);
+    e.target.value = '';
+  };
+
+  const hasScorecard = parsedFiles.some(f => f.fileType === 'scorecard');
+  const hasLoadList  = parsedFiles.some(f => f.fileType === 'loadlist');
+
+  return (
+    <div>
+      <div
+        className={`drop-zone ${dragging ? 'drag-over' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current.click()}
+      >
+        <div className="drop-zone-icon">📂</div>
+        <h3>Upload Weekly Files</h3>
+        <p>Drag & drop one or more .xlsx files — Scorecard and/or Load List — or click to browse</p>
+        <p style={{marginTop:'6px',fontSize:'11px',color:'#999'}}>
+          📊 Scorecard: <em>AVGD Phase1 SC - WE 3-28-26.xlsx</em> &nbsp;|&nbsp; 📋 Load List: <em>All Loads WE 3-28-26.xlsx</em>
+        </p>
+        <input ref={inputRef} className="file-input" type="file" accept=".xlsx" multiple onChange={handleChange} />
+      </div>
+
+      {parsedFiles.length > 0 && (
+        <>
+          <div className="loaded-files" style={{marginTop:'12px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+              <strong style={{fontSize:'13px'}}>Loaded files:</strong>
+              <button className="btn btn-danger btn-sm" onClick={onClear}>Clear All</button>
+            </div>
+            {parsedFiles.map((f, i) => {
+              const meta = FILE_TYPE_META[f.fileType] || FILE_TYPE_META.unknown;
+              return (
+                <span key={i} style={{display:'inline-flex',alignItems:'center',gap:'5px',borderRadius:'20px',padding:'4px 10px',margin:'3px',...meta.chipStyle,fontSize:'12px'}}>
+                  {meta.icon} {f.fileName}
+                  <span style={{fontSize:'10px',opacity:0.75,marginLeft:'2px'}}>({meta.label})</span>
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Warning if load list is missing */}
+          {hasScorecard && !hasLoadList && (
+            <div style={{background:'#fff8e1',border:'1px solid #ffe082',borderRadius:'6px',padding:'10px 14px',marginTop:'10px',fontSize:'12px',color:'#7a5c00'}}>
+              ⚠️ <strong>No Load List uploaded.</strong> Load counts are being estimated from the Raw Data tab inside the Scorecard, which may include historical loads across many weeks. For more accurate scores, also upload the matching <em>All Loads WE [date].xlsx</em> file.
+            </div>
+          )}
+
+          {summary && (
+            <div className="summary-bar">
+              <div className="summary-stat"><div className="val">{summary.scorecardCount}</div><div className="lbl">📊 Scorecards</div></div>
+              <div className="summary-divider"/>
+              <div className="summary-stat"><div className="val">{summary.loadListCount}</div><div className="lbl">📋 Load Lists</div></div>
+              <div className="summary-divider"/>
+              <div className="summary-stat"><div className="val">{summary.totalLoads.toLocaleString()}</div><div className="lbl">Total Loads</div></div>
+              <div className="summary-divider"/>
+              <div className="summary-stat"><div className="val">{summary.teamMembers}</div><div className="lbl">Team Members</div></div>
+              <div className="summary-divider"/>
+              <div className="summary-stat"><div className="val">{summary.otpDefects}</div><div className="lbl">OTP Defects</div></div>
+              <div className="summary-divider"/>
+              <div className="summary-stat"><div className="val">{summary.commDefects}</div><div className="lbl">Comm Defects</div></div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── App Root ─────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState('upload');
+  const [parsedFiles, setParsedFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [cloudData, setCloudData] = useState(null);
+  const [cloudLabel, setCloudLabel] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState(null);
+
+  useEffect(() => {
+    sbLoad().then(row => {
+      if (row) { setCloudData(row.data); setCloudLabel(row.week_label); setTab('leaderboard'); }
+    }).catch(() => {});
+  }, []);
+
+  const data = useMemo(() => {
+    if (parsedFiles.length) return processData(parsedFiles);
+    if (cloudData) return cloudData;
+    return null;
+  }, [parsedFiles, cloudData]);
+
+  const summary = useMemo(() => {
+    if (!data) return null;
+    return {
+      scorecardCount: parsedFiles.filter(f => f.fileType === 'scorecard').length,
+      loadListCount:  parsedFiles.filter(f => f.fileType === 'loadlist').length,
+      totalLoads: data.totalLoads,
+      teamMembers: data.people.length,
+      otpDefects: data.people.reduce((s, p) => s + p.otp.defects, 0),
+      commDefects: data.people.reduce((s, p) => s + p.comm.otc.defects + p.comm.eta.defects + p.comm.gps.defects, 0),
+      hasLoadList: data.hasLoadList,
+    };
+  }, [data, parsedFiles]);
+
+  const handleFiles = useCallback(async newFiles => {
+    setLoading(true);
+    setError(null);
+    try {
+      const parsed = await Promise.all(newFiles.map(parseWorkbook));
+      setParsedFiles(f => [...f, ...parsed]);
+      setTab('leaderboard');
+    } catch(e) {
+      setError('Error reading file: ' + e.message);
+    } finally { setLoading(false); }
+  }, []);
+
+  const handleClear = useCallback(() => {
+    setParsedFiles([]); setSelectedPerson(null); setTab('upload');
+  }, []);
+
+  const handleSelectPerson = useCallback(p => {
+    setSelectedPerson(p);
+    setTab('individual');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setSelectedPerson(null);
+    setTab('leaderboard');
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!data || !parsedFiles.length) return;
+    setSaving(true); setSaveMsg(null);
+    try {
+      const _d = new Date();
+      const weekLabel = _d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + ' ' + _d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+      await sbSave(weekLabel, data);
+      setCloudData(data); setCloudLabel(weekLabel);
+      setSaveMsg('✓ Saved! Team will see this on next load.');
+      setParsedFiles([]);
+    } catch(e) { setSaveMsg('✗ Save failed: ' + e.message); }
+    finally { setSaving(false); }
+  }, [data, parsedFiles]);
+
+  return (
+    <div>
+      <div className="app-header">
+        <div className="app-header-inner">
+          <img src="data:image/png;base64,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" className="header-logo" alt="Avenger Logistics" />
+          <div className="header-divider"></div>
+          <div>
+            <div className="app-title">Ford Scorecard (MEL)</div>
+            <div className="subtitle">Individual Performance Dashboard</div>
+          </div>
+        </div>
+        <div className="app-header-accent"></div>
+      </div>
+
+      {cloudLabel && !parsedFiles.length && (
+        <div className="snapshot-banner">
+          📊 Showing team data saved <strong>{cloudLabel}</strong> — upload new files to refresh.
+        </div>
+      )}
+      {cloudLabel && parsedFiles.length > 0 && (
+        <div className="snapshot-banner" style={{background:'#1a3a1a'}}>
+          ⚠️ Showing your newly uploaded data — click <strong>Save to Team</strong> to publish it.
+        </div>
+      )}
+
+      <div className="tabs">
+        <div className={`tab ${tab === 'leaderboard' || tab === 'individual' ? 'active' : ''}`}
+             onClick={() => { if(data) { setSelectedPerson(null); setTab('leaderboard'); } }}>
+          Team Leaderboard {data ? `(${data.people.length})` : ''}
+        </div>
+        <div className={`tab ${tab === 'upload' ? 'active' : ''}`} onClick={() => { setSelectedPerson(null); setTab('upload'); }}>
+            Upload {parsedFiles.length > 0 && `(${parsedFiles.length})`}
+          </div>
+      </div>
+
+      <div className="content">
+        {loading && <div className="loading">⏳ Processing Excel data...</div>}
+        {error && <div style={{background:'#ffebee',border:'1px solid #ffcdd2',borderRadius:'6px',padding:'12px 16px',color:'#c62828',marginBottom:'12px'}}>{error}</div>}
+
+        {!loading && tab === 'upload' && (
+          <UploadView parsedFiles={parsedFiles} onFiles={handleFiles} onClear={handleClear} summary={summary} />
+        )}
+
+        {!loading && (tab === 'leaderboard') && (
+          !data
+            ? <div className="empty-state"><h3>No data loaded</h3><p>Upload a BTMS scorecard file to get started.</p></div>
+            : <Leaderboard data={data} onSelectPerson={handleSelectPerson}
+                onSaveToTeam={parsedFiles.length ? handleSave : null}
+                saving={saving} saveMsg={saveMsg} />
+        )}
+
+        {!loading && tab === 'individual' && selectedPerson && data && (
+          <IndividualView person={selectedPerson} carrier={data.carrier} onBack={handleBack} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avenger Load Edit Activity Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'avenger-blue':  '#659AD2',
+            'avenger-red':   '#AC171C',
+            'dark-blue':     '#192633',
+            'dark-gray':     '#808285',
+            'medium-gray':   '#BCBEC0',
+            'light-gray':    '#F0F0F0',
+          },
+          fontFamily: {
+            barlow: ['Barlow', 'Arial', 'sans-serif'],
+            lato:   ['Lato',   'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Lato', Arial, sans-serif; }
+    h1, h2, h3, .headline { font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; }
+    .sortable:hover { cursor: pointer; background-color: rgba(101,154,210,0.12); }
+    .sort-asc::after  { content: ' ▲'; font-size: 0.7em; }
+    .sort-desc::after { content: ' ▼'; font-size: 0.7em; }
+    .top-row { background-color: rgba(101,154,210,0.15) !important; }
+    tr.user-row:hover { background-color: rgba(101,154,210,0.08); cursor: pointer; }
+    .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 0.72em; font-weight: 700; letter-spacing: 0.03em; }
+    .badge-offsh { background: #192633; color: #fff; }
+    .badge-wns   { background: #659AD2; color: #fff; }
+    .badge-valo  { background: #AC171C; color: #fff; }
+    .badge-status   { background: #192633; color: #fff; }
+    .badge-doc      { background: #659AD2; color: #fff; }
+    .badge-stopdate { background: #808285; color: #fff; }
+    .badge-calltime { background: #AC171C; color: #fff; }
+    .bar-fill { background: #659AD2; height: 16px; border-radius: 2px; transition: width 0.3s; }
+    .bar-fill-red { background: #AC171C; }
+    tr.even-row { background-color: #F0F0F0; }
+    tr.odd-row  { background-color: #ffffff; }
+    #upload-zone { border: 2px dashed #659AD2; }
+    #upload-zone:hover { background-color: rgba(101,154,210,0.06); }
+  </style>
+</head>
+<body class="bg-light-gray min-h-screen">
+
+  <!-- ═══════════════════════════════════════════════════════ HEADER -->
+  <header class="bg-dark-blue text-white shadow-lg">
+    <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="font-barlow text-2xl font-bold text-white tracking-widest">
+          Avenger Load Edit Activity Dashboard
+        </h1>
+        <p class="font-lato text-medium-gray text-sm mt-0.5">
+          A <span class="text-avenger-blue font-bold">MODE Global</span> Company · Ford Operations
+        </p>
+      </div>
+      <div class="flex items-center gap-6">
+        <div id="reporting-date" class="text-right hidden">
+          <p class="text-xs text-medium-gray font-lato uppercase tracking-wider">Reporting Date</p>
+          <p id="date-value" class="text-avenger-blue font-barlow text-xl font-bold"></p>
+        </div>
+        <label for="file-input"
+          class="cursor-pointer bg-avenger-blue hover:bg-blue-400 text-white font-barlow font-bold text-sm px-5 py-2.5 rounded transition-colors uppercase tracking-wider">
+          Upload File
+        </label>
+        <input id="file-input" type="file" accept=".xlsx" class="hidden" />
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════ MAIN -->
+  <main class="max-w-screen-2xl mx-auto px-6 py-8">
+
+    <!-- EMPTY STATE -->
+    <div id="empty-state" class="flex flex-col items-center justify-center py-24">
+      <div id="upload-zone" class="rounded-xl p-16 flex flex-col items-center gap-5 bg-white w-full max-w-xl cursor-pointer"
+           onclick="document.getElementById('file-input').click()">
+        <svg class="w-16 h-16 text-avenger-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <div class="text-center">
+          <h2 class="font-barlow text-xl font-bold text-dark-blue mb-1">Upload Daily Edit Report</h2>
+          <p class="font-lato text-dark-gray text-sm">
+            Drop or click to upload <strong>Avenger_Load_Edit_History_Report_-_Previous_Day.xlsx</strong>
+          </p>
+          <p class="font-lato text-medium-gray text-xs mt-2">All processing happens in your browser. No data is sent to any server.</p>
+        </div>
+        <label for="file-input"
+          class="cursor-pointer bg-avenger-blue hover:bg-blue-400 text-white font-barlow font-bold text-sm px-6 py-2 rounded transition-colors uppercase tracking-wider">
+          Choose File
+        </label>
+      </div>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="error-state" class="hidden bg-red-50 border border-avenger-red rounded-lg p-6 mb-6">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-avenger-red mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
+        </svg>
+        <div>
+          <p class="font-barlow font-bold text-avenger-red uppercase text-sm tracking-wide">Upload Error</p>
+          <p id="error-msg" class="font-lato text-sm text-gray-700 mt-1"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div id="loading-state" class="hidden flex flex-col items-center justify-center py-24 gap-4">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-avenger-blue border-t-transparent"></div>
+      <p class="font-lato text-dark-gray text-sm">Processing file…</p>
+    </div>
+
+    <!-- DASHBOARD (shown after upload) -->
+    <div id="dashboard" class="hidden">
+
+      <!-- ─── KPI STRIP ─────────────────────────────────────────── -->
+      <div id="kpi-strip" class="grid grid-cols-4 gap-4 mb-8">
+        <!-- filled by JS -->
+      </div>
+
+      <!-- ─── SECTION 1: Avenger Core ───────────────────────────── -->
+      <section class="mb-10">
+        <div class="flex items-center gap-3 mb-3">
+          <h2 class="font-barlow text-lg font-bold text-dark-blue tracking-widest">Avenger Core</h2>
+          <span id="core-count" class="text-xs bg-dark-blue text-white font-barlow font-bold px-2.5 py-0.5 rounded-full"></span>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-medium-gray">
+          <table class="w-full text-sm font-lato">
+            <thead>
+              <tr class="bg-dark-blue text-white text-xs uppercase tracking-wider font-barlow">
+                <th class="px-4 py-3 text-left w-6 font-bold">#</th>
+                <th class="px-4 py-3 text-left sortable font-bold" data-col="name" data-table="core">User</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="totalEdits" data-table="core">Total Edits</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="loadsTouched" data-table="core">Loads Touched</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="statusChanges" data-table="core">Status Changes</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="docUploads" data-table="core">Doc Uploads</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="stopDateChanges" data-table="core">Stop Date Changes</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="callTimes" data-table="core">Call Times</th>
+              </tr>
+            </thead>
+            <tbody id="core-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ─── SECTION 2: BPO / Offshore ─────────────────────────── -->
+      <section class="mb-10">
+        <div class="flex items-center gap-3 mb-3">
+          <h2 class="font-barlow text-lg font-bold text-dark-blue tracking-widest">BPO / Offshore</h2>
+          <span id="bpo-count" class="text-xs bg-dark-blue text-white font-barlow font-bold px-2.5 py-0.5 rounded-full"></span>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-medium-gray">
+          <table class="w-full text-sm font-lato">
+            <thead>
+              <tr class="bg-dark-blue text-white text-xs uppercase tracking-wider font-barlow">
+                <th class="px-4 py-3 text-left w-6 font-bold">#</th>
+                <th class="px-4 py-3 text-left sortable font-bold" data-col="name" data-table="bpo">User</th>
+                <th class="px-4 py-3 text-left font-bold">Group</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="totalEdits" data-table="bpo">Total Edits</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="loadsTouched" data-table="bpo">Loads Touched</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="statusChanges" data-table="bpo">Status Changes</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="docUploads" data-table="bpo">Doc Uploads</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="stopDateChanges" data-table="bpo">Stop Date Changes</th>
+                <th class="px-4 py-3 text-right sortable font-bold" data-col="callTimes" data-table="bpo">Call Times</th>
+              </tr>
+            </thead>
+            <tbody id="bpo-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- /#dashboard -->
+
+    <!-- ─── DETAIL VIEW ────────────────────────────────────────── -->
+    <div id="detail-view" class="hidden">
+
+      <!-- Detail Header -->
+      <div class="flex items-center gap-4 mb-6">
+        <button id="back-btn"
+          onclick="showDashboard()"
+          class="flex items-center gap-2 font-barlow text-sm font-bold text-dark-blue uppercase tracking-wider hover:text-avenger-blue transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Back to Summary
+        </button>
+      </div>
+
+      <div class="bg-dark-blue text-white rounded-xl p-6 mb-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 id="detail-name" class="font-barlow text-2xl font-bold text-white tracking-wider mb-1"></h2>
+            <p id="detail-group-label" class="font-lato text-medium-gray text-sm"></p>
+          </div>
+          <div id="detail-group-badge"></div>
+        </div>
+        <!-- Stat strip -->
+        <div id="detail-stats" class="grid grid-cols-6 gap-4 mt-5 pt-5 border-t border-gray-600">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Edit Type Breakdown -->
+      <div class="bg-white rounded-xl shadow-sm border border-medium-gray p-6 mb-6">
+        <h3 class="font-barlow font-bold text-dark-blue text-sm tracking-wider mb-4">Top Edit Types</h3>
+        <div id="breakdown-bars" class="space-y-2"></div>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="bg-white rounded-xl shadow-sm border border-medium-gray p-6">
+        <h3 class="font-barlow font-bold text-dark-blue text-sm tracking-wider mb-4">Activity by Load</h3>
+        <div id="load-timeline" class="space-y-6"></div>
+      </div>
+
+    </div><!-- /#detail-view -->
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════ FOOTER -->
+  <footer class="mt-12 bg-dark-blue text-medium-gray text-xs font-lato py-4">
+    <div class="max-w-screen-2xl mx-auto px-6 flex items-center justify-between">
+      <span>Avenger Logistics &mdash; A MODE Global Company &mdash; Internal Use Only</span>
+      <span>All Roads Lead to Avenger</span>
+    </div>
+  </footer>
+
+<script>
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let coreUsers = [];
+let bpoUsers  = [];
+let allRows   = {};      // keyed by user name → array of raw row objects
+let sortState = { core: { col: 'totalEdits', dir: 'desc' }, bpo: { col: 'totalEdits', dir: 'desc' } };
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const SYSTEM_EXACT = new Set([
+  'BTMS AUTO-PROCESS','SYSTEM','SCHED PROCESS','CARRIER EDI',
+  'GREENSCREENS','TRUCKERTOOLS','Breakthrough Fuel API',
+  'BANYAN','dax_gateway','fats_cli','transflo_process'
+]);
+const BPO_SUFFIXES = [' - OFFSH',' -OFFSH',' - WNS',' - VALO'];
+
+function isSystem(name) {
+  if (SYSTEM_EXACT.has(name)) return true;
+  if (name === name.toLowerCase()) return true;
+  if (name.includes('_')) return true;
+  return false;
+}
+
+function getBpoGroup(name) {
+  if (name.endsWith(' - OFFSH') || name.endsWith(' -OFFSH')) return 'OFFSH';
+  if (name.endsWith(' - WNS'))  return 'WNS';
+  if (name.endsWith(' - VALO')) return 'VALO';
+  return null;
+}
+
+function calcMetrics(rows) {
+  return {
+    totalEdits:      rows.length,
+    loadsTouched:    new Set(rows.map(r => r['Load Number'])).size,
+    statusChanges:   rows.filter(r => r['Field'] === 'status').length,
+    docUploads:      rows.filter(r => (r['Field'] || '').includes('Load Documents UPLOAD')).length,
+    stopDateChanges: rows.filter(r => {
+      const f = (r['Field'] || '').toLowerCase();
+      return f.includes('stop1 date') || f.includes('stop2 date');
+    }).length,
+    callTimes:       rows.filter(r => r['Field'] === 'call_time').length,
+  };
+}
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  showLoading();
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      processFile(ev.target.result);
+    } catch(err) {
+      showError('Could not parse file: ' + err.message + '. Please upload the correct .xlsx file.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function processFile(buffer) {
+  const wb = XLSX.read(buffer, { type: 'arraybuffer', cellDates: true });
+  const sheetName = wb.SheetNames.find(n => n === 'Load Edit History Report') || wb.SheetNames[0];
+  if (!sheetName) { showError('Sheet "Load Edit History Report" not found in this file.'); return; }
+
+  const ws = wb.Sheets[sheetName];
+
+  // Reporting date from A1
+  const a1 = ws['A1'];
+  let reportDate = '';
+  if (a1) {
+    const raw = a1.v || a1.w || '';
+    const match = String(raw).match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    reportDate = match ? match[0] : String(raw);
+  }
+
+  // Parse with header from row 3
+  const data = XLSX.utils.sheet_to_json(ws, { range: 2, defval: '' });
+
+  if (!data.length) { showError('No data rows found in the file. Expected data starting at row 4.'); return; }
+
+  // Group rows by user, filtering system users
+  const byUser = {};
+  for (const row of data) {
+    const name = String(row['User'] || '').trim();
+    if (!name || isSystem(name)) continue;
+    if (!byUser[name]) byUser[name] = [];
+    byUser[name].push(row);
+  }
+
+  allRows = byUser;
+  coreUsers = [];
+  bpoUsers  = [];
+
+  for (const [name, rows] of Object.entries(byUser)) {
+    const group = getBpoGroup(name);
+    const metrics = calcMetrics(rows);
+    if (group) {
+      bpoUsers.push({ name, group, ...metrics });
+    } else {
+      coreUsers.push({ name, group: 'Core', ...metrics });
+    }
+  }
+
+  // Default sort: total edits desc
+  sortUsers('core', 'totalEdits', 'desc');
+  sortUsers('bpo',  'totalEdits', 'desc');
+
+  renderDashboard(reportDate);
+}
+
+// ─── SORT ────────────────────────────────────────────────────────────────────
+function sortUsers(table, col, dir) {
+  const arr = table === 'core' ? coreUsers : bpoUsers;
+  arr.sort((a, b) => {
+    const av = a[col], bv = b[col];
+    if (typeof av === 'number') return dir === 'asc' ? av - bv : bv - av;
+    return dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+  sortState[table] = { col, dir };
+}
+
+function handleSort(table, col) {
+  const cur = sortState[table];
+  const newDir = (cur.col === col && cur.dir === 'desc') ? 'asc' : 'desc';
+  sortUsers(table, col, newDir);
+  renderTable(table);
+  updateSortHeaders(table);
+}
+
+function updateSortHeaders(table) {
+  document.querySelectorAll(`[data-table="${table}"]`).forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.col === sortState[table].col) {
+      th.classList.add(sortState[table].dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+// ─── RENDER DASHBOARD ────────────────────────────────────────────────────────
+function renderDashboard(reportDate) {
+  // Date
+  if (reportDate) {
+    document.getElementById('date-value').textContent = reportDate;
+    document.getElementById('reporting-date').classList.remove('hidden');
+  }
+
+  // KPI strip
+  const totalEdits   = [...coreUsers, ...bpoUsers].reduce((s,u) => s + u.totalEdits, 0);
+  const totalLoads   = [...coreUsers, ...bpoUsers].reduce((s,u) => s + u.loadsTouched, 0);
+  const coreCount    = coreUsers.length;
+  const bpoCount     = bpoUsers.length;
+  const kpis = [
+    { label: 'Total Edits',      value: totalEdits.toLocaleString(), color: 'text-avenger-blue' },
+    { label: 'Loads Touched',    value: totalLoads.toLocaleString(), color: 'text-avenger-blue' },
+    { label: 'Core Users Active', value: coreCount,                  color: 'text-dark-blue' },
+    { label: 'BPO Users Active',  value: bpoCount,                   color: 'text-dark-gray' },
+  ];
+  document.getElementById('kpi-strip').innerHTML = kpis.map(k => `
+    <div class="bg-white rounded-xl border border-medium-gray p-5 shadow-sm">
+      <p class="font-lato text-dark-gray text-xs uppercase tracking-wider mb-1">${k.label}</p>
+      <p class="font-barlow font-bold text-3xl ${k.color}">${k.value}</p>
+    </div>
+  `).join('');
+
+  // Counts
+  document.getElementById('core-count').textContent = coreCount + ' users';
+  document.getElementById('bpo-count').textContent  = bpoCount  + ' users';
+
+  renderTable('core');
+  renderTable('bpo');
+  updateSortHeaders('core');
+  updateSortHeaders('bpo');
+
+  // Sort click handlers
+  document.querySelectorAll('.sortable').forEach(th => {
+    th.onclick = () => handleSort(th.dataset.table, th.dataset.col);
+  });
+
+  showDashboard();
+}
+
+function renderTable(table) {
+  const users = table === 'core' ? coreUsers : bpoUsers;
+  const tbody = document.getElementById(table + '-tbody');
+
+  tbody.innerHTML = users.map((u, i) => {
+    const isTop = i === 0;
+    const rowClass = isTop ? 'top-row user-row' : (i % 2 === 0 ? 'even-row user-row' : 'odd-row user-row');
+    const groupBadge = table === 'bpo'
+      ? `<td class="px-4 py-2.5"><span class="badge badge-${u.group.toLowerCase()}">${u.group}</span></td>`
+      : '';
+    const topStar = isTop ? ' <span title="Top performer" class="text-avenger-blue text-xs">★</span>' : '';
+    return `
+      <tr class="${rowClass} transition-colors" onclick="showDetail('${escHtml(u.name)}')">
+        <td class="px-4 py-2.5 text-dark-gray text-xs">${i + 1}</td>
+        <td class="px-4 py-2.5 font-bold text-dark-blue whitespace-nowrap">${escHtml(u.name)}${topStar}</td>
+        ${groupBadge}
+        <td class="px-4 py-2.5 text-right font-bold text-dark-blue">${u.totalEdits.toLocaleString()}</td>
+        <td class="px-4 py-2.5 text-right">${u.loadsTouched.toLocaleString()}</td>
+        <td class="px-4 py-2.5 text-right">${u.statusChanges.toLocaleString()}</td>
+        <td class="px-4 py-2.5 text-right">${u.docUploads.toLocaleString()}</td>
+        <td class="px-4 py-2.5 text-right">${u.stopDateChanges.toLocaleString()}</td>
+        <td class="px-4 py-2.5 text-right">${u.callTimes.toLocaleString()}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ─── DETAIL VIEW ─────────────────────────────────────────────────────────────
+function showDetail(name) {
+  const user = [...coreUsers, ...bpoUsers].find(u => u.name === name);
+  if (!user) return;
+  const rows = allRows[name] || [];
+
+  // Header
+  document.getElementById('detail-name').textContent = name;
+  const isBpo = getBpoGroup(name);
+  document.getElementById('detail-group-label').textContent = isBpo
+    ? `BPO / Offshore · ${user.group} Team`
+    : 'Avenger Core';
+
+  const badgeClass = isBpo ? `badge-${user.group.toLowerCase()}` : 'badge-status';
+  document.getElementById('detail-group-badge').innerHTML =
+    `<span class="badge ${badgeClass} text-sm px-3 py-1">${isBpo ? user.group : 'CORE'}</span>`;
+
+  // Stats strip
+  const stats = [
+    { label: 'Total Edits',        value: user.totalEdits.toLocaleString() },
+    { label: 'Loads Touched',      value: user.loadsTouched.toLocaleString() },
+    { label: 'Status Changes',     value: user.statusChanges.toLocaleString() },
+    { label: 'Doc Uploads',        value: user.docUploads.toLocaleString() },
+    { label: 'Stop Date Changes',  value: user.stopDateChanges.toLocaleString() },
+    { label: 'Call Times',         value: user.callTimes.toLocaleString() },
+  ];
+  document.getElementById('detail-stats').innerHTML = stats.map(s => `
+    <div class="text-center">
+      <p class="font-barlow font-bold text-2xl text-avenger-blue">${s.value}</p>
+      <p class="font-lato text-xs text-medium-gray mt-0.5">${s.label}</p>
+    </div>
+  `).join('');
+
+  // Edit type breakdown
+  const fieldCounts = {};
+  for (const r of rows) {
+    const f = r['Field'] || '(blank)';
+    fieldCounts[f] = (fieldCounts[f] || 0) + 1;
+  }
+  const sorted = Object.entries(fieldCounts).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  const maxCount = sorted[0]?.[1] || 1;
+  document.getElementById('breakdown-bars').innerHTML = sorted.map(([field, count], i) => `
+    <div class="flex items-center gap-3">
+      <div class="w-44 text-xs font-lato text-dark-gray truncate text-right flex-shrink-0" title="${escHtml(field)}">${escHtml(field)}</div>
+      <div class="flex-1 bg-light-gray rounded">
+        <div class="${i === 0 ? 'bar-fill bar-fill-red' : 'bar-fill'}" style="width:${Math.round(count/maxCount*100)}%"></div>
+      </div>
+      <div class="w-10 text-xs font-lato font-bold text-dark-blue text-right">${count.toLocaleString()}</div>
+    </div>
+  `).join('');
+
+  // Activity timeline — group by load
+  const byLoad = {};
+  for (const r of rows) {
+    const ln = String(r['Load Number'] || 'Unknown');
+    if (!byLoad[ln]) byLoad[ln] = [];
+    byLoad[ln].push(r);
+  }
+  const loadNums = Object.keys(byLoad).sort();
+
+  document.getElementById('load-timeline').innerHTML = loadNums.map(ln => `
+    <div>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="font-barlow font-bold text-dark-blue text-sm bg-light-gray px-3 py-1 rounded">LOAD ${escHtml(ln)}</span>
+        <span class="text-xs text-dark-gray font-lato">${byLoad[ln].length} edit${byLoad[ln].length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="border border-medium-gray rounded overflow-hidden">
+        <table class="w-full text-xs font-lato">
+          <thead>
+            <tr class="bg-light-gray text-dark-gray uppercase tracking-wider text-xs">
+              <th class="px-3 py-2 text-left font-bold">Time</th>
+              <th class="px-3 py-2 text-left font-bold">Field</th>
+              <th class="px-3 py-2 text-left font-bold">Old Value</th>
+              <th class="px-3 py-2 text-left font-bold">New Value</th>
+              <th class="px-3 py-2 text-left font-bold">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${byLoad[ln].map((r, i) => {
+              const badge = getEditBadge(r['Field'] || '');
+              const ov = r['Old Value'] !== '' ? escHtml(String(r['Old Value'])) : '&mdash;';
+              const nv = r['New Value'] !== '' ? escHtml(String(r['New Value'])) : '&mdash;';
+              const truncOv = ov.length > 60 ? ov.slice(0,60) + '…' : ov;
+              const truncNv = nv.length > 60 ? nv.slice(0,60) + '…' : nv;
+              const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-light-gray';
+              return `<tr class="${rowBg}">
+                <td class="px-3 py-1.5 text-dark-gray whitespace-nowrap">${formatTime(r['Modified Time'])}</td>
+                <td class="px-3 py-1.5 font-bold text-dark-blue">${escHtml(String(r['Field'] || ''))}</td>
+                <td class="px-3 py-1.5 text-dark-gray">${truncOv}</td>
+                <td class="px-3 py-1.5 text-dark-blue">${truncNv}</td>
+                <td class="px-3 py-1.5">${badge}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('detail-view').classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+function getEditBadge(field) {
+  if (field === 'status') return '<span class="badge badge-status">Status</span>';
+  if (field.includes('Load Documents UPLOAD')) return '<span class="badge badge-doc">Doc Upload</span>';
+  if (field.toLowerCase().includes('stop1 date') || field.toLowerCase().includes('stop2 date'))
+    return '<span class="badge badge-stopdate">Stop Date</span>';
+  if (field === 'call_time') return '<span class="badge badge-calltime">Call Time</span>';
+  return '';
+}
+
+function formatTime(val) {
+  if (!val) return '';
+  if (val instanceof Date) return val.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return String(val);
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── VIEW SWITCHING ───────────────────────────────────────────────────────────
+function showDashboard() {
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('error-state').classList.add('hidden');
+  document.getElementById('detail-view').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+}
+
+function showLoading() {
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('error-state').classList.add('hidden');
+  document.getElementById('detail-view').classList.add('hidden');
+  document.getElementById('loading-state').classList.remove('hidden');
+}
+
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('empty-state').classList.remove('hidden');
+  document.getElementById('error-state').classList.remove('hidden');
+}
+</script>
+</body>
+</html>

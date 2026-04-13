@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F-150 Red Team — Lane Coordination</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #192633;   /* Avenger Dark */
+    --blue:    #659AD2;   /* Avenger Blue */
+    --avr:     #AC171C;   /* Avenger Red  */
+    --ib-bg:   #deeaf6;
+    --ib-text: #1a5a8a;
+    --ob-bg:   #FFF3E0;
+    --ob-text: #E06C00;
+    --page-bg: #F0F0F0;
+    --card-bg: #FFFFFF;
+    --green:   #2e7d32;
+    --red:     #AC171C;
+    --gray:    #808285;
+    --border:  #BCBEC0;
+    --sidebar-w: 260px;
+    --topbar-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Lato', 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    background: var(--page-bg);
+    color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ─── TOP BAR ─────────────────────────────────────────────── */
+  .topbar-wrap { flex-shrink: 0; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .topbar {
+    height: var(--topbar-h);
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: #fff;
+  }
+  .topbar-accent {
+    height: 4px;
+    background: linear-gradient(90deg, var(--avr) 0%, var(--avr) 40%, var(--blue) 60%, var(--blue) 100%);
+  }
+  .topbar-brand {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 17px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .topbar-brand span {
+    font-family: 'Lato', Arial, sans-serif;
+    opacity: .6; font-weight: 400; margin-left: 10px; font-size: 12px;
+    text-transform: none; letter-spacing: 0;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-user { font-size: 12px; opacity: .75; }
+  .btn-logout {
+    font-size: 11px; padding: 4px 10px; border-radius: 4px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+    color: #fff; cursor: pointer;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.2); }
+
+  /* ─── BODY LAYOUT ─────────────────────────────────────────── */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ─── SIDEBAR ─────────────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: #fff; z-index: 5;
+  }
+  .sidebar-search input {
+    width: 100%; padding: 6px 10px; border-radius: 6px;
+    border: 1px solid var(--border); font-size: 12px; background: var(--page-bg);
+  }
+  .rep-group { border-bottom: 1px solid var(--border); }
+  .rep-header {
+    padding: 8px 14px 6px;
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--gray);
+    background: #F9FAFB;
+    border-bottom: 1px solid var(--border);
+  }
+  .lane-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #374151;
+    border-left: 3px solid transparent;
+    line-height: 1.35;
+    transition: background .1s;
+  }
+  .lane-item:hover { background: #F3F4F6; }
+  .lane-item.active {
+    background: var(--ib-bg);
+    border-left-color: var(--blue);
+    color: var(--ib-text);
+    font-weight: 700;
+  }
+  .lane-gsdb {
+    font-size: 10px; color: var(--gray); margin-top: 1px; font-family: monospace;
+  }
+  .lane-item.active .lane-gsdb { color: #93C5FD; }
+
+  /* ─── MAIN CONTENT ────────────────────────────────────────── */
+  .main-content {
+    flex: 1;
+    min-width: 0;          /* prevent flex item from growing with schedule table */
+    overflow-x: hidden;    /* clip any overflow; each child handles its own scroll */
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ─── LANE INFO (TOP SECTION) ─────────────────────────────── */
+  .lane-info-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .lane-info-header {
+    background: var(--navy);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .lane-info-header:hover { background: #24243e; }
+  .li-collapse-btn {
+    font-size: 11px; color: rgba(255,255,255,.5);
+    background: rgba(255,255,255,.1); border: none;
+    border-radius: 4px; padding: 3px 8px; cursor: pointer; margin-left: 12px;
+  }
+  .li-body.collapsed { display: none; }
+  .lane-title-block {}
+  .lane-full-name {
+    font-family: 'Barlow', Arial, sans-serif;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .lane-gsdb-codes {
+    margin-top: 3px;
+    font-family: monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,.55);
+    letter-spacing: .3px;
+  }
+  .lane-badges { display: flex; gap: 6px; align-items: center; }
+  .badge {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 12px;
+  }
+  .badge-ib { background: var(--ib-bg); color: var(--ib-text); }
+  .badge-ob { background: var(--ob-bg); color: var(--ob-text); }
+  .badge-active { background: #D1FAE5; color: #065F46; }
+  .badge-inactive { background: #FEE2E2; color: #991B1B; }
+
+  /* ── Lane info sections ── */
+  .li-section {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .li-section:last-child { border-bottom: none; }
+
+  /* Scroll wrapper for wide tables inside lane info */
+  .li-table-scroll { overflow-x: auto; }
+
+  /* Rates row */
+  .li-rates {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px 20px;
+  }
+  .li-field label {
+    display: block; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700; margin-bottom: 2px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .li-field .lv {
+    font-size: 13px; color: #111827; font-weight: 500;
+  }
+  .li-field .lv.mono { font-family: monospace; font-size: 12px; }
+  .li-field .lv.calc { font-size: 12px; color: #6B7280; font-style: italic; }
+
+  /* Locations table */
+  table.li-locs {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  table.li-locs th {
+    text-align: left; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700;
+    font-family: 'Barlow', Arial, sans-serif;
+    padding: 0 10px 5px 0; white-space: nowrap;
+  }
+  table.li-locs td {
+    padding: 5px 10px 5px 0; border-top: 1px solid #F3F4F6;
+    vertical-align: middle; white-space: nowrap;
+  }
+  .gsdb-tag {
+    font-family: monospace; font-size: 11px; font-weight: 700;
+    background: #EFF6FF; color: #1D4ED8; padding: 2px 6px; border-radius: 4px;
+  }
+  .live-badge  { background: #D1FAE5; color: #065F46; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .drop-badge  { background: #FEF3C7; color: #92400E; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+
+  /* Routes table */
+  table.li-routes {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  table.li-routes th {
+    text-align: left; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700;
+    font-family: 'Barlow', Arial, sans-serif;
+    padding: 0 16px 5px 0; white-space: nowrap;
+  }
+  table.li-routes td {
+    padding: 5px 16px 5px 0; border-top: 1px solid #F3F4F6;
+    font-family: monospace; font-size: 12px; vertical-align: middle;
+  }
+  table.li-routes td.days { font-family: inherit; font-size: 12px; letter-spacing: .5px; }
+
+  /* Lane meta strip */
+  .li-meta {
+    display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+  }
+
+  /* Contacts 2-col */
+  .li-contacts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .li-contact-col {
+    padding: 10px 16px 10px 0;
+    border-right: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .li-contact-col:last-child { border-right: none; padding-right: 0; padding-left: 16px; }
+  .li-contact-col:first-child { padding-left: 0; }
+  .li-contact-col h4 {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--navy); font-weight: 700; margin-bottom: 8px;
+    padding-bottom: 5px; border-bottom: 2px solid var(--blue);
+    display: inline-block;
+  }
+  .li-contact-row { display: flex; gap: 6px; margin-bottom: 4px; color: #374151; }
+  .li-contact-row .lk { font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--navy); font-weight: 700; min-width: 40px; padding-top: 1px;
+    font-family: 'Barlow', Arial, sans-serif; }
+  .li-contact-row .ll { color: #111827; }
+  .li-contact-row .ll a { color: var(--blue); text-decoration: none; }
+  .li-rates-sub {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .li-notes-area {
+    width: 100%; min-height: 52px; border: 1px solid var(--border);
+    border-radius: 5px; padding: 6px 8px; font-size: 12px;
+    color: #374151; resize: vertical; font-family: inherit;
+    background: #FAFAFA;
+  }
+
+  /* ─── SCHEDULE SECTION (BOTTOM) ──────────────────────────── */
+  .schedule-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .schedule-toolbar {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FAFAFA;
+  }
+  .week-nav { display: flex; align-items: center; gap: 10px; }
+  .week-nav .week-label { font-size: 14px; font-weight: 700; color: #111827; }
+  .btn-week {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--border); background: #fff;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+    color: #374151;
+  }
+  .btn-week:hover { background: var(--page-bg); }
+  .btn-today {
+    font-size: 11px; padding: 4px 10px; border-radius: 5px;
+    border: 1px solid var(--border); background: #fff; cursor: pointer; color: #374151;
+  }
+  .schedule-toolbar-right { display: flex; gap: 8px; align-items: center; }
+  .status-filter {
+    font-size: 12px; padding: 5px 8px; border-radius: 5px;
+    border: 1px solid var(--border); background: #fff; color: #374151;
+  }
+  .btn-add-row {
+    font-size: 12px; padding: 5px 12px; border-radius: 5px;
+    background: var(--blue); color: #fff; border: none; cursor: pointer; font-weight: 600;
+  }
+  .btn-add-row:hover { background: #3D5BDD; }
+
+  /* Day sections */
+  .day-section { border-bottom: 1px solid var(--border); }
+  .day-section:last-child { border-bottom: none; }
+
+  .day-header {
+    padding: 9px 20px;
+    background: #F9FAFB;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .day-header:hover { background: #F3F4F6; }
+  .day-name { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 13px; color: #1a1a1a; letter-spacing: .03em; text-transform: uppercase; }
+  .day-date { font-size: 11px; color: var(--gray); }
+  .day-count { font-size: 10px; color: var(--gray); }
+  .day-chevron { margin-left: auto; font-size: 12px; color: var(--gray); }
+
+  /* Schedule table */
+  .schedule-wrap { overflow-x: auto; }
+  table.sched {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.sched th {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    font-weight: 700;
+    font-family: 'Barlow', Arial, sans-serif;
+    color: var(--navy);
+    background: #F0F0F0;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.sched td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #F3F4F6;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  /* Group routes visually with a faint top border */
+  table.sched tr.route-top td { border-top: 2px solid var(--border); }
+  table.sched tr.route-top:first-child td { border-top: none; }
+  /* Leg indicator */
+  td.leg-ind {
+    width: 4px; padding: 0;
+  }
+  tr.route-top td.leg-ind { background: #BFDBFE; }
+  tr.route-bot td.leg-ind { background: #FDE68A; }
+
+  /* Status pill */
+  .status-sel {
+    appearance: none;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 3px 8px;
+  }
+  .status-Active    { background: #D1FAE5; color: #065F46; }
+  .status-Booked    { background: #DBEAFE; color: #1E40AF; }
+  .status-Canceled  { background: #FEE2E2; color: #991B1B; }
+  .status-InTransit { background: #FEF3C7; color: #92400E; }
+  .status-AtShipper { background: #EDE9FE; color: #5B21B6; }
+  .status-AtDelivery{ background: #E0F2FE; color: #0C4A6E; }
+  .status-AtMidwest { background: #FFEDD5; color: #9A3412; }
+  .status-Delivered  { background: #F3F4F6; color: #374151; }
+  .status-TONU      { background: #FEE2E2; color: #991B1B; }
+  .status-Brokered  { background: #F0FDF4; color: #166534; }
+
+  .route-num {
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1D4ED8;
+    background: #EFF6FF;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .time-val { font-family: monospace; font-weight: 600; font-size: 12px; }
+  .date-val { color: #4B5563; }
+  .empty-cell { color: #D1D5DB; }
+
+  input.cell-input {
+    border: 1px solid transparent; border-radius: 4px;
+    padding: 2px 4px; font-size: 12px; background: transparent;
+    width: 100%; min-width: 70px;
+  }
+  input.cell-input:focus { border-color: var(--blue); outline: none; background: #fff; }
+
+  /* Empty day placeholder */
+  .day-empty {
+    padding: 10px 20px;
+    color: var(--gray); font-size: 12px; font-style: italic;
+  }
+
+  /* Occurrence notification email chip box */
+  .occ-email-box {
+    display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 8px; background: #fff; min-height: 34px; cursor: text;
+  }
+  .occ-actions { margin-left: auto; display: flex; gap: 4px; flex-shrink: 0; }
+  .occ-email-box:focus-within { border-color: var(--blue); }
+  .occ-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #EFF6FF; color: #1D4ED8;
+    font-size: 11px; padding: 2px 6px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .occ-chip-rm {
+    background: none; border: none; cursor: pointer;
+    color: #93C5FD; font-size: 12px; padding: 0; line-height: 1;
+  }
+  .occ-chip-rm:hover { color: #1D4ED8; }
+  .occ-email-input {
+    border: none; outline: none; font-size: 12px;
+    flex: 1; min-width: 120px; background: transparent; color: #374151;
+  }
+  .occ-action-btn {
+    font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 5px;
+    border: 1px solid var(--border); background: #fff; cursor: pointer; color: #374151;
+    white-space: nowrap;
+  }
+  .occ-action-btn:hover { background: var(--page-bg); }
+  .occ-action-btn--email { background: var(--ib-bg); color: var(--ib-text); border-color: #BFDBFE; }
+  .occ-action-btn--email:hover { background: #DBEAFE; }
+  .occ-action-btn.copied { background: #D1FAE5; color: #065F46; border-color: #A7F3D0; }
+
+  /* Lane info dropdown selects */
+  .lv-select {
+    font-size: 13px; font-weight: 500; color: #111827;
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 3px 6px; background: #fff; cursor: pointer;
+    max-width: 100%;
+  }
+  .lv-select:focus { outline: none; border-color: var(--blue); }
+  .lv-select-inline {
+    font-size: 12px; color: #111827;
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 4px; background: #fff; cursor: pointer;
+  }
+  .lv-select-inline:focus { outline: none; border-color: var(--blue); }
+
+  /* ─── COLLAPSED STATE ──────────────────────────────────────── */
+  .day-body.collapsed { display: none; }
+
+  /* ─── SCROLLBAR ────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
+<div class="topbar-wrap">
+<header class="topbar">
+  <div class="topbar-brand">
+    F-150 Red Team
+    <span>Lane Coordination Dashboard</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-user">Trey Elliott</span>
+    <button class="btn-logout">Log out</button>
+  </div>
+</header>
+<div class="topbar-accent"></div>
+</div>
+
+<div class="app-body">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-search">
+      <input type="text" placeholder="Search lanes…" />
+    </div>
+
+    <!-- Rep: Austin Waddell -->
+    <div class="rep-group">
+      <div class="rep-header">Austin Waddell</div>
+      <div class="lane-item active" onclick="selectLane(this)">
+        Boyne City → Dearborn
+        <div class="lane-gsdb">G25AC · A64RB · AP05A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Bowling Green OH → KC
+        <div class="lane-gsdb">T425S · AP06A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        El Paso → Sellersburg
+        <div class="lane-gsdb">S3WHZ · JASLA</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Franklin OH → Chicago
+        <div class="lane-gsdb">A451Q · AP03H</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Grand Rapids MI → Chicago
+        <div class="lane-gsdb">CZQQC · AP03H</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Howell MI → Kentucky Truck
+        <div class="lane-gsdb">F7BFC · AP10A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Jackson TN → KTP
+        <div class="lane-gsdb">F150B · JASLA · AP10A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Lebanon KY → KC
+        <div class="lane-gsdb">GB9DA · AP06A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Lockport IL → KC
+        <div class="lane-gsdb">K6J5F · CE4BY</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Louisville KY → Chicago
+        <div class="lane-gsdb">A451S · AP03A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Olive Branch → Chicago
+        <div class="lane-gsdb">DMLRW · AP03A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Veedersburg IN → BPOH
+        <div class="lane-gsdb">Q9NGD · EF01A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Ypsilanti MI → Louisville
+        <div class="lane-gsdb">EE01A · AP10A</div>
+      </div>
+    </div>
+
+    <!-- Rep: Blake Burris -->
+    <div class="rep-group">
+      <div class="rep-header">Blake Burris</div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Bloomsburg PA → Louisville
+        <div class="lane-gsdb">G0M4S · JASLA</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Bluffton OH → Detroit
+        <div class="lane-gsdb">M183B · FAALF</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Charleston SC → Louisville
+        <div class="lane-gsdb">AYDYA · AP10A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Cheraw SC → Lima OH
+        <div class="lane-gsdb">IO22Z · IO22B · EFO6A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Holland MI → KC (A715U)
+        <div class="lane-gsdb">A715U · CE4BY</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Holland MI → KC (L012F)
+        <div class="lane-gsdb">L012F · CE4BM</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Hudson IN → Detroit
+        <div class="lane-gsdb">M450J · FAALF</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Louisville KY → SVOH
+        <div class="lane-gsdb">CR2CF · AP04A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        McAllen TX → Kentucky
+        <div class="lane-gsdb">B4A7E · JASLA</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Mt Sterling KY → Louisville
+        <div class="lane-gsdb">S840M · AP10A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Niles MI → CAN
+        <div class="lane-gsdb">G8DLB · GZ7WJ</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Parma OH → Lima OH
+        <div class="lane-gsdb">EZAYE · F6B0A · EF06A</div>
+      </div>
+      <div class="lane-item" onclick="selectLane(this)">
+        Wyoming MI → Louisville
+        <div class="lane-gsdb">CZQQC · AP10A</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- ── SECTION 1: LANE INFO (TOP) ──────────────────────── -->
+    <div class="lane-info-card">
+      <div class="lane-info-header" onclick="toggleLaneInfo()">
+        <div class="lane-title-block">
+          <div class="lane-full-name">Boyne City → Dearborn</div>
+          <div class="lane-gsdb-codes">G25AC &nbsp;·&nbsp; A64RB &nbsp;/&nbsp; AP05A</div>
+        </div>
+        <div class="lane-badges">
+          <button class="li-collapse-btn" id="li-toggle-btn">Hide ▲</button>
+        </div>
+      </div>
+
+      <div class="li-body" id="li-body">
+      <!-- ── Section 1: Rates & Frequency ── -->
+      <div class="li-section">
+        <div class="li-rates">
+          <div class="li-field"><label>Weekly Frequency</label><div class="lv">5 IB &nbsp;·&nbsp; 5 OB</div></div>
+          <div class="li-field"><label>Stop Charge</label><div class="lv">$50.00 / additional stop (IB only)</div></div>
+          <div class="li-field"><label>Backup Admin</label><select class="lv-select"><option>Tommy</option><option>Austin</option><option>Blake</option><option>Trey</option></select></div>
+          <div class="li-field"><label>Transit Hours</label><div class="lv">7 hrs</div></div>
+          <div class="li-field"><label>IB Linehaul</label><div class="lv">$510.00</div></div>
+          <div class="li-field"><label>OB Linehaul</label><div class="lv">$510.00</div></div>
+          <div class="li-field"><label>IB FSC</label><div class="lv calc">Calculated from mileage + Main rate</div></div>
+          <div class="li-field"><label>OB FSC</label><div class="lv calc">Calculated from mileage + Main rate</div></div>
+        </div>
+      </div>
+
+      <!-- ── Section 2: Locations ── -->
+      <div class="li-section">
+        <div class="li-table-scroll">
+        <table class="li-locs">
+          <thead>
+            <tr>
+              <th>GSDB Code</th>
+              <th>Name</th>
+              <th>Address</th>
+              <th>City / State / Zip</th>
+              <th>Live / Drop</th>
+              <th>Dock</th>
+              <th>Ford Miles</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="gsdb-tag">G25AC</span></td>
+              <td>LexaMar Corporation</td>
+              <td>100 Lexamar Dr</td>
+              <td>Boyne City, MI 49712</td>
+              <td><span class="live-badge">Live</span></td>
+              <td>—</td>
+              <td>294.6 mi</td>
+            </tr>
+            <tr>
+              <td><span class="gsdb-tag">A64RB</span> <span style="font-size:10px;color:var(--gray)">Stop 1</span></td>
+              <td>Hutchinson</td>
+              <td>600 7th St</td>
+              <td>Cadillac, MI 49601</td>
+              <td><span class="live-badge">Live</span></td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><span class="gsdb-tag">AP05A</span></td>
+              <td>Comprehensive Logistics</td>
+              <td>6000 Wyoming Ave</td>
+              <td>Detroit, MI 48210</td>
+              <td><span class="live-badge">Live</span></td>
+              <td>—</td>
+              <td>294.6 mi</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- ── Section 3: Routes & Schedule ── -->
+      <div class="li-section">
+        <div class="li-table-scroll">
+        <table class="li-routes">
+          <thead>
+            <tr>
+              <th>IB Route(s)</th>
+              <th>OB Route(s)</th>
+              <th>PU Days</th>
+              <th>PU Times</th>
+              <th>Stop 1 Days</th>
+              <th>Stop 1 Times</th>
+              <th>DEL Days</th>
+              <th>DEL Times</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>057336</td>
+              <td>DT7336</td>
+              <td class="days">M T W R F</td>
+              <td>12:00</td>
+              <td class="days">M T W R F</td>
+              <td>14:45</td>
+              <td class="days">M T W R F</td>
+              <td>20:15</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- ── Section 4: Lane Meta ── -->
+      <div class="li-section">
+        <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+          <div class="li-field" style="flex-shrink:0;">
+            <label>Lane Occurrences</label>
+            <select class="lv-select"><option>Boyne City MI–AP05A Late PU</option><option>G25AC Early Close</option><option>Weather Delay</option><option>—</option></select>
+            <div style="display:flex; gap:5px; margin-top:6px;">
+              <button class="occ-action-btn" onclick="copyOccEmails(this)" title="Copy to clipboard">📋 Copy</button>
+              <button class="occ-action-btn occ-action-btn--email" onclick="launchOccEmail(this)" title="Open in email client">✉ Email</button>
+            </div>
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:5px;">Occurrence Notification Emails</div>
+            <div class="occ-email-box" id="occ-email-box">
+              <span class="occ-chip">monica.gomez@penske.com <button class="occ-chip-rm" tabindex="-1">×</button></span>
+              <span class="occ-chip">Bob.Boberson@g25ac.com <button class="occ-chip-rm" tabindex="-1">×</button></span>
+              <input class="occ-email-input" type="text" placeholder="Add email…" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 5: Contacts ── -->
+      <div class="li-section">
+        <div class="li-table-scroll">
+        <div class="li-contacts">
+
+          <!-- Carrier Info -->
+          <div class="li-contact-col">
+            <h4>Carrier Info</h4>
+            <div class="li-contact-row"><span class="lk">Name</span><span class="ll">One Nation</span></div>
+            <div class="li-contact-row"><span class="lk">MC#</span><span class="ll">00020082</span></div>
+            <div class="li-contact-row"><span class="lk">POC</span><span class="ll"><select class="lv-select-inline"><option>Haroon</option><option>Ali</option><option>Other</option></select></span></div>
+            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:3137431451">313-743-1451</a></span></div>
+            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:onenation396@gmail.com">onenation396@gmail.com</a></span></div>
+            <div class="li-rates-sub">
+              <div class="li-contact-row"><span class="lk">IB Rate</span><span class="ll">$575.00</span></div>
+              <div class="li-contact-row"><span class="lk">OB Rate</span><span class="ll">$575.00</span></div>
+              <div class="li-contact-row"><span class="lk">Rate Upd.</span><span class="ll">—</span></div>
+              <div class="li-contact-row"><span class="lk">Trailers</span><span class="ll">9</span></div>
+            </div>
+          </div>
+
+          <!-- Supplier Info + Plant Info -->
+          <div class="li-contact-col" style="padding-left:16px">
+            <h4>Supplier Info</h4>
+            <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline"><option>Bob Boberson</option><option>Jane Smith</option><option>Other</option></select></span></div>
+            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:5555551212">555-555-1212</a></span></div>
+            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:Bob.Boberson@g25ac.com">Bob.Boberson@g25ac.com</a></span></div>
+            <div class="li-rates-sub">
+              <h4 style="margin-bottom:6px;">Plant Info</h4>
+              <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline"><option>Monica Gomez</option><option>John Davis</option><option>Other</option></select></span></div>
+              <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:7344672023">734-467-2023</a></span></div>
+              <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:monica.gomez@penske.com">monica.gomez@penske.com</a></span></div>
+            </div>
+          </div>
+
+        </div>
+        </div>
+      </div>
+
+      <!-- ── Section 6: Notes ── -->
+      <div class="li-section">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Lane Notes</div>
+            <textarea class="li-notes-area" placeholder="General lane notes…"></textarea>
+          </div>
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Carrier Notes</div>
+            <textarea class="li-notes-area" placeholder="Carrier-specific notes…"></textarea>
+          </div>
+        </div>
+      </div>
+      </div><!-- /li-body -->
+    </div><!-- /lane-info-card -->
+
+
+    <!-- ── SECTION 2: SCHEDULE (BOTTOM) ────────────────────── -->
+    <div class="schedule-card">
+
+      <div class="schedule-toolbar">
+        <div class="week-nav">
+          <button class="btn-week" title="Previous week">‹</button>
+          <span class="week-label">Week of Apr 12 – 18, 2026</span>
+          <button class="btn-week" title="Next week">›</button>
+          <button class="btn-today">Today</button>
+        </div>
+        <div class="schedule-toolbar-right">
+          <select class="status-filter">
+            <option value="">All statuses</option>
+            <option>Active</option>
+            <option>Booked</option>
+            <option>In Transit</option>
+            <option>At Delivery</option>
+            <option>Delivered</option>
+            <option>Canceled</option>
+            <option>TONU</option>
+            <option>Brokered</option>
+          </select>
+          <button class="btn-add-row">+ Add Row</button>
+        </div>
+      </div>
+
+      <!-- ── MONDAY ── -->
+      <div class="day-section">
+        <div class="day-header" onclick="toggleDay(this)">
+          <span class="day-name">Monday</span>
+          <span class="day-date">April 13</span>
+          <span class="day-count">10 loads</span>
+          <span class="day-chevron">▾</span>
+        </div>
+        <div class="day-body">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead>
+                <tr>
+                  <th style="width:4px"></th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Time (ET)</th>
+                  <th>Route #</th>
+                  <th>Pro #</th>
+                  <th>Tracking #</th>
+                  <th>Ship #</th>
+                  <th>Driver</th>
+                  <th>Driver Cell</th>
+                  <th>Trailer #</th>
+                  <th>Trailer Status</th>
+                  <th>Truck #</th>
+                  <th>Sekula Pro #</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="monday-tbody">
+                <!-- 10 routes, each 2 rows (pickup + delivery) -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TUESDAY ── -->
+      <div class="day-section">
+        <div class="day-header" onclick="toggleDay(this)">
+          <span class="day-name">Tuesday</span>
+          <span class="day-date">April 14</span>
+          <span class="day-count">10 loads</span>
+          <span class="day-chevron">▾</span>
+        </div>
+        <div class="day-body">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead>
+                <tr>
+                  <th style="width:4px"></th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Time (ET)</th>
+                  <th>Route #</th>
+                  <th>Pro #</th>
+                  <th>Tracking #</th>
+                  <th>Ship #</th>
+                  <th>Driver</th>
+                  <th>Driver Cell</th>
+                  <th>Trailer #</th>
+                  <th>Trailer Status</th>
+                  <th>Truck #</th>
+                  <th>Sekula Pro #</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="route-top">
+                  <td class="leg-ind"></td>
+                  <td><select class="status-sel status-Active"><option>Active</option></select></td>
+                  <td class="date-val">Apr 14</td>
+                  <td class="time-val">—</td>
+                  <td><span class="route-num">—</span></td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td><input class="cell-input" placeholder="Note…"></td>
+                </tr>
+                <tr class="route-bot">
+                  <td class="leg-ind"></td>
+                  <td><select class="status-sel status-Active"><option>Active</option></select></td>
+                  <td class="date-val">Apr 15</td>
+                  <td class="time-val">—</td>
+                  <td><span class="route-num">—</span></td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
+                  <td class="empty-cell">—</td><td><input class="cell-input" placeholder="Note…"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WEDNESDAY ── -->
+      <div class="day-section">
+        <div class="day-header" onclick="toggleDay(this)">
+          <span class="day-name">Wednesday</span>
+          <span class="day-date">April 15</span>
+          <span class="day-count">10 loads</span>
+          <span class="day-chevron collapsed">▸</span>
+        </div>
+        <div class="day-body collapsed">
+          <div class="day-empty">Expand to view schedule</div>
+        </div>
+      </div>
+
+      <!-- ── THURSDAY ── -->
+      <div class="day-section">
+        <div class="day-header" onclick="toggleDay(this)">
+          <span class="day-name">Thursday</span>
+          <span class="day-date">April 16</span>
+          <span class="day-count">10 loads</span>
+          <span class="day-chevron collapsed">▸</span>
+        </div>
+        <div class="day-body collapsed">
+          <div class="day-empty">Expand to view schedule</div>
+        </div>
+      </div>
+
+      <!-- ── FRIDAY ── -->
+      <div class="day-section">
+        <div class="day-header" onclick="toggleDay(this)">
+          <span class="day-name">Friday</span>
+          <span class="day-date">April 17</span>
+          <span class="day-count">10 loads</span>
+          <span class="day-chevron collapsed">▸</span>
+        </div>
+        <div class="day-body collapsed">
+          <div class="day-empty">Expand to view schedule</div>
+        </div>
+      </div>
+
+    </div><!-- /schedule-card -->
+  </main>
+</div>
+
+<script>
+// ─── Monday route data (from Sekula Woodhaven-KC xlsx) ──────────
+const mondayRoutes = [
+  { route: '067044', del: 'KC7044', pickupTime: '0200', delTime: '0500', status: 'Active' },
+  { route: '067022', del: 'KC7022', pickupTime: '0300', delTime: '0700', status: 'Active' },
+  { route: '067810', del: 'KC7810', pickupTime: '0400', delTime: '0700', status: 'In Transit' },
+  { route: '067812', del: 'KC7812', pickupTime: '0500', delTime: '0800', status: 'In Transit' },
+  { route: '067176', del: 'KC7176', pickupTime: '0600', delTime: '0900', status: 'At Delivery' },
+  { route: '067177', del: 'KC7177', pickupTime: '0900', delTime: '1200', status: 'Active' },
+  { route: '067046', del: 'KC7046', pickupTime: '1200', delTime: '1500', status: 'Active' },
+  { route: '067813', del: 'KC7813', pickupTime: '1300', delTime: '1600', status: 'Active' },
+  { route: '067045', del: 'KC7045', pickupTime: '1600', delTime: '1900', status: 'Booked' },
+  { route: '067012', del: 'KC7012', pickupTime: '1700', delTime: '2000', status: 'Booked' },
+];
+
+const trailerStatuses = ['Loaded', 'Empty to Ceva', 'Delivery At Ceva – Reload Same Trailer'];
+
+const statusClasses = {
+  'Active':      'status-Active',
+  'Booked':      'status-Booked',
+  'Canceled':    'status-Canceled',
+  'In Transit':  'status-InTransit',
+  'At Shipper':  'status-AtShipper',
+  'At Delivery': 'status-AtDelivery',
+  'At Midwest':  'status-AtMidwest',
+  'Delivered':   'status-Delivered',
+  'TONU':        'status-TONU',
+  'Brokered':    'status-Brokered',
+};
+
+const allStatuses = Object.keys(statusClasses);
+
+function makeStatusSelect(current) {
+  const cls = statusClasses[current] || 'status-Active';
+  return `<select class="status-sel ${cls}" onchange="onStatusChange(this)">
+    ${allStatuses.map(s => `<option${s === current ? ' selected' : ''}>${s}</option>`).join('')}
+  </select>`;
+}
+
+function makeTrailerStatusSelect(current) {
+  return `<select class="status-sel" style="background:#F9FAFB;color:#374151;font-weight:500">
+    <option value="">—</option>
+    ${trailerStatuses.map(s => `<option>${s}</option>`).join('')}
+  </select>`;
+}
+
+function buildMondayTable() {
+  const tbody = document.getElementById('monday-tbody');
+  let html = '';
+  mondayRoutes.forEach((r, i) => {
+    const topCls = statusClasses[r.status] || 'status-Active';
+    // Pickup row (IB leg)
+    html += `
+    <tr class="route-top">
+      <td class="leg-ind" title="Pickup leg"></td>
+      <td>${makeStatusSelect(r.status)}</td>
+      <td class="date-val">Apr 13</td>
+      <td class="time-val">${r.pickupTime}</td>
+      <td><span class="route-num">${r.route}</span></td>
+      <td><input class="cell-input" value="" placeholder="—" style="min-width:80px"></td>
+      <td><input class="cell-input" value="" placeholder="—" style="min-width:90px"></td>
+      <td><input class="cell-input" value="${r.route}/" style="min-width:80px"></td>
+      <td><input class="cell-input" placeholder="Driver name" style="min-width:100px"></td>
+      <td><input class="cell-input" placeholder="(###) ###-####" style="min-width:100px"></td>
+      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
+      <td>${makeTrailerStatusSelect('')}</td>
+      <td><input class="cell-input" placeholder="—" style="min-width:60px"></td>
+      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
+      <td><input class="cell-input" placeholder="Note…" style="min-width:160px"></td>
+    </tr>`;
+    // Delivery row (OB leg / KC delivery)
+    html += `
+    <tr class="route-bot">
+      <td class="leg-ind" title="Delivery leg"></td>
+      <td>${makeStatusSelect(r.status)}</td>
+      <td class="date-val">Apr 14</td>
+      <td class="time-val">${r.delTime}</td>
+      <td><span class="route-num">${r.del}</span></td>
+      <td><input class="cell-input" value="" placeholder="—" style="min-width:80px"></td>
+      <td><input class="cell-input" value="" placeholder="—" style="min-width:90px"></td>
+      <td><input class="cell-input" value="${r.del}/" style="min-width:80px"></td>
+      <td><input class="cell-input" placeholder="Driver name" style="min-width:100px"></td>
+      <td><input class="cell-input" placeholder="(###) ###-####" style="min-width:100px"></td>
+      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
+      <td>${makeTrailerStatusSelect('')}</td>
+      <td><input class="cell-input" placeholder="—" style="min-width:60px"></td>
+      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
+      <td><input class="cell-input" placeholder="Note…" style="min-width:160px"></td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function onStatusChange(sel) {
+  const cls = statusClasses[sel.value] || 'status-Active';
+  sel.className = 'status-sel ' + cls;
+}
+
+function toggleDay(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.day-chevron');
+  body.classList.toggle('collapsed');
+  chevron.classList.toggle('collapsed');
+  chevron.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+}
+
+function selectLane(el) {
+  document.querySelectorAll('.lane-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function getOccEmails() {
+  const box = document.getElementById('occ-email-box');
+  return [...box.querySelectorAll('.occ-chip')].map(c => c.textContent.replace('×','').trim());
+}
+
+function copyOccEmails(btn) {
+  const emails = getOccEmails();
+  if (!emails.length) return;
+  navigator.clipboard.writeText(emails.join('; ')).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function launchOccEmail(btn) {
+  const emails = getOccEmails();
+  const occurrence = document.querySelector('#li-body .lv-select')?.value || '';
+  const lane = document.querySelector('.lane-full-name')?.textContent || '';
+  const to = emails.join(';');
+  const subject = encodeURIComponent(`Lane Occurrence: ${lane} – ${occurrence}`);
+  window.location.href = `mailto:${to}?subject=${subject}`;
+}
+
+function toggleLaneInfo() {
+  const body = document.getElementById('li-body');
+  const btn  = document.getElementById('li-toggle-btn');
+  body.classList.toggle('collapsed');
+  btn.textContent = body.classList.contains('collapsed') ? 'Show ▼' : 'Hide ▲';
+}
+
+buildMondayTable();
+</script>
+</body>
+</html>
