@@ -995,7 +995,13 @@
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+// ─── Supabase config ─────────────────────────────────────────────
+const SUPABASE_URL = 'https://paslrhwqttvlicgkwirr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc2xyaHdxdHR2bGljZ2t3aXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODQ1NjIsImV4cCI6MjA5MTY2MDU2Mn0.GH7zepxp3dy5rP49StnS-hNlayucfQFWSxm_2FcsSmk';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ─── Monday route data (from Sekula Woodhaven-KC xlsx) ──────────
 const mondayRoutes = [
   { route: '067044', del: 'KC7044', pickupTime: '0200', delTime: '0500', status: 'Active' },
