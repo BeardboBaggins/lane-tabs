@@ -763,8 +763,6 @@
           <div style="flex:1; min-width:220px;">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:5px;">Occurrence Notification Emails</div>
             <div class="occ-email-box" id="occ-email-box">
-              <span class="occ-chip">monica.gomez@penske.com <button class="occ-chip-rm" tabindex="-1">×</button></span>
-              <span class="occ-chip">Bob.Boberson@g25ac.com <button class="occ-chip-rm" tabindex="-1">×</button></span>
               <input class="occ-email-input" type="text" placeholder="Add email…" />
             </div>
           </div>
@@ -815,11 +813,11 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Lane Notes</div>
-            <textarea class="li-notes-area" placeholder="General lane notes…"></textarea>
+            <textarea id="lane-notes-ta" class="li-notes-area" placeholder="General lane notes…" oninput="onNotesInput()"></textarea>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Carrier Notes</div>
-            <textarea class="li-notes-area" placeholder="Carrier-specific notes…"></textarea>
+            <textarea id="carrier-notes-ta" class="li-notes-area" placeholder="Carrier-specific notes…" oninput="onNotesInput()"></textarea>
           </div>
         </div>
       </div>
@@ -849,7 +847,7 @@
             <option>TONU</option>
             <option>Brokered</option>
           </select>
-          <button class="btn-add-row">+ Add Row</button>
+          <button class="btn-add-row" onclick="addLoadRow()">+ Add Row</button>
         </div>
       </div>
 
@@ -1002,19 +1000,29 @@ const SUPABASE_URL = 'https://paslrhwqttvlicgkwirr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc2xyaHdxdHR2bGljZ2t3aXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODQ1NjIsImV4cCI6MjA5MTY2MDU2Mn0.GH7zepxp3dy5rP49StnS-hNlayucfQFWSxm_2FcsSmk';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─── Monday route data (from Sekula Woodhaven-KC xlsx) ──────────
-const mondayRoutes = [
-  { route: '067044', del: 'KC7044', pickupTime: '0200', delTime: '0500', status: 'Active' },
-  { route: '067022', del: 'KC7022', pickupTime: '0300', delTime: '0700', status: 'Active' },
-  { route: '067810', del: 'KC7810', pickupTime: '0400', delTime: '0700', status: 'In Transit' },
-  { route: '067812', del: 'KC7812', pickupTime: '0500', delTime: '0800', status: 'In Transit' },
-  { route: '067176', del: 'KC7176', pickupTime: '0600', delTime: '0900', status: 'At Delivery' },
-  { route: '067177', del: 'KC7177', pickupTime: '0900', delTime: '1200', status: 'Active' },
-  { route: '067046', del: 'KC7046', pickupTime: '1200', delTime: '1500', status: 'Active' },
-  { route: '067813', del: 'KC7813', pickupTime: '1300', delTime: '1600', status: 'Active' },
-  { route: '067045', del: 'KC7045', pickupTime: '1600', delTime: '1900', status: 'Booked' },
-  { route: '067012', del: 'KC7012', pickupTime: '1700', delTime: '2000', status: 'Booked' },
-];
+// ─── State ───────────────────────────────────────────────────────
+let currentLaneId  = 'b1000000-0000-0000-0000-000000000001';
+let currentWeekStart = getMondayISO(new Date());
+
+// ─── Helpers ─────────────────────────────────────────────────────
+function getMondayISO(d) {
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const mon = new Date(d);
+  mon.setDate(diff);
+  return mon.toISOString().split('T')[0];
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [,m,d] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[+m-1] + ' ' + +d;
+}
+
+function debounce(fn, ms) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
 
 const trailerStatuses = ['Loaded', 'Empty to Ceva', 'Delivery At Ceva – Reload Same Trailer'];
 
@@ -1047,51 +1055,70 @@ function makeTrailerStatusSelect(current) {
   </select>`;
 }
 
-function buildMondayTable() {
+// ─── Schedule ─────────────────────────────────────────────────────
+async function loadSchedule(laneId, weekStart) {
+  const { data, error } = await db.from('loads').select('*')
+    .eq('lane_id', laneId).eq('week_start', weekStart).order('created_at');
   const tbody = document.getElementById('monday-tbody');
-  let html = '';
-  mondayRoutes.forEach((r, i) => {
-    const topCls = statusClasses[r.status] || 'status-Active';
-    // Pickup row (IB leg)
-    html += `
-    <tr class="route-top">
-      <td class="leg-ind" title="Pickup leg"></td>
-      <td>${makeStatusSelect(r.status)}</td>
-      <td class="date-val">Apr 13</td>
-      <td class="time-val">${r.pickupTime}</td>
-      <td><span class="route-num">${r.route}</span></td>
-      <td><input class="cell-input" value="" placeholder="—" style="min-width:80px"></td>
-      <td><input class="cell-input" value="" placeholder="—" style="min-width:90px"></td>
-      <td><input class="cell-input" value="${r.route}/" style="min-width:80px"></td>
-      <td><input class="cell-input" placeholder="Driver name" style="min-width:100px"></td>
-      <td><input class="cell-input" placeholder="(###) ###-####" style="min-width:100px"></td>
-      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
-      <td>${makeTrailerStatusSelect('')}</td>
-      <td><input class="cell-input" placeholder="—" style="min-width:60px"></td>
-      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
-      <td><input class="cell-input" placeholder="Note…" style="min-width:160px"></td>
-    </tr>`;
-    // Delivery row (OB leg / KC delivery)
-    html += `
-    <tr class="route-bot">
-      <td class="leg-ind" title="Delivery leg"></td>
-      <td>${makeStatusSelect(r.status)}</td>
-      <td class="date-val">Apr 14</td>
-      <td class="time-val">${r.delTime}</td>
-      <td><span class="route-num">${r.del}</span></td>
-      <td><input class="cell-input" value="" placeholder="—" style="min-width:80px"></td>
-      <td><input class="cell-input" value="" placeholder="—" style="min-width:90px"></td>
-      <td><input class="cell-input" value="${r.del}/" style="min-width:80px"></td>
-      <td><input class="cell-input" placeholder="Driver name" style="min-width:100px"></td>
-      <td><input class="cell-input" placeholder="(###) ###-####" style="min-width:100px"></td>
-      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
-      <td>${makeTrailerStatusSelect('')}</td>
-      <td><input class="cell-input" placeholder="—" style="min-width:60px"></td>
-      <td><input class="cell-input" placeholder="—" style="min-width:70px"></td>
-      <td><input class="cell-input" placeholder="Note…" style="min-width:160px"></td>
-    </tr>`;
+  tbody.innerHTML = '';
+  if (data && data.length) {
+    data.forEach(row => tbody.appendChild(makeLoadRow(row)));
+  }
+}
+
+function makeLoadRow(row) {
+  const isPickup = row.leg === 'pickup';
+  const tr = document.createElement('tr');
+  tr.className = isPickup ? 'route-top' : 'route-bot';
+  tr.dataset.id = row.id;
+  const fields = [
+    ['pro_number','—',80],['tracking_number','—',90],['ship_number','—',80],
+    ['driver_name','Driver name',100],['driver_cell','(###) ###-####',100],
+    ['trailer_number','—',70],['truck_number','—',60],['sekula_pro','—',70],['notes','Note…',160]
+  ];
+  tr.innerHTML = `
+    <td class="leg-ind" title="${isPickup?'Pickup':'Delivery'} leg"></td>
+    <td>${makeStatusSelect(row.status || 'Active')}</td>
+    <td class="date-val">${fmtDate(row.load_date)}</td>
+    <td><input class="cell-input" data-field="time_et" value="${row.time_et||''}" placeholder="—" style="min-width:60px" onchange="updateLoad(this,'${row.id}')"></td>
+    <td><input class="cell-input" data-field="route_number" value="${row.route_number||''}" placeholder="—" style="min-width:80px" onchange="updateLoad(this,'${row.id}')"></td>
+    ${fields.slice(0,3).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+    ${fields.slice(3,5).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+    ${fields.slice(5,6).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+    <td>${makeTrailerStatusSelect(row.trailer_status||'')}</td>
+    ${fields.slice(6).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+  `;
+  // Wire status select
+  tr.querySelector('.status-sel').addEventListener('change', async function() {
+    onStatusChange(this);
+    await db.from('loads').update({ status: this.value, updated_at: new Date().toISOString() }).eq('id', row.id);
   });
-  tbody.innerHTML = html;
+  // Wire trailer status select
+  const tsSelect = tr.querySelectorAll('select')[1];
+  if (tsSelect) {
+    tsSelect.addEventListener('change', async function() {
+      await db.from('loads').update({ trailer_status: this.value, updated_at: new Date().toISOString() }).eq('id', row.id);
+    });
+  }
+  return tr;
+}
+
+const updateLoad = debounce(async (input, loadId) => {
+  await db.from('loads').update({ [input.dataset.field]: input.value, updated_at: new Date().toISOString() }).eq('id', loadId);
+}, 600);
+
+async function addLoadRow() {
+  const nextDay = new Date(currentWeekStart + 'T00:00:00');
+  nextDay.setDate(nextDay.getDate() + 1);
+  const delDate = nextDay.toISOString().split('T')[0];
+  const base = { lane_id: currentLaneId, week_start: currentWeekStart, status: 'Active' };
+  const [{ data: pu }, { data: dl }] = await Promise.all([
+    db.from('loads').insert({ ...base, leg: 'pickup',   load_date: currentWeekStart, is_ib: true  }).select().single(),
+    db.from('loads').insert({ ...base, leg: 'delivery', load_date: delDate,          is_ib: false }).select().single(),
+  ]);
+  const tbody = document.getElementById('monday-tbody');
+  if (pu) tbody.appendChild(makeLoadRow(pu));
+  if (dl) tbody.appendChild(makeLoadRow(dl));
 }
 
 function onStatusChange(sel) {
@@ -1112,9 +1139,48 @@ function selectLane(el) {
   el.classList.add('active');
 }
 
-function getOccEmails() {
+// ─── Occurrence Emails ────────────────────────────────────────────
+async function loadOccurrenceEmails(laneId) {
+  const { data } = await db.from('occurrence_emails').select('*').eq('lane_id', laneId);
   const box = document.getElementById('occ-email-box');
-  return [...box.querySelectorAll('.occ-chip')].map(c => c.textContent.replace('×','').trim());
+  box.querySelectorAll('.occ-chip').forEach(c => c.remove());
+  const input = box.querySelector('.occ-email-input');
+  (data || []).forEach(row => box.insertBefore(makeEmailChip(row), input));
+}
+
+function makeEmailChip(row) {
+  const span = document.createElement('span');
+  span.className = 'occ-chip';
+  span.dataset.id = row.id;
+  span.innerHTML = `${row.email} <button class="occ-chip-rm" tabindex="-1">×</button>`;
+  span.querySelector('.occ-chip-rm').onclick = () => removeOccEmail(span);
+  return span;
+}
+
+async function removeOccEmail(chip) {
+  await db.from('occurrence_emails').delete().eq('id', chip.dataset.id);
+  chip.remove();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.occ-email-input').addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    const input = e.target;
+    const email = input.value.trim();
+    if (!email) return;
+    const { data } = await db.from('occurrence_emails')
+      .insert({ lane_id: currentLaneId, email }).select().single();
+    if (data) {
+      const box = document.getElementById('occ-email-box');
+      box.insertBefore(makeEmailChip(data), input);
+      input.value = '';
+    }
+  });
+});
+
+function getOccEmails() {
+  return [...document.querySelectorAll('#occ-email-box .occ-chip')]
+    .map(c => c.firstChild.textContent.trim());
 }
 
 function copyOccEmails(btn) {
@@ -1127,14 +1193,30 @@ function copyOccEmails(btn) {
   });
 }
 
-function launchOccEmail(btn) {
+function launchOccEmail() {
   const emails = getOccEmails();
   const occurrence = document.querySelector('#li-body .lv-select')?.value || '';
   const lane = document.querySelector('.lane-full-name')?.textContent || '';
-  const to = emails.join(';');
-  const subject = encodeURIComponent(`Lane Occurrence: ${lane} – ${occurrence}`);
-  window.location.href = `mailto:${to}?subject=${subject}`;
+  window.location.href = `mailto:${emails.join(';')}?subject=${encodeURIComponent(`Lane Occurrence: ${lane} – ${occurrence}`)}`;
 }
+
+// ─── Lane Notes ───────────────────────────────────────────────────
+async function loadLaneNotes(laneId) {
+  const { data } = await db.from('lane_notes').select('*').eq('lane_id', laneId).maybeSingle();
+  document.getElementById('lane-notes-ta').value    = data?.lane_notes    || '';
+  document.getElementById('carrier-notes-ta').value = data?.carrier_notes || '';
+}
+
+const saveNotes = debounce(async () => {
+  await db.from('lane_notes').upsert({
+    lane_id:       currentLaneId,
+    lane_notes:    document.getElementById('lane-notes-ta').value,
+    carrier_notes: document.getElementById('carrier-notes-ta').value,
+    updated_at:    new Date().toISOString(),
+  }, { onConflict: 'lane_id' });
+}, 1000);
+
+function onNotesInput() { saveNotes(); }
 
 function toggleLaneInfo() {
   const body = document.getElementById('li-body');
@@ -1143,7 +1225,16 @@ function toggleLaneInfo() {
   btn.textContent = body.classList.contains('collapsed') ? 'Show ▼' : 'Hide ▲';
 }
 
-buildMondayTable();
+// ─── Init ─────────────────────────────────────────────────────────
+async function initPage() {
+  await Promise.all([
+    loadOccurrenceEmails(currentLaneId),
+    loadLaneNotes(currentLaneId),
+    loadSchedule(currentLaneId, currentWeekStart),
+  ]);
+}
+
+initPage();
 </script>
 </body>
 </html>
