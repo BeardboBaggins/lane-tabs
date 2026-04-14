@@ -493,6 +493,17 @@
   /* ─── COLLAPSED STATE ──────────────────────────────────────── */
   .day-body.collapsed { display: none; }
 
+  /* ─── DAY ADD BUTTON ────────────────────────────────────────── */
+  .day-add-btn {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: var(--blue); color: #fff; border: none; cursor: pointer;
+    font-weight: 700; opacity: .75; flex-shrink: 0;
+  }
+  .day-add-btn:hover { opacity: 1; }
+
+  /* ─── SIDEBAR LOADING ───────────────────────────────────────── */
+  .sidebar-loading { padding: 18px 16px; font-size: 12px; color: var(--gray); }
+
   /* ─── SCROLLBAR ────────────────────────────────────────────── */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -521,122 +532,10 @@
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
   <aside class="sidebar">
     <div class="sidebar-search">
-      <input type="text" placeholder="Search lanes…" />
+      <input type="text" placeholder="Search lanes…" oninput="filterSidebar(this.value)" />
     </div>
 
-    <!-- Rep: Austin Waddell -->
-    <div class="rep-group">
-      <div class="rep-header">Austin Waddell</div>
-      <div class="lane-item active" onclick="selectLane(this)">
-        Boyne City → Dearborn
-        <div class="lane-gsdb">G25AC · A64RB · AP05A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Bowling Green OH → KC
-        <div class="lane-gsdb">T425S · AP06A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        El Paso → Sellersburg
-        <div class="lane-gsdb">S3WHZ · JASLA</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Franklin OH → Chicago
-        <div class="lane-gsdb">A451Q · AP03H</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Grand Rapids MI → Chicago
-        <div class="lane-gsdb">CZQQC · AP03H</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Howell MI → Kentucky Truck
-        <div class="lane-gsdb">F7BFC · AP10A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Jackson TN → KTP
-        <div class="lane-gsdb">F150B · JASLA · AP10A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Lebanon KY → KC
-        <div class="lane-gsdb">GB9DA · AP06A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Lockport IL → KC
-        <div class="lane-gsdb">K6J5F · CE4BY</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Louisville KY → Chicago
-        <div class="lane-gsdb">A451S · AP03A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Olive Branch → Chicago
-        <div class="lane-gsdb">DMLRW · AP03A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Veedersburg IN → BPOH
-        <div class="lane-gsdb">Q9NGD · EF01A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Ypsilanti MI → Louisville
-        <div class="lane-gsdb">EE01A · AP10A</div>
-      </div>
-    </div>
-
-    <!-- Rep: Blake Burris -->
-    <div class="rep-group">
-      <div class="rep-header">Blake Burris</div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Bloomsburg PA → Louisville
-        <div class="lane-gsdb">G0M4S · JASLA</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Bluffton OH → Detroit
-        <div class="lane-gsdb">M183B · FAALF</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Charleston SC → Louisville
-        <div class="lane-gsdb">AYDYA · AP10A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Cheraw SC → Lima OH
-        <div class="lane-gsdb">IO22Z · IO22B · EFO6A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Holland MI → KC (A715U)
-        <div class="lane-gsdb">A715U · CE4BY</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Holland MI → KC (L012F)
-        <div class="lane-gsdb">L012F · CE4BM</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Hudson IN → Detroit
-        <div class="lane-gsdb">M450J · FAALF</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Louisville KY → SVOH
-        <div class="lane-gsdb">CR2CF · AP04A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        McAllen TX → Kentucky
-        <div class="lane-gsdb">B4A7E · JASLA</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Mt Sterling KY → Louisville
-        <div class="lane-gsdb">S840M · AP10A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Niles MI → CAN
-        <div class="lane-gsdb">G8DLB · GZ7WJ</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Parma OH → Lima OH
-        <div class="lane-gsdb">EZAYE · F6B0A · EF06A</div>
-      </div>
-      <div class="lane-item" onclick="selectLane(this)">
-        Wyoming MI → Louisville
-        <div class="lane-gsdb">CZQQC · AP10A</div>
-      </div>
-    </div>
+    <div id="sidebar-lanes"><div class="sidebar-loading">Loading lanes…</div></div>
   </aside>
 
   <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
@@ -658,14 +557,14 @@
       <!-- ── Section 1: Rates & Frequency ── -->
       <div class="li-section">
         <div class="li-rates">
-          <div class="li-field"><label>Weekly Frequency</label><div class="lv">5 IB &nbsp;·&nbsp; 5 OB</div></div>
-          <div class="li-field"><label>Stop Charge</label><div class="lv">$50.00 / additional stop (IB only)</div></div>
-          <div class="li-field"><label>Backup Admin</label><select class="lv-select"><option>Tommy</option><option>Austin</option><option>Blake</option><option>Trey</option></select></div>
-          <div class="li-field"><label>Transit Hours</label><div class="lv">7 hrs</div></div>
-          <div class="li-field"><label>IB Linehaul</label><div class="lv">$510.00</div></div>
-          <div class="li-field"><label>OB Linehaul</label><div class="lv">$510.00</div></div>
-          <div class="li-field"><label>IB FSC</label><div class="lv calc">Calculated from mileage + Main rate</div></div>
-          <div class="li-field"><label>OB FSC</label><div class="lv calc">Calculated from mileage + Main rate</div></div>
+          <div class="li-field"><label>Weekly Frequency</label><div class="lv" id="li-freq">—</div></div>
+          <div class="li-field"><label>Stop Charge</label><div class="lv" id="li-stop-charge">—</div></div>
+          <div class="li-field"><label>Backup Admin</label><div class="lv" id="li-backup-admin">—</div></div>
+          <div class="li-field"><label>Transit Hours</label><div class="lv" id="li-transit">—</div></div>
+          <div class="li-field"><label>IB Linehaul</label><div class="lv" id="li-ib-lh">—</div></div>
+          <div class="li-field"><label>OB Linehaul</label><div class="lv" id="li-ob-lh">—</div></div>
+          <div class="li-field"><label>IB FSC</label><div class="lv calc" id="li-ib-fsc">—</div></div>
+          <div class="li-field"><label>OB FSC</label><div class="lv calc" id="li-ob-fsc">—</div></div>
         </div>
       </div>
 
@@ -684,35 +583,7 @@
               <th>Ford Miles</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td><span class="gsdb-tag">G25AC</span></td>
-              <td>LexaMar Corporation</td>
-              <td>100 Lexamar Dr</td>
-              <td>Boyne City, MI 49712</td>
-              <td><span class="live-badge">Live</span></td>
-              <td>—</td>
-              <td>294.6 mi</td>
-            </tr>
-            <tr>
-              <td><span class="gsdb-tag">A64RB</span> <span style="font-size:10px;color:var(--gray)">Stop 1</span></td>
-              <td>Hutchinson</td>
-              <td>600 7th St</td>
-              <td>Cadillac, MI 49601</td>
-              <td><span class="live-badge">Live</span></td>
-              <td>—</td>
-              <td>—</td>
-            </tr>
-            <tr>
-              <td><span class="gsdb-tag">AP05A</span></td>
-              <td>Comprehensive Logistics</td>
-              <td>6000 Wyoming Ave</td>
-              <td>Detroit, MI 48210</td>
-              <td><span class="live-badge">Live</span></td>
-              <td>—</td>
-              <td>294.6 mi</td>
-            </tr>
-          </tbody>
+          <tbody id="li-locs-tbody"></tbody>
         </table>
         </div>
       </div>
@@ -733,18 +604,7 @@
               <th>DEL Times</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>057336</td>
-              <td>DT7336</td>
-              <td class="days">M T W R F</td>
-              <td>12:00</td>
-              <td class="days">M T W R F</td>
-              <td>14:45</td>
-              <td class="days">M T W R F</td>
-              <td>20:15</td>
-            </tr>
-          </tbody>
+          <tbody id="li-routes-tbody"></tbody>
         </table>
         </div>
       </div>
@@ -786,21 +646,21 @@
               <div class="li-contact-row"><span class="lk">IB Rate</span><span class="ll">$575.00</span></div>
               <div class="li-contact-row"><span class="lk">OB Rate</span><span class="ll">$575.00</span></div>
               <div class="li-contact-row"><span class="lk">Rate Upd.</span><span class="ll">—</span></div>
-              <div class="li-contact-row"><span class="lk">Trailers</span><span class="ll">9</span></div>
+              <div class="li-contact-row"><span class="lk">Trailers</span><span class="ll" id="li-trailers">—</span></div>
             </div>
           </div>
 
           <!-- Supplier Info + Plant Info -->
           <div class="li-contact-col" style="padding-left:16px">
             <h4>Supplier Info</h4>
-            <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline"><option>Bob Boberson</option><option>Jane Smith</option><option>Other</option></select></span></div>
-            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:5555551212">555-555-1212</a></span></div>
-            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:Bob.Boberson@g25ac.com">Bob.Boberson@g25ac.com</a></span></div>
+            <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline" id="li-supp-sel"></select></span></div>
+            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a id="li-supp-phone" href="#">—</a></span></div>
+            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a id="li-supp-email" href="#">—</a></span></div>
             <div class="li-rates-sub">
               <h4 style="margin-bottom:6px;">Plant Info</h4>
-              <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline"><option>Monica Gomez</option><option>John Davis</option><option>Other</option></select></span></div>
-              <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:7344672023">734-467-2023</a></span></div>
-              <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:monica.gomez@penske.com">monica.gomez@penske.com</a></span></div>
+              <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline" id="li-plant-sel"></select></span></div>
+              <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a id="li-plant-phone" href="#">—</a></span></div>
+              <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a id="li-plant-email" href="#">—</a></span></div>
             </div>
           </div>
 
@@ -830,10 +690,10 @@
 
       <div class="schedule-toolbar">
         <div class="week-nav">
-          <button class="btn-week" title="Previous week">‹</button>
-          <span class="week-label">Week of Apr 12 – 18, 2026</span>
-          <button class="btn-week" title="Next week">›</button>
-          <button class="btn-today">Today</button>
+          <button class="btn-week" title="Previous week" onclick="changeWeek(-1)">‹</button>
+          <span class="week-label" id="week-label">—</span>
+          <button class="btn-week" title="Next week" onclick="changeWeek(1)">›</button>
+          <button class="btn-today" onclick="goToToday()">Today</button>
         </div>
         <div class="schedule-toolbar-right">
           <select class="status-filter">
@@ -853,10 +713,11 @@
 
       <!-- ── MONDAY ── -->
       <div class="day-section">
-        <div class="day-header" onclick="toggleDay(this)">
+        <div class="day-header" data-day-offset="0" onclick="toggleDay(this)">
           <span class="day-name">Monday</span>
-          <span class="day-date">April 13</span>
-          <span class="day-count">10 loads</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(0)">+ Add</button>
           <span class="day-chevron">▾</span>
         </div>
         <div class="day-body">
@@ -891,60 +752,23 @@
 
       <!-- ── TUESDAY ── -->
       <div class="day-section">
-        <div class="day-header" onclick="toggleDay(this)">
+        <div class="day-header" data-day-offset="1" onclick="toggleDay(this)">
           <span class="day-name">Tuesday</span>
-          <span class="day-date">April 14</span>
-          <span class="day-count">10 loads</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(1)">+ Add</button>
           <span class="day-chevron">▾</span>
         </div>
         <div class="day-body">
           <div class="schedule-wrap">
             <table class="sched">
-              <thead>
-                <tr>
-                  <th style="width:4px"></th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Time (ET)</th>
-                  <th>Route #</th>
-                  <th>Pro #</th>
-                  <th>Tracking #</th>
-                  <th>Ship #</th>
-                  <th>Driver</th>
-                  <th>Driver Cell</th>
-                  <th>Trailer #</th>
-                  <th>Trailer Status</th>
-                  <th>Truck #</th>
-                  <th>Sekula Pro #</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="route-top">
-                  <td class="leg-ind"></td>
-                  <td><select class="status-sel status-Active"><option>Active</option></select></td>
-                  <td class="date-val">Apr 14</td>
-                  <td class="time-val">—</td>
-                  <td><span class="route-num">—</span></td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td><input class="cell-input" placeholder="Note…"></td>
-                </tr>
-                <tr class="route-bot">
-                  <td class="leg-ind"></td>
-                  <td><select class="status-sel status-Active"><option>Active</option></select></td>
-                  <td class="date-val">Apr 15</td>
-                  <td class="time-val">—</td>
-                  <td><span class="route-num">—</span></td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td class="empty-cell">—</td>
-                  <td class="empty-cell">—</td><td><input class="cell-input" placeholder="Note…"></td>
-                </tr>
-              </tbody>
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="tuesday-tbody"></tbody>
             </table>
           </div>
         </div>
@@ -952,40 +776,73 @@
 
       <!-- ── WEDNESDAY ── -->
       <div class="day-section">
-        <div class="day-header" onclick="toggleDay(this)">
+        <div class="day-header" data-day-offset="2" onclick="toggleDay(this)">
           <span class="day-name">Wednesday</span>
-          <span class="day-date">April 15</span>
-          <span class="day-count">10 loads</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(2)">+ Add</button>
           <span class="day-chevron collapsed">▸</span>
         </div>
         <div class="day-body collapsed">
-          <div class="day-empty">Expand to view schedule</div>
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="wednesday-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       <!-- ── THURSDAY ── -->
       <div class="day-section">
-        <div class="day-header" onclick="toggleDay(this)">
+        <div class="day-header" data-day-offset="3" onclick="toggleDay(this)">
           <span class="day-name">Thursday</span>
-          <span class="day-date">April 16</span>
-          <span class="day-count">10 loads</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(3)">+ Add</button>
           <span class="day-chevron collapsed">▸</span>
         </div>
         <div class="day-body collapsed">
-          <div class="day-empty">Expand to view schedule</div>
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="thursday-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       <!-- ── FRIDAY ── -->
       <div class="day-section">
-        <div class="day-header" onclick="toggleDay(this)">
+        <div class="day-header" data-day-offset="4" onclick="toggleDay(this)">
           <span class="day-name">Friday</span>
-          <span class="day-date">April 17</span>
-          <span class="day-count">10 loads</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(4)">+ Add</button>
           <span class="day-chevron collapsed">▸</span>
         </div>
         <div class="day-body collapsed">
-          <div class="day-empty">Expand to view schedule</div>
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="friday-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1055,15 +912,101 @@ function makeTrailerStatusSelect(current) {
   </select>`;
 }
 
+// ─── Week helpers ─────────────────────────────────────────────────
+const DAY_IDS = ['monday','tuesday','wednesday','thursday','friday'];
+
+function updateWeekLabel(weekStart) {
+  const mon = new Date(weekStart + 'T00:00:00');
+  const fri = new Date(mon); fri.setDate(fri.getDate() + 4);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monStr = months[mon.getMonth()] + ' ' + mon.getDate();
+  const friStr = months[fri.getMonth()] + ' ' + fri.getDate();
+  const el = document.getElementById('week-label');
+  if (el) el.textContent = `Week of ${monStr} – ${friStr}, ${fri.getFullYear()}`;
+}
+
+function changeWeek(delta) {
+  const d = new Date(currentWeekStart + 'T00:00:00');
+  d.setDate(d.getDate() + delta * 7);
+  currentWeekStart = d.toISOString().split('T')[0];
+  updateWeekLabel(currentWeekStart);
+  loadSchedule(currentLaneId, currentWeekStart);
+}
+
+function goToToday() {
+  currentWeekStart = getMondayISO(new Date());
+  updateWeekLabel(currentWeekStart);
+  loadSchedule(currentLaneId, currentWeekStart);
+}
+
+function filterSidebar(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.lane-item').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  document.querySelectorAll('.rep-group').forEach(g => {
+    const anyVisible = [...g.querySelectorAll('.lane-item')].some(el => el.style.display !== 'none');
+    g.style.display = anyVisible ? '' : 'none';
+  });
+}
+
 // ─── Schedule ─────────────────────────────────────────────────────
 async function loadSchedule(laneId, weekStart) {
-  const { data, error } = await db.from('loads').select('*')
+  const weekBaseDate = new Date(weekStart + 'T00:00:00');
+
+  // Update day-date labels
+  document.querySelectorAll('.day-header[data-day-offset]').forEach(hdr => {
+    const d = new Date(weekBaseDate);
+    d.setDate(d.getDate() + parseInt(hdr.dataset.dayOffset));
+    const el = hdr.querySelector('.day-date-val');
+    if (el) el.textContent = fmtDate(d.toISOString().split('T')[0]);
+  });
+
+  // Clear all tbodies and counts
+  DAY_IDS.forEach(day => {
+    const tb = document.getElementById(day + '-tbody');
+    if (tb) tb.innerHTML = '';
+  });
+  document.querySelectorAll('.day-count-val').forEach(el => el.textContent = '');
+
+  const { data } = await db.from('loads').select('*')
     .eq('lane_id', laneId).eq('week_start', weekStart).order('created_at');
-  const tbody = document.getElementById('monday-tbody');
-  tbody.innerHTML = '';
-  if (data && data.length) {
-    data.forEach(row => tbody.appendChild(makeLoadRow(row)));
+
+  if (!data || !data.length) return;
+
+  // Pair rows in creation order: pickup immediately followed by its delivery
+  const sorted = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  let i = 0;
+  while (i < sorted.length) {
+    const row = sorted[i];
+    if (row.leg === 'pickup') {
+      const dl = sorted[i + 1]?.leg === 'delivery' ? sorted[i + 1] : null;
+      const puDate = new Date(row.load_date + 'T00:00:00');
+      const offset = Math.round((puDate - weekBaseDate) / 86400000);
+      const tbody = DAY_IDS[offset] ? document.getElementById(DAY_IDS[offset] + '-tbody') : null;
+      if (tbody) {
+        tbody.appendChild(makeLoadRow(row));
+        if (dl) tbody.appendChild(makeLoadRow(dl));
+      }
+      i += dl ? 2 : 1;
+    } else {
+      // Orphan delivery — place by its own date
+      const dlDate = new Date(row.load_date + 'T00:00:00');
+      const offset = Math.round((dlDate - weekBaseDate) / 86400000);
+      const tbody = DAY_IDS[offset] ? document.getElementById(DAY_IDS[offset] + '-tbody') : null;
+      if (tbody) tbody.appendChild(makeLoadRow(row));
+      i++;
+    }
   }
+
+  // Update route counts
+  DAY_IDS.forEach((day, offset) => {
+    const tb = document.getElementById(day + '-tbody');
+    if (!tb) return;
+    const n = tb.querySelectorAll('.route-top').length;
+    const el = document.querySelector(`.day-header[data-day-offset="${offset}"] .day-count-val`);
+    if (el) el.textContent = n ? `${n} route${n !== 1 ? 's' : ''}` : '';
+  });
 }
 
 function makeLoadRow(row) {
@@ -1107,18 +1050,26 @@ const updateLoad = debounce(async (input, loadId) => {
   await db.from('loads').update({ [input.dataset.field]: input.value, updated_at: new Date().toISOString() }).eq('id', loadId);
 }, 600);
 
-async function addLoadRow() {
-  const nextDay = new Date(currentWeekStart + 'T00:00:00');
-  nextDay.setDate(nextDay.getDate() + 1);
-  const delDate = nextDay.toISOString().split('T')[0];
+async function addLoadRow(dayOffset = 0) {
+  const puDate = new Date(currentWeekStart + 'T00:00:00');
+  puDate.setDate(puDate.getDate() + dayOffset);
+  const puDateStr = puDate.toISOString().split('T')[0];
+  const dlDate = new Date(puDate);
+  dlDate.setDate(dlDate.getDate() + 1);
+  const dlDateStr = dlDate.toISOString().split('T')[0];
   const base = { lane_id: currentLaneId, week_start: currentWeekStart, status: 'Active' };
   const [{ data: pu }, { data: dl }] = await Promise.all([
-    db.from('loads').insert({ ...base, leg: 'pickup',   load_date: currentWeekStart, is_ib: true  }).select().single(),
-    db.from('loads').insert({ ...base, leg: 'delivery', load_date: delDate,          is_ib: false }).select().single(),
+    db.from('loads').insert({ ...base, leg: 'pickup',   load_date: puDateStr, is_ib: true  }).select().single(),
+    db.from('loads').insert({ ...base, leg: 'delivery', load_date: dlDateStr, is_ib: false }).select().single(),
   ]);
-  const tbody = document.getElementById('monday-tbody');
+  const tbody = document.getElementById(DAY_IDS[dayOffset] + '-tbody');
+  if (!tbody) return;
   if (pu) tbody.appendChild(makeLoadRow(pu));
   if (dl) tbody.appendChild(makeLoadRow(dl));
+  // Refresh count
+  const n = tbody.querySelectorAll('.route-top').length;
+  const el = document.querySelector(`.day-header[data-day-offset="${dayOffset}"] .day-count-val`);
+  if (el) el.textContent = n ? `${n} route${n !== 1 ? 's' : ''}` : '';
 }
 
 function onStatusChange(sel) {
@@ -1137,6 +1088,159 @@ function toggleDay(header) {
 function selectLane(el) {
   document.querySelectorAll('.lane-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
+  if (el.dataset.laneId) {
+    currentLaneId = el.dataset.laneId;
+    loadLaneInfo(currentLaneId);
+    loadOccurrenceEmails(currentLaneId);
+    loadLaneNotes(currentLaneId);
+    loadSchedule(currentLaneId, currentWeekStart);
+  }
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────
+async function loadSidebar() {
+  const [lanesRes, locsRes] = await Promise.all([
+    db.from('lanes').select('id, origin, destination, rep_id, reps(name)').order('origin'),
+    db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('name', 'is', null).order('stop_order'),
+  ]);
+
+  const lanes = lanesRes.data || [];
+  const locs  = locsRes.data  || [];
+
+  // Build gsdb map: lane_id → [code, ...]
+  const gsdbMap = {};
+  locs.forEach(l => {
+    (gsdbMap[l.lane_id] = gsdbMap[l.lane_id] || []).push(l.gsdb_code);
+  });
+
+  // Group lanes by rep name, sorted alphabetically
+  const byRep = {};
+  lanes.forEach(ln => {
+    const rep = ln.reps?.name || 'Unassigned';
+    (byRep[rep] = byRep[rep] || []).push(ln);
+  });
+
+  const container = document.getElementById('sidebar-lanes');
+  container.innerHTML = Object.entries(byRep)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([rep, repLanes]) => `
+      <div class="rep-group">
+        <div class="rep-header">${rep}</div>
+        ${repLanes.map(ln => {
+          const active = ln.id === currentLaneId ? ' active' : '';
+          const gsdb = (gsdbMap[ln.id] || []).join(' · ');
+          return `<div class="lane-item${active}" onclick="selectLane(this)" data-lane-id="${ln.id}">
+            ${ln.origin} → ${ln.destination}
+            <div class="lane-gsdb">${gsdb}</div>
+          </div>`;
+        }).join('')}
+      </div>`)
+    .join('');
+}
+
+// ─── Lane Info Card ───────────────────────────────────────────────
+async function loadLaneInfo(laneId) {
+  const [laneRes, locsRes, routeRes, suppRes, plantRes] = await Promise.all([
+    db.from('lanes').select('*').eq('id', laneId).single(),
+    db.from('lane_locations').select('*').eq('lane_id', laneId).not('name', 'is', null).order('stop_order'),
+    db.from('lane_routes').select('*').eq('lane_id', laneId).not('pu_days', 'is', null).limit(1).maybeSingle(),
+    db.from('supplier_contacts').select('*').eq('lane_id', laneId),
+    db.from('plant_contacts').select('*').eq('lane_id', laneId),
+  ]);
+
+  const lane = laneRes.data;
+  if (!lane) return;
+
+  // Header
+  document.querySelector('.lane-full-name').textContent = `${lane.origin} \u2192 ${lane.destination}`;
+  const locs = locsRes.data || [];
+  const gsdbs = locs.map(l => l.gsdb_code).join(' \u00b7 ');
+  document.querySelector('.lane-gsdb-codes').textContent = gsdbs || '—';
+
+  // Rates
+  const fmt$ = v => v != null ? '$' + Number(v).toFixed(2) : '—';
+  document.getElementById('li-freq').textContent =
+    `${lane.weekly_freq_ib ?? '—'} IB \u00b7 ${lane.weekly_freq_ob ?? '—'} OB`;
+  document.getElementById('li-stop-charge').textContent = lane.stop_charge || '—';
+  document.getElementById('li-backup-admin').textContent = lane.backup_admin || '—';
+  document.getElementById('li-transit').textContent = lane.transit_hours ? `${lane.transit_hours} hrs` : '—';
+  document.getElementById('li-ib-lh').textContent = fmt$(lane.ib_linehaul);
+  document.getElementById('li-ob-lh').textContent = fmt$(lane.ob_linehaul);
+  document.getElementById('li-ib-fsc').textContent = lane.ib_fsc || '—';
+  document.getElementById('li-ob-fsc').textContent = lane.ob_fsc || '—';
+  document.getElementById('li-trailers').textContent = lane.trailers_needed ?? '—';
+
+  // Locations table
+  const locsTbody = document.getElementById('li-locs-tbody');
+  locsTbody.innerHTML = '';
+  locs.forEach((loc, i) => {
+    const isStop = i > 0 && i < locs.length - 1;
+    const tr = document.createElement('tr');
+    const cityLine = [loc.city, loc.state, loc.zip].filter(Boolean).join(', ').replace(/, (\S+)$/, ' $1');
+    tr.innerHTML = `
+      <td><span class="gsdb-tag">${loc.gsdb_code}</span>${isStop ? ` <span style="font-size:10px;color:var(--gray)">Stop ${i}</span>` : ''}</td>
+      <td>${loc.name || '—'}</td>
+      <td>${loc.address || '—'}</td>
+      <td>${cityLine || '—'}</td>
+      <td>${loc.live_drop ? `<span class="${loc.live_drop === 'Live' ? 'live-badge' : 'drop-badge'}">${loc.live_drop}</span>` : '—'}</td>
+      <td>${loc.dock || '—'}</td>
+      <td>${loc.ford_miles ? `${loc.ford_miles} mi` : '—'}</td>`;
+    locsTbody.appendChild(tr);
+  });
+
+  // Routes table
+  const routesTbody = document.getElementById('li-routes-tbody');
+  routesTbody.innerHTML = '';
+  const route = routeRes.data;
+  if (route) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${route.ib_route || '—'}</td>
+      <td>${route.ob_route || '—'}</td>
+      <td class="days">${route.pu_days || '—'}</td>
+      <td>${route.pu_times || '—'}</td>
+      <td class="days">${route.stop1_days || '—'}</td>
+      <td>${route.stop1_times || '—'}</td>
+      <td class="days">${route.del_days || '—'}</td>
+      <td>${route.del_times || '—'}</td>`;
+    routesTbody.appendChild(tr);
+  }
+
+  // Supplier contacts
+  const supps = suppRes.data || [];
+  const suppSel = document.getElementById('li-supp-sel');
+  suppSel.innerHTML = supps.length
+    ? supps.map(s => `<option value="${s.id}">${s.name}</option>`).join('')
+    : '<option value="">—</option>';
+  const updateSupp = () => {
+    const p = supps.find(s => s.id === suppSel.value) || supps[0];
+    const ph = document.getElementById('li-supp-phone');
+    const em = document.getElementById('li-supp-email');
+    ph.textContent = p?.phone || '—';
+    ph.href = p?.phone ? `tel:${p.phone.replace(/\D/g, '')}` : '#';
+    em.textContent = p?.email || '—';
+    em.href = p?.email ? `mailto:${p.email}` : '#';
+  };
+  suppSel.onchange = updateSupp;
+  updateSupp();
+
+  // Plant contacts
+  const plants = plantRes.data || [];
+  const plantSel = document.getElementById('li-plant-sel');
+  plantSel.innerHTML = plants.length
+    ? plants.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+    : '<option value="">—</option>';
+  const updatePlant = () => {
+    const p = plants.find(x => x.id === plantSel.value) || plants[0];
+    const ph = document.getElementById('li-plant-phone');
+    const em = document.getElementById('li-plant-email');
+    ph.textContent = p?.phone || '—';
+    ph.href = p?.phone ? `tel:${p.phone.replace(/\D/g, '')}` : '#';
+    em.textContent = p?.email || '—';
+    em.href = p?.email ? `mailto:${p.email}` : '#';
+  };
+  plantSel.onchange = updatePlant;
+  updatePlant();
 }
 
 // ─── Occurrence Emails ────────────────────────────────────────────
@@ -1227,7 +1331,10 @@ function toggleLaneInfo() {
 
 // ─── Init ─────────────────────────────────────────────────────────
 async function initPage() {
+  updateWeekLabel(currentWeekStart);
   await Promise.all([
+    loadSidebar(),
+    loadLaneInfo(currentLaneId),
     loadOccurrenceEmails(currentLaneId),
     loadLaneNotes(currentLaneId),
     loadSchedule(currentLaneId, currentWeekStart),
