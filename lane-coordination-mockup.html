@@ -568,8 +568,8 @@
           <div class="li-field"><label>Transit Hours</label><div class="lv" id="li-transit">—</div></div>
           <div class="li-field"><label>IB Linehaul</label><div class="lv" id="li-ib-lh">—</div></div>
           <div class="li-field"><label>OB Linehaul</label><div class="lv" id="li-ob-lh">—</div></div>
-          <div class="li-field"><label>IB FSC</label><div class="lv calc" id="li-ib-fsc">—</div></div>
-          <div class="li-field"><label>OB FSC</label><div class="lv calc" id="li-ob-fsc">—</div></div>
+          <div class="li-field"><label>IB FSC</label><div class="lv" id="li-ib-fsc">—</div></div>
+          <div class="li-field"><label>OB FSC</label><div class="lv" id="li-ob-fsc">—</div></div>
         </div>
       </div>
 
@@ -1197,7 +1197,8 @@ async function loadLaneInfo(laneId) {
   const fscStr = fsc != null ? '$' + fsc.toFixed(2) : '—';
   document.getElementById('li-ib-fsc').textContent = fscStr;
   document.getElementById('li-ob-fsc').textContent = fscStr;
-  document.getElementById('li-trailers').textContent = lane.trailers_needed ?? '—';
+  const trailers = lane.weekly_freq_ib != null ? Math.ceil(lane.weekly_freq_ib * 0.75) : '—';
+  document.getElementById('li-trailers').textContent = trailers;
 
   // Locations table
   const locsTbody = document.getElementById('li-locs-tbody');
