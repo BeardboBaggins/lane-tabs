@@ -106,7 +106,12 @@
     letter-spacing: .6px; color: var(--gray);
     background: #F9FAFB;
     border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
   }
+  .rep-header:hover { background: #F3F4F6; }
+  .rep-chevron { font-size: 10px; color: var(--gray); transition: transform .15s; }
+  .rep-lanes.collapsed { display: none; }
   .lane-item {
     padding: 8px 14px;
     cursor: pointer;
@@ -860,6 +865,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ─── State ───────────────────────────────────────────────────────
 let currentLaneId  = 'b1000000-0000-0000-0000-000000000001';
 let currentWeekStart = getMondayISO(new Date());
+let currentDieselPrice = null;
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function getMondayISO(d) {
@@ -947,6 +953,12 @@ function filterSidebar(query) {
   document.querySelectorAll('.rep-group').forEach(g => {
     const anyVisible = [...g.querySelectorAll('.lane-item')].some(el => el.style.display !== 'none');
     g.style.display = anyVisible ? '' : 'none';
+    // Re-expand collapsed groups that have matches
+    if (anyVisible && q) {
+      const lanes = g.querySelector('.rep-lanes');
+      const chevron = g.querySelector('.rep-chevron');
+      if (lanes) { lanes.classList.remove('collapsed'); if (chevron) chevron.style.transform = ''; }
+    }
   });
 }
 
@@ -1101,16 +1113,17 @@ function selectLane(el) {
 async function loadSidebar() {
   const [lanesRes, locsRes] = await Promise.all([
     db.from('lanes').select('id, origin, destination, rep_id, reps(name)').order('origin'),
-    db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('name', 'is', null).order('stop_order'),
+    db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('gsdb_code', 'is', null).order('stop_order'),
   ]);
 
   const lanes = lanesRes.data || [];
   const locs  = locsRes.data  || [];
 
-  // Build gsdb map: lane_id → [code, ...]
+  // Build gsdb map: lane_id → deduped [code, ...] in stop order
   const gsdbMap = {};
   locs.forEach(l => {
-    (gsdbMap[l.lane_id] = gsdbMap[l.lane_id] || []).push(l.gsdb_code);
+    const arr = (gsdbMap[l.lane_id] = gsdbMap[l.lane_id] || []);
+    if (!arr.includes(l.gsdb_code)) arr.push(l.gsdb_code);
   });
 
   // Group lanes by rep name, sorted alphabetically
@@ -1125,17 +1138,29 @@ async function loadSidebar() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([rep, repLanes]) => `
       <div class="rep-group">
-        <div class="rep-header">${rep}</div>
-        ${repLanes.map(ln => {
-          const active = ln.id === currentLaneId ? ' active' : '';
-          const gsdb = (gsdbMap[ln.id] || []).join(' · ');
-          return `<div class="lane-item${active}" onclick="selectLane(this)" data-lane-id="${ln.id}">
-            ${ln.origin} → ${ln.destination}
-            <div class="lane-gsdb">${gsdb}</div>
-          </div>`;
-        }).join('')}
+        <div class="rep-header" onclick="toggleRepGroup(this)">
+          <span>${rep}</span>
+          <span class="rep-chevron">▾</span>
+        </div>
+        <div class="rep-lanes">
+          ${repLanes.map(ln => {
+            const active = ln.id === currentLaneId ? ' active' : '';
+            const gsdb = (gsdbMap[ln.id] || []).join(' · ');
+            return `<div class="lane-item${active}" onclick="selectLane(this)" data-lane-id="${ln.id}">
+              ${ln.origin} → ${ln.destination}
+              <div class="lane-gsdb">${gsdb}</div>
+            </div>`;
+          }).join('')}
+        </div>
       </div>`)
     .join('');
+}
+
+function toggleRepGroup(header) {
+  const lanes = header.nextElementSibling;
+  const chevron = header.querySelector('.rep-chevron');
+  lanes.classList.toggle('collapsed');
+  chevron.style.transform = lanes.classList.contains('collapsed') ? 'rotate(-90deg)' : '';
 }
 
 // ─── Lane Info Card ───────────────────────────────────────────────
@@ -1161,13 +1186,17 @@ async function loadLaneInfo(laneId) {
   const fmt$ = v => v != null ? '$' + Number(v).toFixed(2) : '—';
   document.getElementById('li-freq').textContent =
     `${lane.weekly_freq_ib ?? '—'} IB \u00b7 ${lane.weekly_freq_ob ?? '—'} OB`;
-  document.getElementById('li-stop-charge').textContent = lane.stop_charge || '—';
+  const sc = lane.stop_count;
+  document.getElementById('li-stop-charge').textContent =
+    sc != null ? `${sc} stop${sc !== 1 ? 's' : ''} · $${(sc * 50).toFixed(2)}` : '—';
   document.getElementById('li-backup-admin').textContent = lane.backup_admin || '—';
   document.getElementById('li-transit').textContent = lane.transit_hours ? `${lane.transit_hours} hrs` : '—';
   document.getElementById('li-ib-lh').textContent = fmt$(lane.ib_linehaul);
   document.getElementById('li-ob-lh').textContent = fmt$(lane.ob_linehaul);
-  document.getElementById('li-ib-fsc').textContent = lane.ib_fsc || '—';
-  document.getElementById('li-ob-fsc').textContent = lane.ob_fsc || '—';
+  const fsc = calcFsc(lane.ford_miles);
+  const fscStr = fsc != null ? '$' + fsc.toFixed(2) : '—';
+  document.getElementById('li-ib-fsc').textContent = fscStr;
+  document.getElementById('li-ob-fsc').textContent = fscStr;
   document.getElementById('li-trailers').textContent = lane.trailers_needed ?? '—';
 
   // Locations table
@@ -1329,10 +1358,23 @@ function toggleLaneInfo() {
   btn.textContent = body.classList.contains('collapsed') ? 'Show ▼' : 'Hide ▲';
 }
 
+// ─── FSC ──────────────────────────────────────────────────────────
+async function loadFscSettings() {
+  const { data } = await db.from('fsc_settings').select('midwest_diesel_price').limit(1).single();
+  if (data) currentDieselPrice = parseFloat(data.midwest_diesel_price);
+}
+
+function calcFsc(miles) {
+  if (miles == null || currentDieselPrice == null || currentDieselPrice <= 0) return null;
+  const mpg = miles <= 250 ? 6.2 : miles <= 500 ? 6.5 : 6.8;
+  return (miles / mpg) * (currentDieselPrice - 1.045);
+}
+
 // ─── Init ─────────────────────────────────────────────────────────
 async function initPage() {
   updateWeekLabel(currentWeekStart);
   await Promise.all([
+    loadFscSettings(),
     loadSidebar(),
     loadLaneInfo(currentLaneId),
     loadOccurrenceEmails(currentLaneId),
