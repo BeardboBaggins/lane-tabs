@@ -864,6 +864,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── State ───────────────────────────────────────────────────────
 let currentLaneId  = 'b1000000-0000-0000-0000-000000000001';
+let currentLaneIds = [currentLaneId];
 let currentWeekStart = getMondayISO(new Date());
 let currentDieselPrice = null;
 
@@ -936,13 +937,13 @@ function changeWeek(delta) {
   d.setDate(d.getDate() + delta * 7);
   currentWeekStart = d.toISOString().split('T')[0];
   updateWeekLabel(currentWeekStart);
-  loadSchedule(currentLaneId, currentWeekStart);
+  loadSchedule(currentLaneIds, currentWeekStart);
 }
 
 function goToToday() {
   currentWeekStart = getMondayISO(new Date());
   updateWeekLabel(currentWeekStart);
-  loadSchedule(currentLaneId, currentWeekStart);
+  loadSchedule(currentLaneIds, currentWeekStart);
 }
 
 function filterSidebar(query) {
@@ -963,7 +964,8 @@ function filterSidebar(query) {
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────
-async function loadSchedule(laneId, weekStart) {
+async function loadSchedule(laneIds, weekStart) {
+  const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
   const weekBaseDate = new Date(weekStart + 'T00:00:00');
 
   // Update day-date labels
@@ -982,7 +984,7 @@ async function loadSchedule(laneId, weekStart) {
   document.querySelectorAll('.day-count-val').forEach(el => el.textContent = '');
 
   const { data } = await db.from('loads').select('*')
-    .eq('lane_id', laneId).eq('week_start', weekStart).order('created_at');
+    .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
 
   if (!data || !data.length) return;
 
@@ -1069,7 +1071,7 @@ async function addLoadRow(dayOffset = 0) {
   const dlDate = new Date(puDate);
   dlDate.setDate(dlDate.getDate() + 1);
   const dlDateStr = dlDate.toISOString().split('T')[0];
-  const base = { lane_id: currentLaneId, week_start: currentWeekStart, status: 'Active' };
+  const base = { lane_id: currentLaneIds[0], week_start: currentWeekStart, status: 'Active' };
   const [{ data: pu }, { data: dl }] = await Promise.all([
     db.from('loads').insert({ ...base, leg: 'pickup',   load_date: puDateStr, is_ib: true  }).select().single(),
     db.from('loads').insert({ ...base, leg: 'delivery', load_date: dlDateStr, is_ib: false }).select().single(),
@@ -1100,54 +1102,84 @@ function toggleDay(header) {
 function selectLane(el) {
   document.querySelectorAll('.lane-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
-  if (el.dataset.laneId) {
-    currentLaneId = el.dataset.laneId;
-    loadLaneInfo(currentLaneId);
-    loadOccurrenceEmails(currentLaneId);
-    loadLaneNotes(currentLaneId);
-    loadSchedule(currentLaneId, currentWeekStart);
-  }
+  const ids = el.dataset.laneIds ? el.dataset.laneIds.split(',') : el.dataset.laneId ? [el.dataset.laneId] : null;
+  if (!ids) return;
+  currentLaneIds = ids;
+  currentLaneId = ids[0];
+  loadLaneInfo(ids);
+  loadOccurrenceEmails(ids[0]);
+  loadLaneNotes(ids[0]);
+  loadSchedule(ids, currentWeekStart);
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────
+function stripOriginCode(origin) {
+  // "Louisville (CR2CF) (Drop), KY" → "Louisville, KY"
+  return origin.replace(/\s*\([^)]+\)/g, '');
+}
+
 async function loadSidebar() {
   const [lanesRes, locsRes] = await Promise.all([
-    db.from('lanes').select('id, origin, destination, rep_id, reps(name)').order('origin'),
+    db.from('lanes').select('id, origin, destination, rep_id, lane_group, reps(name)').eq('status','Active').order('origin'),
     db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('gsdb_code', 'is', null).order('stop_order'),
   ]);
 
   const lanes = lanesRes.data || [];
   const locs  = locsRes.data  || [];
 
-  // Build gsdb map: lane_id → deduped [code, ...] in stop order
+  // Build gsdb map
   const gsdbMap = {};
   locs.forEach(l => {
     const arr = (gsdbMap[l.lane_id] = gsdbMap[l.lane_id] || []);
     if (!arr.includes(l.gsdb_code)) arr.push(l.gsdb_code);
   });
 
-  // Group lanes by rep name, sorted alphabetically
-  const byRep = {};
+  // Collapse grouped lanes into single sidebar items
+  const groups = {}; // lane_group → item
+  const items  = []; // all sidebar items in order
+
   lanes.forEach(ln => {
     const rep = ln.reps?.name || 'Unassigned';
-    (byRep[rep] = byRep[rep] || []).push(ln);
+    if (ln.lane_group) {
+      if (!groups[ln.lane_group]) {
+        groups[ln.lane_group] = { ids: [], origin: stripOriginCode(ln.origin), dests: [], gsdbs: [], rep };
+        items.push(groups[ln.lane_group]);
+      }
+      const g = groups[ln.lane_group];
+      g.ids.push(ln.id);
+      const city = ln.destination.split(',')[0];
+      if (!g.dests.includes(city)) g.dests.push(city);
+      (gsdbMap[ln.id] || []).forEach(c => { if (!g.gsdbs.includes(c)) g.gsdbs.push(c); });
+    } else {
+      items.push({ ids: [ln.id], origin: stripOriginCode(ln.origin), dests: [stripOriginCode(ln.destination)], gsdbs: gsdbMap[ln.id] || [], rep });
+    }
   });
+
+  // Group by rep
+  const byRep = {};
+  items.forEach(item => (byRep[item.rep] = byRep[item.rep] || []).push(item));
+
+  const isActive = item => item.ids.some(id => currentLaneIds.includes(id));
 
   const container = document.getElementById('sidebar-lanes');
   container.innerHTML = Object.entries(byRep)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([rep, repLanes]) => `
+    .map(([rep, repItems]) => `
       <div class="rep-group">
         <div class="rep-header" onclick="toggleRepGroup(this)">
-          <span>${rep}</span>
+          <span>${rep} <span style="font-weight:400;color:var(--gray);font-size:11px">(${repItems.length})</span></span>
           <span class="rep-chevron">▾</span>
         </div>
         <div class="rep-lanes">
-          ${repLanes.map(ln => {
-            const active = ln.id === currentLaneId ? ' active' : '';
-            const gsdb = (gsdbMap[ln.id] || []).join(' · ');
-            return `<div class="lane-item${active}" onclick="selectLane(this)" data-lane-id="${ln.id}">
-              ${ln.origin} → ${ln.destination}
+          ${repItems.map(item => {
+            const active = isActive(item) ? ' active' : '';
+            const gsdb = item.gsdbs.join(' · ');
+            const dest = item.dests.length > 1 ? item.dests.join(' · ') : item.dests[0];
+            const idsAttr = item.ids.length > 1
+              ? `data-lane-ids="${item.ids.join(',')}"`
+              : `data-lane-id="${item.ids[0]}"`;
+            return `<div class="lane-item${active}" onclick="selectLane(this)" ${idsAttr}>
+              ${item.origin} → ${dest}
               <div class="lane-gsdb">${gsdb}</div>
             </div>`;
           }).join('')}
@@ -1164,28 +1196,40 @@ function toggleRepGroup(header) {
 }
 
 // ─── Lane Info Card ───────────────────────────────────────────────
-async function loadLaneInfo(laneId) {
-  const [laneRes, locsRes, routeRes, suppRes, plantRes] = await Promise.all([
-    db.from('lanes').select('*').eq('id', laneId).single(),
-    db.from('lane_locations').select('*').eq('lane_id', laneId).not('name', 'is', null).order('stop_order'),
-    db.from('lane_routes').select('*').eq('lane_id', laneId).not('pu_days', 'is', null).limit(1).maybeSingle(),
-    db.from('supplier_contacts').select('*').eq('lane_id', laneId),
-    db.from('plant_contacts').select('*').eq('lane_id', laneId),
+async function loadLaneInfo(laneIds) {
+  const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
+
+  const [lanesRes, locsRes, routesRes, suppRes, plantRes] = await Promise.all([
+    db.from('lanes').select('*').in('id', ids),
+    db.from('lane_locations').select('*').in('lane_id', ids).not('name', 'is', null).order('stop_order'),
+    db.from('lane_routes').select('*').in('lane_id', ids).not('pu_days', 'is', null),
+    db.from('supplier_contacts').select('*').eq('lane_id', ids[0]),
+    db.from('plant_contacts').select('*').eq('lane_id', ids[0]),
   ]);
 
-  const lane = laneRes.data;
-  if (!lane) return;
+  const allLanes = lanesRes.data || [];
+  if (!allLanes.length) return;
+  const lane = allLanes[0];
+  const isGrouped = allLanes.length > 1;
 
   // Header
-  document.querySelector('.lane-full-name').textContent = `${lane.origin} \u2192 ${lane.destination}`;
+  if (isGrouped) {
+    const originDisplay = stripOriginCode(lane.origin);
+    const dests = [...new Set(allLanes.map(l => l.destination.split(',')[0]))].join(' · ');
+    document.querySelector('.lane-full-name').textContent = `${originDisplay} \u2192 ${dests}`;
+  } else {
+    document.querySelector('.lane-full-name').textContent = `${stripOriginCode(lane.origin)} \u2192 ${stripOriginCode(lane.destination)}`;
+  }
   const locs = locsRes.data || [];
-  const gsdbs = locs.map(l => l.gsdb_code).join(' \u00b7 ');
+  const gsdbs = [...new Set(locs.map(l => l.gsdb_code))].join(' \u00b7 ');
   document.querySelector('.lane-gsdb-codes').textContent = gsdbs || '—';
 
   // Rates
   const fmt$ = v => v != null ? '$' + Number(v).toFixed(2) : '—';
+  const totalIb = allLanes.reduce((s, l) => s + (l.weekly_freq_ib || 0), 0);
+  const totalOb = allLanes.reduce((s, l) => s + (l.weekly_freq_ob || 0), 0);
   document.getElementById('li-freq').textContent =
-    `${lane.weekly_freq_ib ?? '—'} IB \u00b7 ${lane.weekly_freq_ob ?? '—'} OB`;
+    `${totalIb || '—'} IB \u00b7 ${totalOb || '—'} OB`;
   const sc = lane.stop_count;
   document.getElementById('li-stop-charge').textContent =
     sc != null ? `${sc} stop${sc !== 1 ? 's' : ''} · $${(sc * 50).toFixed(2)}` : '—';
@@ -1197,7 +1241,7 @@ async function loadLaneInfo(laneId) {
   const fscStr = fsc != null ? '$' + fsc.toFixed(2) : '—';
   document.getElementById('li-ib-fsc').textContent = fscStr;
   document.getElementById('li-ob-fsc').textContent = fscStr;
-  const trailers = lane.weekly_freq_ib != null ? Math.ceil(lane.weekly_freq_ib * 0.75) : '—';
+  const trailers = totalIb ? Math.ceil(totalIb * 0.75) : '—';
   document.getElementById('li-trailers').textContent = trailers;
 
   // Locations table
@@ -1218,11 +1262,10 @@ async function loadLaneInfo(laneId) {
     locsTbody.appendChild(tr);
   });
 
-  // Routes table
+  // Routes table — one row per sub-lane for grouped lanes
   const routesTbody = document.getElementById('li-routes-tbody');
   routesTbody.innerHTML = '';
-  const route = routeRes.data;
-  if (route) {
+  (routesRes.data || []).forEach(route => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${route.ib_route || '—'}</td>
@@ -1234,7 +1277,7 @@ async function loadLaneInfo(laneId) {
       <td class="days">${route.del_days || '—'}</td>
       <td>${route.del_times || '—'}</td>`;
     routesTbody.appendChild(tr);
-  }
+  });
 
   // Supplier contacts
   const supps = suppRes.data || [];
@@ -1377,10 +1420,10 @@ async function initPage() {
   await Promise.all([
     loadFscSettings(),
     loadSidebar(),
-    loadLaneInfo(currentLaneId),
+    loadLaneInfo(currentLaneIds),
     loadOccurrenceEmails(currentLaneId),
     loadLaneNotes(currentLaneId),
-    loadSchedule(currentLaneId, currentWeekStart),
+    loadSchedule(currentLaneIds, currentWeekStart),
   ]);
 }
 
