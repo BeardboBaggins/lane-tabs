@@ -466,6 +466,12 @@
     color: #93C5FD; font-size: 12px; padding: 0; line-height: 1;
   }
   .occ-chip-rm:hover { color: #1D4ED8; }
+  .occ-chip--locked {
+    background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD;
+  }
+  .occ-chip-lock {
+    font-size: 10px; color: #7DD3FC; line-height: 1;
+  }
   .occ-email-input {
     border: none; outline: none; font-size: 12px;
     flex: 1; min-width: 120px; background: transparent; color: #374151;
@@ -1480,11 +1486,16 @@ function fmtChipDate(iso) {
 
 function makeEmailChip(row) {
   const span = document.createElement('span');
-  span.className = 'occ-chip';
+  const locked = !!row.is_locked;
+  span.className = 'occ-chip' + (locked ? ' occ-chip--locked' : '');
   span.dataset.id = row.id;
   span.dataset.createdAt = row.created_at || new Date().toISOString();
-  span.innerHTML = `<span class="occ-chip-email">${row.email}</span><span class="occ-chip-meta">${fmtChipDate(span.dataset.createdAt)}</span><button class="occ-chip-rm" tabindex="-1">×</button>`;
-  span.querySelector('.occ-chip-rm').onclick = () => removeOccEmail(span);
+  span.dataset.locked = locked ? '1' : '';
+  const action = locked
+    ? `<span class="occ-chip-lock" title="Locked">🔒</span>`
+    : `<button class="occ-chip-rm" tabindex="-1">×</button>`;
+  span.innerHTML = `<span class="occ-chip-email">${row.email}</span><span class="occ-chip-meta">${fmtChipDate(span.dataset.createdAt)}</span>${action}`;
+  if (!locked) span.querySelector('.occ-chip-rm').onclick = () => removeOccEmail(span);
   return span;
 }
 
