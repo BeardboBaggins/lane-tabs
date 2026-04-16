@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>F-150 Red Team — Lane Coordination</title>
+<title>AVGD Automotive — Lane Distribution Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
@@ -521,8 +521,8 @@
 <div class="topbar-wrap">
 <header class="topbar">
   <div class="topbar-brand">
-    F-150 Red Team
-    <span>Lane Coordination Dashboard</span>
+    AVGD Automotive
+    <span>Lane Distribution Dashboard</span>
   </div>
   <div class="topbar-right">
     <span class="topbar-user">Trey Elliott</span>
@@ -1199,9 +1199,10 @@ function toggleRepGroup(header) {
 async function loadLaneInfo(laneIds) {
   const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
 
-  const [lanesRes, locsRes, routesRes, suppRes, plantRes] = await Promise.all([
+  const [lanesRes, locsRes, gsdbRes, routesRes, suppRes, plantRes] = await Promise.all([
     db.from('lanes').select('*').in('id', ids),
     db.from('lane_locations').select('*').in('lane_id', ids).not('name', 'is', null).order('stop_order'),
+    db.from('lane_locations').select('gsdb_code').in('lane_id', ids).not('gsdb_code', 'is', null).order('stop_order'),
     db.from('lane_routes').select('*').in('lane_id', ids).not('pu_days', 'is', null),
     db.from('supplier_contacts').select('*').eq('lane_id', ids[0]),
     db.from('plant_contacts').select('*').eq('lane_id', ids[0]),
@@ -1221,7 +1222,7 @@ async function loadLaneInfo(laneIds) {
     document.querySelector('.lane-full-name').textContent = `${stripOriginCode(lane.origin)} \u2192 ${stripOriginCode(lane.destination)}`;
   }
   const locs = locsRes.data || [];
-  const gsdbs = [...new Set(locs.map(l => l.gsdb_code))].join(' \u00b7 ');
+  const gsdbs = [...new Set((gsdbRes.data || []).map(l => l.gsdb_code))].join(' \u00b7 ');
   document.querySelector('.lane-gsdb-codes').textContent = gsdbs || '—';
 
   // Rates
