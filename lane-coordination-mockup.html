@@ -500,17 +500,24 @@
   /* ─── Occurrence records (mockup) ──────────────────────── */
   .occ-header-row {
     display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    cursor: pointer; user-select: none;
   }
   .occ-header-title {
     font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
     color: var(--gray); font-weight: 700;
   }
+  .occ-chevron {
+    font-size: 10px; color: var(--gray); transition: transform 0.2s;
+  }
+  .occ-header-row.collapsed .occ-chevron { transform: rotate(-90deg); }
   .occ-new-btn {
     margin-left: auto; font-size: 11px; font-weight: 700;
     padding: 4px 10px; border-radius: 5px; cursor: pointer;
     background: var(--blue); color: #fff; border: none;
   }
   .occ-new-btn:hover { opacity: .9; }
+  .occ-body { display: flex; flex-direction: column; gap: 0; }
+  .occ-body.collapsed { display: none; }
 
   .occ-list {
     border: 1px solid var(--border); border-radius: 6px;
@@ -727,11 +734,13 @@
 
       <!-- ── Section 4: Lane Occurrences (mockup) ── -->
       <div class="li-section">
-        <div class="occ-header-row">
+        <div class="occ-header-row collapsed" onclick="toggleOccSection(this)">
           <span class="occ-header-title">Lane Occurrences</span>
-          <button class="occ-new-btn" onclick="newOccurrence()">+ New Occurrence</button>
+          <span class="occ-chevron">▾</span>
+          <button class="occ-new-btn" onclick="event.stopPropagation(); newOccurrence()">+ New Occurrence</button>
         </div>
 
+        <div class="occ-body collapsed" id="occ-body">
         <div class="occ-list" id="occ-list"></div>
 
         <div class="occ-detail" id="occ-detail">
@@ -769,6 +778,7 @@
             </div>
           </div>
         </div>
+        </div><!-- /occ-body -->
       </div>
 
       <!-- ── Section 5: Contacts ── -->
@@ -1309,13 +1319,15 @@ async function loadSidebar() {
   const container = document.getElementById('sidebar-lanes');
   container.innerHTML = Object.entries(byRep)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([rep, repItems]) => `
+    .map(([rep, repItems]) => {
+      const hasActive = repItems.some(item => isActive(item));
+      return `
       <div class="rep-group">
         <div class="rep-header" onclick="toggleRepGroup(this)">
           <span>${rep} <span style="font-weight:400;color:var(--gray);font-size:11px">(${repItems.length})</span></span>
-          <span class="rep-chevron">▾</span>
+          <span class="rep-chevron" style="${hasActive ? '' : 'transform:rotate(-90deg)'}">▾</span>
         </div>
-        <div class="rep-lanes">
+        <div class="rep-lanes${hasActive ? '' : ' collapsed'}">
           ${repItems.map(item => {
             const active = isActive(item) ? ' active' : '';
             const gsdb = item.gsdbs.join(' · ');
@@ -1329,7 +1341,8 @@ async function loadSidebar() {
             </div>`;
           }).join('')}
         </div>
-      </div>`)
+      </div>`;
+    })
     .join('');
 }
 
@@ -1586,6 +1599,11 @@ function fmtNow(iso) {
     month: 'numeric', day: 'numeric', year: '2-digit',
     hour: 'numeric', minute: '2-digit'
   });
+}
+
+function toggleOccSection(header) {
+  header.classList.toggle('collapsed');
+  document.getElementById('occ-body').classList.toggle('collapsed');
 }
 
 async function loadLaneOccurrences(laneId) {
