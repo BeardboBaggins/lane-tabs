@@ -508,6 +508,13 @@
   .occ-row:hover { background: #F9FAFB; }
   .occ-row.selected { background: #EFF6FF; }
   .occ-row-type { font-weight: 600; color: #111827; flex: 1; }
+  .occ-delete-btn {
+    background: none; border: none; cursor: pointer;
+    color: #9CA3AF; font-size: 16px; line-height: 1;
+    padding: 0 2px; opacity: 0; transition: opacity 0.15s, color 0.15s;
+  }
+  .occ-row:hover .occ-delete-btn { opacity: 1; }
+  .occ-delete-btn:hover { color: #EF4444; }
 
   .occ-detail {
     margin-top: 10px; border: 1px solid var(--border); border-radius: 6px;
@@ -1552,8 +1559,12 @@ async function loadLaneOccurrences(laneId) {
     const row = document.createElement('div');
     row.className = 'occ-row';
     row.dataset.id = o.id;
+    row.dataset.sortOrder = o.sort_order;
     row.onclick = () => selectOccurrence(row);
-    row.innerHTML = `<span class="occ-row-type">${o.name}</span>`;
+    const deleteBtn = o.sort_order > 3
+      ? `<button class="occ-delete-btn" onclick="event.stopPropagation(); deleteOccurrence(this)" title="Delete">×</button>`
+      : '';
+    row.innerHTML = `<span class="occ-row-type">${o.name}</span>${deleteBtn}`;
     list.appendChild(row);
   });
   if (rows.length) {
@@ -1629,10 +1640,26 @@ async function newOccurrence() {
   const row = document.createElement('div');
   row.className = 'occ-row';
   row.dataset.id = data.id;
+  row.dataset.sortOrder = 99;
   row.onclick = () => selectOccurrence(row);
-  row.innerHTML = `<span class="occ-row-type">${data.name}</span>`;
+  row.innerHTML = `<span class="occ-row-type">${data.name}</span><button class="occ-delete-btn" onclick="event.stopPropagation(); deleteOccurrence(this)" title="Delete">×</button>`;
   list.appendChild(row);
   selectOccurrence(row);
+}
+
+async function deleteOccurrence(btn) {
+  const row = btn.closest('.occ-row');
+  const id = row.dataset.id;
+  if (!confirm('Delete this occurrence?')) return;
+  const { error } = await db.from('lane_occurrences').delete().eq('id', id);
+  if (reportDbError('Delete occurrence failed', error)) return;
+  if (currentOccurrenceId === id) {
+    currentOccurrenceId = null;
+    document.querySelector('#occ-detail .occ-detail-type').textContent = '—';
+    document.getElementById('occ-notes-ta').value = '';
+    document.getElementById('occ-notes-saved').textContent = '';
+  }
+  row.remove();
 }
 
 // ─── Lane Notes ───────────────────────────────────────────────────
