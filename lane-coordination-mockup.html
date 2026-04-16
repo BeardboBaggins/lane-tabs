@@ -469,6 +469,9 @@
   .occ-chip--locked {
     background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD;
   }
+  .occ-chip--temp {
+    background: #FDECEA; color: #AC171C; border: 1px dashed #F4A8AA;
+  }
   .occ-chip-lock {
     font-size: 10px; color: #7DD3FC; line-height: 1;
   }
@@ -485,6 +488,14 @@
   .occ-action-btn--email { background: var(--ib-bg); color: var(--ib-text); border-color: #BFDBFE; }
   .occ-action-btn--email:hover { background: #DBEAFE; }
   .occ-action-btn.copied { background: #D1FAE5; color: #065F46; border-color: #A7F3D0; }
+  .occ-email-quick-add { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .occ-quick-btn {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    border: 1px solid #BFDBFE; background: #EFF6FF; color: #1D4ED8;
+    cursor: pointer; white-space: nowrap; transition: background 0.1s;
+  }
+  .occ-quick-btn:hover { background: #DBEAFE; }
+  .occ-quick-btn:disabled { opacity: 0.4; cursor: default; }
 
   /* ─── Occurrence records (mockup) ──────────────────────── */
   .occ-header-row {
@@ -738,7 +749,14 @@
           </div>
 
           <div class="occ-detail-section">
-            <label>Notification Emails</label>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <label style="margin:0">Notification Emails</label>
+              <div class="occ-email-quick-add" style="margin:0">
+                <button class="occ-quick-btn" onclick="quickAddEmail('FordManager@avengerlogistics.com')">+ FordManager@</button>
+                <button class="occ-quick-btn" onclick="quickAddEmail('Trey.Elliott@avengerlogistics.com')">+ Trey</button>
+                <button class="occ-quick-btn" onclick="quickAddEmail('Sunny.Tate@avengerlogistics.com')">+ Sunny</button>
+              </div>
+            </div>
             <div class="occ-email-box" id="occ-email-box">
               <input class="occ-email-input" type="text" placeholder="Add email…" />
             </div>
@@ -1528,6 +1546,20 @@ document.addEventListener('DOMContentLoaded', () => {
 function getOccEmails() {
   return [...document.querySelectorAll('#occ-email-box .occ-chip')]
     .map(c => (c.querySelector('.occ-chip-email') || c.firstChild).textContent.trim());
+}
+
+function quickAddEmail(email) {
+  if (!currentOccurrenceId) return;
+  const existing = [...document.querySelectorAll('#occ-email-box .occ-chip')]
+    .map(c => c.querySelector('.occ-chip-email').textContent.trim().toLowerCase());
+  if (existing.includes(email.toLowerCase())) return;
+  // Temporary chip — not saved to DB, disappears on occurrence change
+  const span = document.createElement('span');
+  span.className = 'occ-chip occ-chip--temp';
+  span.innerHTML = `<span class="occ-chip-email">${email}</span><button class="occ-chip-rm" tabindex="-1">×</button>`;
+  span.querySelector('.occ-chip-rm').onclick = () => span.remove();
+  const box = document.getElementById('occ-email-box');
+  box.insertBefore(span, box.querySelector('.occ-email-input'));
 }
 
 function copyOccEmails(btn) {
