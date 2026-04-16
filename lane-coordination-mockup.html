@@ -519,6 +519,9 @@
   .occ-body { display: flex; flex-direction: column; gap: 0; }
   .occ-body.collapsed { display: none; }
 
+  /* Generic collapsible section body (Contact Info, Notes, etc.) */
+  .li-section-body.collapsed { display: none; }
+
   .occ-list {
     border: 1px solid var(--border); border-radius: 6px;
     background: #fff; overflow: hidden;
@@ -783,6 +786,11 @@
 
       <!-- ── Section 5: Contacts ── -->
       <div class="li-section">
+        <div class="occ-header-row collapsed" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Contact Info</span>
+          <span class="occ-chevron">▾</span>
+        </div>
+        <div class="li-section-body collapsed">
         <div class="li-table-scroll">
         <div class="li-contacts">
 
@@ -818,10 +826,16 @@
 
         </div>
         </div>
+        </div><!-- /li-section-body Contact Info -->
       </div>
 
       <!-- ── Section 6: Notes ── -->
       <div class="li-section">
+        <div class="occ-header-row" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Notes</span>
+          <span class="occ-chevron">▾</span>
+        </div>
+        <div class="li-section-body">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Lane Notes</div>
@@ -840,6 +854,7 @@
             </div>
           </div>
         </div>
+        </div><!-- /li-section-body Notes -->
       </div>
       </div><!-- /li-body -->
     </div><!-- /lane-info-card -->
@@ -1265,6 +1280,7 @@ function selectLane(el) {
   loadLaneOccurrences(ids[0]);
   loadLaneNotes(ids[0]);
   loadSchedule(ids, currentWeekStart);
+  updateHash();
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────
@@ -1317,17 +1333,21 @@ async function loadSidebar() {
   const isActive = item => item.ids.some(id => currentLaneIds.includes(id));
 
   const container = document.getElementById('sidebar-lanes');
+  const hashReps = getHashState().reps.map(r => r.toLowerCase());
+
   container.innerHTML = Object.entries(byRep)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([rep, repItems]) => {
       const hasActive = repItems.some(item => isActive(item));
+      const inHash   = hashReps.includes(rep.toLowerCase());
+      const expand   = hasActive || inHash;
       return `
-      <div class="rep-group">
+      <div class="rep-group" data-rep="${rep}">
         <div class="rep-header" onclick="toggleRepGroup(this)">
           <span>${rep} <span style="font-weight:400;color:var(--gray);font-size:11px">(${repItems.length})</span></span>
-          <span class="rep-chevron" style="${hasActive ? '' : 'transform:rotate(-90deg)'}">▾</span>
+          <span class="rep-chevron" style="${expand ? '' : 'transform:rotate(-90deg)'}">▾</span>
         </div>
-        <div class="rep-lanes${hasActive ? '' : ' collapsed'}">
+        <div class="rep-lanes${expand ? '' : ' collapsed'}">
           ${repItems.map(item => {
             const active = isActive(item) ? ' active' : '';
             const gsdb = item.gsdbs.join(' · ');
@@ -1351,6 +1371,33 @@ function toggleRepGroup(header) {
   const chevron = header.querySelector('.rep-chevron');
   lanes.classList.toggle('collapsed');
   chevron.style.transform = lanes.classList.contains('collapsed') ? 'rotate(-90deg)' : '';
+  updateHash();
+}
+
+// ─── URL Hash State ───────────────────────────────────────────────
+function getHashState() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw) return { lanes: [], reps: [] };
+  const params = {};
+  raw.split('&').forEach(part => {
+    const [k, v] = part.split('=');
+    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
+  });
+  return {
+    lanes: params.lane ? params.lane.split(',').filter(Boolean) : [],
+    reps:  params.reps  ? params.reps.split(',').map(r => r.replace(/\+/g, ' ')).filter(Boolean) : [],
+  };
+}
+
+function updateHash() {
+  const lanesPart = currentLaneIds.length ? 'lane=' + currentLaneIds.join(',') : '';
+  const openReps = [...document.querySelectorAll('.rep-group')]
+    .filter(g => !g.querySelector('.rep-lanes')?.classList.contains('collapsed'))
+    .map(g => encodeURIComponent(g.dataset.rep || '').replace(/%20/g, '+'))
+    .filter(Boolean);
+  const repsPart = openReps.length ? 'reps=' + openReps.join(',') : '';
+  const hash = [lanesPart, repsPart].filter(Boolean).join('&');
+  history.replaceState(null, '', hash ? '#' + hash : location.pathname + location.search);
 }
 
 // ─── Lane Info Card ───────────────────────────────────────────────
@@ -1606,6 +1653,13 @@ function toggleOccSection(header) {
   document.getElementById('occ-body').classList.toggle('collapsed');
 }
 
+// Generic collapser for sections whose body is the header's next sibling
+function toggleLiSection(header) {
+  header.classList.toggle('collapsed');
+  const body = header.nextElementSibling;
+  if (body) body.classList.toggle('collapsed');
+}
+
 async function loadLaneOccurrences(laneId) {
   const list = document.getElementById('occ-list');
   list.innerHTML = '';
@@ -1780,6 +1834,13 @@ function calcFsc(miles) {
 
 // ─── Init ─────────────────────────────────────────────────────────
 async function initPage() {
+  // Restore lane from URL hash before any DB load
+  const hashState = getHashState();
+  if (hashState.lanes.length) {
+    currentLaneIds = hashState.lanes;
+    currentLaneId  = hashState.lanes[0];
+  }
+
   updateWeekLabel(currentWeekStart);
   await Promise.all([
     loadFscSettings(),
@@ -1789,6 +1850,18 @@ async function initPage() {
     loadLaneNotes(currentLaneId),
     loadSchedule(currentLaneIds, currentWeekStart),
   ]);
+
+  // After sidebar is built, mark active item (hash lane may differ from default)
+  if (hashState.lanes.length) {
+    const selector = hashState.lanes.length > 1
+      ? `[data-lane-ids="${hashState.lanes.join(',')}"]`
+      : `[data-lane-id="${hashState.lanes[0]}"]`;
+    const el = document.querySelector('.lane-item' + selector);
+    if (el) {
+      document.querySelectorAll('.lane-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+    }
+  }
 }
 
 initPage();
