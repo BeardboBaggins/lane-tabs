@@ -480,6 +480,72 @@
   .occ-action-btn--email:hover { background: #DBEAFE; }
   .occ-action-btn.copied { background: #D1FAE5; color: #065F46; border-color: #A7F3D0; }
 
+  /* ─── Occurrence records (mockup) ──────────────────────── */
+  .occ-header-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .occ-header-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--gray); font-weight: 700;
+  }
+  .occ-new-btn {
+    margin-left: auto; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 5px; cursor: pointer;
+    background: var(--blue); color: #fff; border: none;
+  }
+  .occ-new-btn:hover { opacity: .9; }
+
+  .occ-list {
+    border: 1px solid var(--border); border-radius: 6px;
+    background: #fff; overflow: hidden;
+  }
+  .occ-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    cursor: pointer; font-size: 12px;
+  }
+  .occ-row:last-child { border-bottom: none; }
+  .occ-row:hover { background: #F9FAFB; }
+  .occ-row.selected { background: #EFF6FF; }
+  .occ-row-type { font-weight: 600; color: #111827; flex: 1; }
+
+  .occ-detail {
+    margin-top: 10px; border: 1px solid var(--border); border-radius: 6px;
+    background: #FAFAFA; padding: 12px 14px;
+  }
+  .occ-detail-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .occ-detail-type {
+    font-size: 14px; font-weight: 700; color: #111827; flex: 1;
+  }
+  .occ-detail-section { margin-top: 10px; }
+  .occ-notes-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px;
+  }
+  .occ-saved-meta {
+    font-size: 10px; color: var(--gray); font-style: italic;
+  }
+  .occ-save-btn {
+    background: var(--blue); color: #fff; border-color: var(--blue);
+  }
+  .occ-save-btn:hover:not(:disabled) { opacity: .9; }
+  .occ-save-btn:disabled {
+    background: #E5E7EB; color: #9CA3AF; border-color: #E5E7EB;
+    cursor: not-allowed;
+  }
+  .occ-chip-meta {
+    font-size: 10px; color: #93C5FD; margin-left: 4px;
+  }
+  .occ-detail-section > label {
+    display: block; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--gray); font-weight: 700; margin-bottom: 5px;
+  }
+  .occ-detail-actions {
+    display: flex; gap: 6px; margin-top: 10px;
+  }
+
   /* Lane info dropdown selects */
   .lv-select {
     font-size: 13px; font-weight: 500; color: #111827;
@@ -513,9 +579,30 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ─── TOAST ────────────────────────────────────────────────── */
+  #toast-stack {
+    position: fixed; top: 16px; right: 16px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    min-width: 240px; max-width: 360px;
+    padding: 10px 14px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; line-height: 1.4;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    animation: toast-in .18s ease-out;
+  }
+  .toast--error   { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+  .toast--success { background: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+  .toast--info    { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .toast.fade-out { opacity: 0; transition: opacity .25s; }
+  @keyframes toast-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
 <body>
+
+<div id="toast-stack"></div>
 
 <!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
 <div class="topbar-wrap">
@@ -614,21 +701,40 @@
         </div>
       </div>
 
-      <!-- ── Section 4: Lane Meta ── -->
+      <!-- ── Section 4: Lane Occurrences (mockup) ── -->
       <div class="li-section">
-        <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
-          <div class="li-field" style="flex-shrink:0;">
-            <label>Lane Occurrences</label>
-            <select class="lv-select"><option>Boyne City MI–AP05A Late PU</option><option>G25AC Early Close</option><option>Weather Delay</option><option>—</option></select>
-            <div style="display:flex; gap:5px; margin-top:6px;">
-              <button class="occ-action-btn" onclick="copyOccEmails(this)" title="Copy to clipboard">📋 Copy</button>
-              <button class="occ-action-btn occ-action-btn--email" onclick="launchOccEmail(this)" title="Open in email client">✉ Email</button>
+        <div class="occ-header-row">
+          <span class="occ-header-title">Lane Occurrences</span>
+          <button class="occ-new-btn" onclick="newOccurrence()">+ New Occurrence</button>
+        </div>
+
+        <div class="occ-list" id="occ-list"></div>
+
+        <div class="occ-detail" id="occ-detail">
+          <div class="occ-detail-head">
+            <span class="occ-detail-type">TONU</span>
+          </div>
+
+          <div class="occ-detail-section">
+            <label>Notes</label>
+            <textarea id="occ-notes-ta" class="li-notes-area" placeholder="Standard handling, escalation steps, who to call…" oninput="markNotesDirty()"></textarea>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="occ-notes-saved">Not yet saved</span>
+              <button class="occ-action-btn occ-save-btn" id="occ-notes-save" onclick="saveOccNotes()" disabled>Save</button>
             </div>
           </div>
-          <div style="flex:1; min-width:220px;">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:5px;">Occurrence Notification Emails</div>
+
+          <div class="occ-detail-section">
+            <label>Notification Emails</label>
             <div class="occ-email-box" id="occ-email-box">
               <input class="occ-email-input" type="text" placeholder="Add email…" />
+            </div>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="occ-emails-updated">No emails yet</span>
+              <div style="display:flex; gap:6px;">
+                <button class="occ-action-btn" onclick="copyOccEmails(this)" title="Copy to clipboard">📋 Copy</button>
+                <button class="occ-action-btn occ-action-btn--email" onclick="launchOccEmail(this)" title="Open in email client">✉ Email Notification</button>
+              </div>
             </div>
           </div>
         </div>
@@ -678,11 +784,19 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Lane Notes</div>
-            <textarea id="lane-notes-ta" class="li-notes-area" placeholder="General lane notes…" oninput="onNotesInput()"></textarea>
+            <textarea id="lane-notes-ta" class="li-notes-area" placeholder="General lane notes…" oninput="markLaneNotesDirty('lane')"></textarea>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="lane-notes-saved">Not yet saved</span>
+              <button class="occ-action-btn occ-save-btn" id="lane-notes-save" onclick="saveLaneNotes('lane')" disabled>Save</button>
+            </div>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Carrier Notes</div>
-            <textarea id="carrier-notes-ta" class="li-notes-area" placeholder="Carrier-specific notes…" oninput="onNotesInput()"></textarea>
+            <textarea id="carrier-notes-ta" class="li-notes-area" placeholder="Carrier-specific notes…" oninput="markLaneNotesDirty('carrier')"></textarea>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="carrier-notes-saved">Not yet saved</span>
+              <button class="occ-action-btn occ-save-btn" id="carrier-notes-save" onclick="saveLaneNotes('carrier')" disabled>Save</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1107,7 +1221,7 @@ function selectLane(el) {
   currentLaneIds = ids;
   currentLaneId = ids[0];
   loadLaneInfo(ids);
-  loadOccurrenceEmails(ids[0]);
+  loadLaneOccurrences(ids[0]);
   loadLaneNotes(ids[0]);
   loadSchedule(ids, currentWeekStart);
 }
@@ -1318,47 +1432,84 @@ async function loadLaneInfo(laneIds) {
 }
 
 // ─── Occurrence Emails ────────────────────────────────────────────
-async function loadOccurrenceEmails(laneId) {
-  const { data } = await db.from('occurrence_emails').select('*').eq('lane_id', laneId);
-  const box = document.getElementById('occ-email-box');
-  box.querySelectorAll('.occ-chip').forEach(c => c.remove());
-  const input = box.querySelector('.occ-email-input');
-  (data || []).forEach(row => box.insertBefore(makeEmailChip(row), input));
+let currentOccurrenceId = null;
+
+// ─── Toast notifications ──────────────────────────────────────────
+function showToast(msg, type = 'info', timeoutMs = 4000) {
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = `toast toast--${type}`;
+  t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('fade-out');
+    setTimeout(() => t.remove(), 250);
+  }, timeoutMs);
+}
+
+function reportDbError(prefix, error) {
+  if (!error) return false;
+  console.error(prefix, error);
+  showToast(`${prefix}: ${error.message || 'Unknown error'}`, 'error', 6000);
+  return true;
+}
+
+function refreshOccEmailsUpdated() {
+  const chips = [...document.querySelectorAll('#occ-email-box .occ-chip')];
+  const el = document.getElementById('occ-emails-updated');
+  if (!chips.length) { el.textContent = 'No emails yet'; return; }
+  const latest = chips
+    .map(c => c.dataset.createdAt)
+    .filter(Boolean)
+    .sort()
+    .pop();
+  el.textContent = latest ? `Last updated ${fmtNow(latest)}` : `Last updated ${fmtNow()}`;
+}
+
+function fmtChipDate(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
 }
 
 function makeEmailChip(row) {
   const span = document.createElement('span');
   span.className = 'occ-chip';
   span.dataset.id = row.id;
-  span.innerHTML = `${row.email} <button class="occ-chip-rm" tabindex="-1">×</button>`;
+  span.dataset.createdAt = row.created_at || new Date().toISOString();
+  span.innerHTML = `<span class="occ-chip-email">${row.email}</span><span class="occ-chip-meta">${fmtChipDate(span.dataset.createdAt)}</span><button class="occ-chip-rm" tabindex="-1">×</button>`;
   span.querySelector('.occ-chip-rm').onclick = () => removeOccEmail(span);
   return span;
 }
 
 async function removeOccEmail(chip) {
-  await db.from('occurrence_emails').delete().eq('id', chip.dataset.id);
+  const { error } = await db.from('lane_occurrence_emails').delete().eq('id', chip.dataset.id);
+  if (reportDbError('Remove email failed', error)) return;
   chip.remove();
+  refreshOccEmailsUpdated();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.occ-email-input').addEventListener('keydown', async e => {
     if (e.key !== 'Enter') return;
+    if (!currentOccurrenceId) return;
     const input = e.target;
     const email = input.value.trim();
     if (!email) return;
-    const { data } = await db.from('occurrence_emails')
-      .insert({ lane_id: currentLaneId, email }).select().single();
+    const { data, error } = await db.from('lane_occurrence_emails')
+      .insert({ occurrence_id: currentOccurrenceId, email }).select().single();
+    if (reportDbError('Add email failed', error)) return;
     if (data) {
       const box = document.getElementById('occ-email-box');
       box.insertBefore(makeEmailChip(data), input);
       input.value = '';
+      refreshOccEmailsUpdated();
     }
   });
 });
 
 function getOccEmails() {
   return [...document.querySelectorAll('#occ-email-box .occ-chip')]
-    .map(c => c.firstChild.textContent.trim());
+    .map(c => (c.querySelector('.occ-chip-email') || c.firstChild).textContent.trim());
 }
 
 function copyOccEmails(btn) {
@@ -1373,28 +1524,152 @@ function copyOccEmails(btn) {
 
 function launchOccEmail() {
   const emails = getOccEmails();
-  const occurrence = document.querySelector('#li-body .lv-select')?.value || '';
+  const occurrence = document.querySelector('.occ-detail-type')?.textContent || '';
   const lane = document.querySelector('.lane-full-name')?.textContent || '';
   window.location.href = `mailto:${emails.join(';')}?subject=${encodeURIComponent(`Lane Occurrence: ${lane} – ${occurrence}`)}`;
 }
 
+// ─── Occurrence list mockup interactions ──────────────────────────
+function fmtNow(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleString('en-US', {
+    month: 'numeric', day: 'numeric', year: '2-digit',
+    hour: 'numeric', minute: '2-digit'
+  });
+}
+
+async function loadLaneOccurrences(laneId) {
+  const list = document.getElementById('occ-list');
+  list.innerHTML = '';
+  currentOccurrenceId = null;
+  const { data } = await db.from('lane_occurrences')
+    .select('id, name, sort_order')
+    .eq('lane_id', laneId)
+    .order('sort_order')
+    .order('name');
+  const rows = data || [];
+  rows.forEach(o => {
+    const row = document.createElement('div');
+    row.className = 'occ-row';
+    row.dataset.id = o.id;
+    row.onclick = () => selectOccurrence(row);
+    row.innerHTML = `<span class="occ-row-type">${o.name}</span>`;
+    list.appendChild(row);
+  });
+  if (rows.length) {
+    selectOccurrence(list.firstElementChild);
+  } else {
+    document.querySelector('#occ-detail .occ-detail-type').textContent = '—';
+    document.getElementById('occ-notes-ta').value = '';
+    document.getElementById('occ-notes-saved').textContent = 'No occurrences for this lane';
+    document.getElementById('occ-emails-updated').textContent = 'No emails yet';
+    document.getElementById('occ-email-box').querySelectorAll('.occ-chip').forEach(c => c.remove());
+  }
+}
+
+async function selectOccurrence(row) {
+  document.querySelectorAll('#occ-list .occ-row').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+  const id = row.dataset.id;
+  currentOccurrenceId = id;
+  document.querySelector('#occ-detail .occ-detail-type').textContent = row.querySelector('.occ-row-type').textContent;
+
+  const [occRes, emailsRes] = await Promise.all([
+    db.from('lane_occurrences').select('notes, notes_updated_at').eq('id', id).maybeSingle(),
+    db.from('lane_occurrence_emails').select('*').eq('occurrence_id', id).order('created_at'),
+  ]);
+
+  const notesTa = document.getElementById('occ-notes-ta');
+  notesTa.value = occRes.data?.notes || '';
+  const savedEl  = document.getElementById('occ-notes-saved');
+  const saveBtn  = document.getElementById('occ-notes-save');
+  savedEl.textContent = occRes.data?.notes_updated_at
+    ? `Saved ${fmtNow(occRes.data.notes_updated_at)}`
+    : 'Not yet saved';
+  saveBtn.disabled = true;
+  saveBtn.textContent = occRes.data?.notes_updated_at ? 'Saved ✓' : 'Save';
+
+  const box = document.getElementById('occ-email-box');
+  box.querySelectorAll('.occ-chip').forEach(c => c.remove());
+  const input = box.querySelector('.occ-email-input');
+  (emailsRes.data || []).forEach(r => box.insertBefore(makeEmailChip(r), input));
+  refreshOccEmailsUpdated();
+}
+
+function markNotesDirty() {
+  const btn = document.getElementById('occ-notes-save');
+  btn.disabled = false;
+  btn.textContent = 'Save';
+}
+
+async function saveOccNotes() {
+  if (!currentOccurrenceId) return;
+  const btn = document.getElementById('occ-notes-save');
+  const value = document.getElementById('occ-notes-ta').value;
+  const nowIso = new Date().toISOString();
+  const { error } = await db.from('lane_occurrences')
+    .update({ notes: value, notes_updated_at: nowIso })
+    .eq('id', currentOccurrenceId);
+  if (reportDbError('Save notes failed', error)) return;
+  document.getElementById('occ-notes-saved').textContent = `Saved ${fmtNow(nowIso)}`;
+  btn.disabled = true;
+  btn.textContent = 'Saved ✓';
+}
+
+async function newOccurrence() {
+  if (!currentLaneId) return;
+  const name = prompt('Occurrence name:');
+  if (!name || !name.trim()) return;
+  const { data, error } = await db.from('lane_occurrences')
+    .insert({ lane_id: currentLaneId, name: name.trim(), sort_order: 99 })
+    .select()
+    .single();
+  if (reportDbError('Create occurrence failed', error)) return;
+  const list = document.getElementById('occ-list');
+  const row = document.createElement('div');
+  row.className = 'occ-row';
+  row.dataset.id = data.id;
+  row.onclick = () => selectOccurrence(row);
+  row.innerHTML = `<span class="occ-row-type">${data.name}</span>`;
+  list.appendChild(row);
+  selectOccurrence(row);
+}
+
 // ─── Lane Notes ───────────────────────────────────────────────────
+function setNotesSavedMeta(which, iso) {
+  const el = document.getElementById(`${which}-notes-saved`);
+  el.textContent = iso ? `Saved ${fmtNow(iso)}` : 'Not yet saved';
+  const btn = document.getElementById(`${which}-notes-save`);
+  btn.disabled = true;
+  btn.textContent = 'Saved ✓';
+}
+
 async function loadLaneNotes(laneId) {
   const { data } = await db.from('lane_notes').select('*').eq('lane_id', laneId).maybeSingle();
   document.getElementById('lane-notes-ta').value    = data?.lane_notes    || '';
   document.getElementById('carrier-notes-ta').value = data?.carrier_notes || '';
+  setNotesSavedMeta('lane',    data?.updated_at);
+  setNotesSavedMeta('carrier', data?.updated_at);
 }
 
-const saveNotes = debounce(async () => {
-  await db.from('lane_notes').upsert({
-    lane_id:       currentLaneId,
-    lane_notes:    document.getElementById('lane-notes-ta').value,
-    carrier_notes: document.getElementById('carrier-notes-ta').value,
-    updated_at:    new Date().toISOString(),
-  }, { onConflict: 'lane_id' });
-}, 1000);
+function markLaneNotesDirty(which) {
+  const btn = document.getElementById(`${which}-notes-save`);
+  btn.disabled = false;
+  btn.textContent = 'Save';
+}
 
-function onNotesInput() { saveNotes(); }
+async function saveLaneNotes(which) {
+  const field = which === 'lane' ? 'lane_notes' : 'carrier_notes';
+  const value = document.getElementById(`${which}-notes-ta`).value;
+  const nowIso = new Date().toISOString();
+  const { error } = await db.from('lane_notes').upsert({
+    lane_id:    currentLaneId,
+    [field]:    value,
+    updated_at: nowIso,
+  }, { onConflict: 'lane_id' });
+  if (reportDbError(`Save ${which === 'lane' ? 'lane' : 'carrier'} notes failed`, error)) return;
+  setNotesSavedMeta(which, nowIso);
+}
 
 function toggleLaneInfo() {
   const body = document.getElementById('li-body');
@@ -1422,7 +1697,7 @@ async function initPage() {
     loadFscSettings(),
     loadSidebar(),
     loadLaneInfo(currentLaneIds),
-    loadOccurrenceEmails(currentLaneId),
+    loadLaneOccurrences(currentLaneId),
     loadLaneNotes(currentLaneId),
     loadSchedule(currentLaneIds, currentWeekStart),
   ]);
