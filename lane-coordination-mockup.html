@@ -250,16 +250,27 @@
     width: 100%; border-collapse: collapse; font-size: 12px;
   }
   table.li-routes th {
-    text-align: left; font-size: 10px; text-transform: uppercase;
+    text-align: center; font-size: 10px; text-transform: uppercase;
     letter-spacing: .6px; color: var(--navy); font-weight: 700;
     font-family: 'Barlow', Arial, sans-serif;
-    padding: 0 16px 5px 0; white-space: nowrap;
+    padding: 0 12px 5px 12px; white-space: nowrap;
   }
   table.li-routes td {
-    padding: 5px 16px 5px 0; border-top: 1px solid #F3F4F6;
+    padding: 5px 12px; border-top: 1px solid #F3F4F6;
     font-family: monospace; font-size: 12px; vertical-align: middle;
+    text-align: center;
   }
   table.li-routes td.days { font-family: inherit; font-size: 12px; letter-spacing: .5px; }
+
+  /* 7-dot day row (M T W R F Sa Su) */
+  .day-dots { display: inline-flex; gap: 3px; justify-content: center; }
+  .day-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; font-family: 'Barlow', Arial, sans-serif;
+    background: #F3F4F6; color: #D1D5DB;
+  }
+  .day-dot.on { background: var(--blue); color: #fff; }
 
   /* Lane meta strip */
   .li-meta {
@@ -724,10 +735,10 @@
               <th>OB Route(s)</th>
               <th>PU Days</th>
               <th>PU Times</th>
-              <th>Stop 1 Days</th>
-              <th>Stop 1 Times</th>
               <th>DEL Days</th>
               <th>DEL Times</th>
+              <th>Live/Drop</th>
+              <th>Dock</th>
             </tr>
           </thead>
           <tbody id="li-routes-tbody"></tbody>
@@ -1134,6 +1145,91 @@ function filterSidebar(query) {
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────
+// Day-letter → offset from Monday (freight-industry convention: R=Thu, Sa=Sat, Su=Sun)
+const DAY_LETTER_OFFSET = { M:0, T:1, W:2, R:3, F:4, Sa:5, S:5, Su:6, U:6 };
+
+function parseRouteDays(str) {
+  if (!str) return [];
+  return str.split(/\s+/).filter(Boolean)
+    .map(t => DAY_LETTER_OFFSET[t])
+    .filter(v => v !== undefined);
+}
+
+// Generic fallback schedule — used when a lane_routes record has no pu_days/times.
+// Generates an IB trip (06:00 → 14:00) and an OB trip (15:00 → 22:00), Mon–Fri.
+// TEMPORARY: remove once real route data is filled in.
+const GENERIC_SCHEDULE = {
+  days: [0, 1, 2, 3, 4],          // M, T, W, R, F
+  ib: { puTime: '06:00', delTime: '14:00' },
+  ob: { puTime: '15:00', delTime: '22:00' },
+};
+
+// Generate pickup+delivery row pairs for `weekStart` from each lane_routes record.
+// Append-only: skips any (lane_id, leg, route_number, load_date) that already exists.
+async function populateWeekFromRoutes(laneIds, weekStart) {
+  const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
+
+  const { data: routes } = await db.from('lane_routes').select('*').in('lane_id', ids);
+  if (!routes?.length) return 0;
+
+  const { data: existing } = await db.from('loads')
+    .select('lane_id,leg,route_number,load_date')
+    .in('lane_id', ids).eq('week_start', weekStart);
+  const key = r => `${r.lane_id}|${r.leg}|${r.route_number||''}|${r.load_date}`;
+  const existingKeys = new Set((existing || []).map(key));
+
+  const weekBaseDate = new Date(weekStart + 'T00:00:00');
+  const rows = [];
+
+  const pushPair = (laneId, puOff, delOff, puTime, delTime, routeNum, isIb) => {
+    if (puOff > 4) return; // grid only renders Mon–Fri pickups
+    if (!routeNum) return;
+    const puDate = new Date(weekBaseDate);
+    puDate.setDate(puDate.getDate() + puOff);
+    const puDateStr = puDate.toISOString().split('T')[0];
+    const daysForward = delOff >= puOff ? delOff - puOff : (7 - puOff) + delOff;
+    const delDate = new Date(puDate);
+    delDate.setDate(delDate.getDate() + daysForward);
+    const delDateStr = delDate.toISOString().split('T')[0];
+
+    const pu = { lane_id: laneId, week_start: weekStart, status: 'Active',
+                 leg: 'pickup',   load_date: puDateStr, time_et: puTime,
+                 route_number: routeNum, is_ib: isIb };
+    const dl = { lane_id: laneId, week_start: weekStart, status: 'Active',
+                 leg: 'delivery', load_date: delDateStr, time_et: delTime,
+                 route_number: routeNum, is_ib: isIb };
+    if (!existingKeys.has(key(pu))) { rows.push(pu); existingKeys.add(key(pu)); }
+    if (!existingKeys.has(key(dl))) { rows.push(dl); existingKeys.add(key(dl)); }
+  };
+
+  for (const route of routes) {
+    if (route.pu_days) {
+      // Real schedule data — use it as-is, single route_number per trip
+      const puOffsets  = parseRouteDays(route.pu_days);
+      const delOffsets = parseRouteDays(route.del_days);
+      const routeNum   = route.ib_route || route.ob_route;
+      const puTime     = route.pu_times || null;
+      const delTime    = route.del_times || null;
+      puOffsets.forEach((puOff, i) => {
+        const delOff = delOffsets[i] ?? puOff;
+        pushPair(route.lane_id, puOff, delOff, puTime, delTime, routeNum, true);
+      });
+    } else {
+      // Generic fallback — IB trip + OB trip each weekday
+      const { ib, ob, days } = GENERIC_SCHEDULE;
+      days.forEach(dayOff => {
+        if (route.ib_route) pushPair(route.lane_id, dayOff, dayOff, ib.puTime, ib.delTime, route.ib_route, true);
+        if (route.ob_route) pushPair(route.lane_id, dayOff, dayOff, ob.puTime, ob.delTime, route.ob_route, false);
+      });
+    }
+  }
+
+  if (!rows.length) return 0;
+  const { error } = await db.from('loads').insert(rows);
+  if (error) { console.error('populateWeekFromRoutes failed', error); return 0; }
+  return rows.length;
+}
+
 async function loadSchedule(laneIds, weekStart) {
   const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
   const weekBaseDate = new Date(weekStart + 'T00:00:00');
@@ -1153,8 +1249,18 @@ async function loadSchedule(laneIds, weekStart) {
   });
   document.querySelectorAll('.day-count-val').forEach(el => el.textContent = '');
 
-  const { data } = await db.from('loads').select('*')
+  let { data } = await db.from('loads').select('*')
     .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
+
+  // Auto-populate empty weeks from Section 3 route schedule
+  if (!data || !data.length) {
+    const inserted = await populateWeekFromRoutes(ids, weekStart);
+    if (inserted > 0) {
+      const refetch = await db.from('loads').select('*')
+        .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
+      data = refetch.data;
+    }
+  }
 
   if (!data || !data.length) return;
 
@@ -1283,6 +1389,25 @@ function selectLane(el) {
   updateHash();
 }
 
+// ─── Routes-table render helpers ──────────────────────────────────
+// Render a space-separated day string ("M W F") as a 7-dot row
+function renderDayDots(daysStr) {
+  const order = ['M','T','W','R','F','S','U'];
+  const set = new Set((daysStr || '').split(/\s+/).filter(Boolean));
+  return `<span class="day-dots">${order.map(d =>
+    `<span class="day-dot${set.has(d) ? ' on' : ''}">${d}</span>`
+  ).join('')}</span>`;
+}
+
+// Render Live/Drop value as a colored pill (Live=green, Drop=yellow)
+function renderLiveDropPill(val) {
+  if (!val) return '—';
+  const s = val.trim();
+  if (/live/i.test(s)) return `<span class="live-badge">${s}</span>`;
+  if (/drop/i.test(s)) return `<span class="drop-badge">${s}</span>`;
+  return s;
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────
 function stripOriginCode(origin) {
   // "Louisville (CR2CF) (Drop), KY" → "Louisville, KY"
@@ -1408,7 +1533,7 @@ async function loadLaneInfo(laneIds) {
     db.from('lanes').select('*').in('id', ids),
     db.from('lane_locations').select('*').in('lane_id', ids).not('name', 'is', null).order('stop_order'),
     db.from('lane_locations').select('gsdb_code').in('lane_id', ids).not('gsdb_code', 'is', null).order('stop_order'),
-    db.from('lane_routes').select('*').in('lane_id', ids).not('pu_days', 'is', null),
+    db.from('lane_routes').select('*').in('lane_id', ids),
     db.from('supplier_contacts').select('*').eq('lane_id', ids[0]),
     db.from('plant_contacts').select('*').eq('lane_id', ids[0]),
   ]);
@@ -1476,12 +1601,12 @@ async function loadLaneInfo(laneIds) {
     tr.innerHTML = `
       <td>${route.ib_route || '—'}</td>
       <td>${route.ob_route || '—'}</td>
-      <td class="days">${route.pu_days || '—'}</td>
+      <td class="days">${renderDayDots(route.pu_days)}</td>
       <td>${route.pu_times || '—'}</td>
-      <td class="days">${route.stop1_days || '—'}</td>
-      <td>${route.stop1_times || '—'}</td>
-      <td class="days">${route.del_days || '—'}</td>
-      <td>${route.del_times || '—'}</td>`;
+      <td class="days">${renderDayDots(route.del_days)}</td>
+      <td>${route.del_times || '—'}</td>
+      <td>${renderLiveDropPill(route.pu_live_drop)}</td>
+      <td>${route.pu_dock || '—'}</td>`;
     routesTbody.appendChild(tr);
   });
 
