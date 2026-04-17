@@ -896,8 +896,7 @@
               <th>Name</th>
               <th>Address</th>
               <th>City / State / Zip</th>
-              <th>Live / Drop</th>
-              <th>Dock</th>
+              <th>Time Zone</th>
               <th>Ford Miles</th>
             </tr>
           </thead>
@@ -2004,8 +2003,7 @@ async function loadLaneInfo(laneIds) {
       <td>${loc.name || '—'}</td>
       <td>${loc.address || '—'}</td>
       <td>${cityLine || '—'}</td>
-      <td>${loc.live_drop ? `<span class="${loc.live_drop === 'Live' ? 'live-badge' : 'drop-badge'}">${loc.live_drop}</span>` : '—'}</td>
-      <td>${loc.dock || '—'}</td>
+      <td>${loc.time_zone || '—'}</td>
       <td>${loc.ford_miles ? `${loc.ford_miles} mi` : '—'}</td>`;
     locsTbody.appendChild(tr);
   });
