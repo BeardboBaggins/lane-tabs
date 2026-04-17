@@ -57,12 +57,14 @@
   .topbar-brand {
     font-family: 'Barlow', Arial, sans-serif;
     font-size: 17px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    display: flex; flex-direction: column; line-height: 1.1;
   }
   .topbar-brand span {
     font-family: 'Lato', Arial, sans-serif;
-    opacity: .6; font-weight: 400; margin-left: 10px; font-size: 12px;
-    text-transform: none; letter-spacing: 0;
+    opacity: .6; font-weight: 400; margin-left: 0; font-size: 11px;
+    text-transform: none; letter-spacing: 0; margin-top: 2px;
   }
+  .topbar-left  { display: flex; align-items: center; gap: 20px; }
   .topbar-right { display: flex; align-items: center; gap: 16px; }
   .topbar-user { font-size: 12px; opacity: .75; }
   .btn-logout {
@@ -93,7 +95,7 @@
     position: relative;
   }
   .sidebar.collapsed { width: 32px; }
-  .sidebar[hidden] { display: none !important; }
+  .sidebar[hidden], .sidebar-toggle[hidden] { display: none !important; }
   .lane-info-card[hidden], .schedule-card[hidden], .landing-page[hidden] { display: none !important; }
   .sidebar.collapsed .sidebar-search,
   .sidebar.collapsed #sidebar-lanes { display: none; }
@@ -1107,13 +1109,15 @@
 <!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
 <div class="topbar-wrap">
 <header class="topbar">
-  <div class="topbar-brand">
-    AVGD Automotive
-    <span>Lane Distribution Dashboard</span>
-  </div>
-  <div class="topbar-right">
+  <div class="topbar-left">
+    <div class="topbar-brand">
+      AVGD Automotive
+      <span>Lane Dashboard</span>
+    </div>
     <button class="btn-home" id="btn-home" onclick="showLanding()" title="Ford General Info">Home</button>
     <button class="btn-home" id="btn-lanes" onclick="showLaneView()" title="Lane Dashboard">Lanes</button>
+  </div>
+  <div class="topbar-right">
     <span class="topbar-user" id="topbar-user">—</span>
     <button class="btn-logout" onclick="signOut()">Log out</button>
   </div>
@@ -3259,30 +3263,56 @@ async function loadLanding() {
 }
 
 function showLanding() {
-  // Full-screen landing: hide the sidebar, the floating toggle, and the lane views.
-  document.getElementById('landing-page').hidden = false;
-  document.getElementById('sidebar').hidden = true;
+  // Collapse the sidebar (kept visible as a thin strip so users can expand
+  // it and navigate to a lane without leaving Home).
+  const sb = document.getElementById('sidebar');
+  sb.hidden = false;
+  sb.classList.add('collapsed');
   const sbToggle = document.getElementById('sidebar-toggle-btn');
-  if (sbToggle) sbToggle.hidden = true;
+  if (sbToggle) {
+    sbToggle.hidden = false;
+    sbToggle.textContent = '›';
+    sbToggle.title = 'Expand sidebar';
+  }
+  document.getElementById('landing-page').hidden = false;
   document.querySelector('.lane-info-card').hidden = true;
   document.getElementById('schedule-card').hidden = true;
   document.getElementById('btn-home')?.classList.add('active');
   document.getElementById('btn-lanes')?.classList.remove('active');
-  // Clear active sidebar highlighting
   document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
   if (!landingLoaded) loadLanding();
 }
 
 function showLaneView() {
-  // Lane dashboard mode: show sidebar + lane views, hide landing.
-  document.getElementById('landing-page').hidden = true;
-  document.getElementById('sidebar').hidden = false;
+  // Re-expand the sidebar and show the lane views.
+  const sb = document.getElementById('sidebar');
+  sb.hidden = false;
+  sb.classList.remove('collapsed');
   const sbToggle = document.getElementById('sidebar-toggle-btn');
-  if (sbToggle) sbToggle.hidden = false;
+  if (sbToggle) {
+    sbToggle.hidden = false;
+    sbToggle.textContent = '‹';
+    sbToggle.title = 'Collapse sidebar';
+  }
+  document.getElementById('landing-page').hidden = true;
   document.querySelector('.lane-info-card').hidden = false;
   document.getElementById('schedule-card').hidden = false;
   document.getElementById('btn-home')?.classList.remove('active');
   document.getElementById('btn-lanes')?.classList.add('active');
+  // Re-highlight the current lane in the sidebar (and expand its rep group)
+  if (currentLaneIds?.length) {
+    const selector = currentLaneIds.length > 1
+      ? `[data-lane-ids="${currentLaneIds.join(',')}"]`
+      : `[data-lane-id="${currentLaneIds[0]}"]`;
+    const el = document.querySelector('.lane-item' + selector);
+    if (el) {
+      document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+      const group = el.closest('.rep-group');
+      const lanes = group?.querySelector('.rep-lanes');
+      if (lanes?.classList.contains('collapsed')) group.querySelector('.rep-header').click();
+    }
+  }
 }
 
 // Kept for back-compat: selectLane calls hideLanding when user picks a lane
