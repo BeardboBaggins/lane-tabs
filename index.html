@@ -189,6 +189,10 @@
     font-size: 10px; color: var(--gray); margin-top: 1px; font-family: monospace;
   }
   .lane-item.active .lane-gsdb { color: #93C5FD; }
+  /* Alerted lanes: the default light-blue GSDB is unreadable on the red
+     background, so force it to a dark red that contrasts well. */
+  .lane-item.alerted .lane-gsdb,
+  .lane-item.alerted.active .lane-gsdb { color: #B91C1C; }
 
   /* ─── MAIN CONTENT ────────────────────────────────────────── */
   .main-content {
@@ -226,43 +230,34 @@
     background: rgba(255,255,255,.1); border: none;
     border-radius: 4px; padding: 3px 8px; cursor: pointer; margin-left: 12px;
   }
-  /* Alert button — Avenger Red per brand; light-red off state, solid pulsing on */
-  .lane-alert-btn {
-    font-size: 11px; font-weight: 700; color: #991B1B;
-    background: #FEE2E2; border: 1px solid #FECACA;
-    border-radius: 4px; padding: 3px 10px; cursor: pointer;
-    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+  /* Per-load alert cell + alerted row highlight */
+  .alert-cell {
+    width: 36px; text-align: center; padding: 0;
   }
-  .lane-alert-btn:hover { background: #FECACA; border-color: #F87171; }
-  .lane-alert-btn.active {
-    background: #AC171C; border-color: #AC171C; color: #fff;
-    box-shadow: 0 0 0 0 rgba(172,23,28,.6);
-    animation: lane-alert-pulse 2s ease-in-out infinite;
+  .alert-cell input[type="checkbox"] {
+    cursor: pointer; accent-color: #AC171C;
+    width: 14px; height: 14px;
   }
-  @keyframes lane-alert-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(172,23,28,.6); }
-    50%      { box-shadow: 0 0 0 5px rgba(172,23,28,0); }
+  tr.row-alerted > td:not(.leg-ind) { background: #FEF2F2; }
+  tr.row-alerted > td:not(.leg-ind):not(.alert-cell) {
+    box-shadow: inset 0 1px 0 #FECACA, inset 0 -1px 0 #FECACA;
   }
 
-  /* Alerted lane card — red left border + tinted header */
+  /* Lane-level alert cues — driven by any alerted load on that lane */
   .lane-info-card.alerted { border-left: 4px solid #AC171C; }
   .lane-info-card.alerted .lane-info-header {
     background: linear-gradient(90deg, #AC171C 0%, var(--navy) 18%);
   }
-
-  /* Alerted sidebar item — red tint + bold + red left bar + warning icon */
   .lane-item.alerted {
     background: #FEE2E2; color: #991B1B; font-weight: 700;
     border-left: 3px solid #AC171C;
-    padding-left: 11px; /* compensate for the 3px border to keep text aligned */
+    padding-left: 11px;
   }
   .lane-item.alerted:hover { background: #FECACA; }
   .lane-item.alerted.active { background: #FECACA; }
   .lane-item.alerted::before {
     content: "⚠ "; color: #AC171C; font-weight: 700;
   }
-
-  /* Alert count badge in rep-group header */
   .rep-alert-count {
     display: inline-flex; align-items: center; gap: 2px;
     background: #FEE2E2; color: #AC171C; font-weight: 700;
@@ -1079,7 +1074,6 @@
           <div class="lane-gsdb-codes">G25AC &nbsp;·&nbsp; A64RB &nbsp;/&nbsp; AP05A</div>
         </div>
         <div class="lane-badges">
-          <button class="lane-alert-btn" id="lane-alert-btn" onclick="event.stopPropagation(); toggleLaneAlert()" title="Flag this lane as needing attention">🚨 Alert</button>
           <button class="li-collapse-btn" id="li-toggle-btn">Hide</button>
         </div>
       </div>
@@ -1334,6 +1328,7 @@
               <thead>
                 <tr>
                   <th style="width:4px"></th>
+                  <th>Alert</th>
                   <th>Status</th>
                   <th>Date</th>
                   <th>Time (ET)</th>
@@ -1751,6 +1746,9 @@ async function loadSchedule(laneIds, weekStart) {
     }
   }
 
+  // Apply lane-level alert cue: any alerted load → red border + tinted header
+  applyLaneAlertCue(data || []);
+
   if (!data || !data.length) return;
 
   // Group by pair_id so pickup + delivery always render together (pickup first).
@@ -1831,6 +1829,7 @@ function makeLoadRow(row) {
   const tr = document.createElement('tr');
   tr.className = isPickup ? 'route-top' : 'route-bot';
   if (row.status === 'Canceled') tr.classList.add('row-canceled');
+  if (row.is_alerted) tr.classList.add('row-alerted');
   tr.dataset.id = row.id;
   tr.dataset.pairId = row.pair_id || '';
   tr.draggable = true; // both pickup and delivery rows can initiate a pair drag
@@ -1846,6 +1845,7 @@ function makeLoadRow(row) {
   ];
   tr.innerHTML = `
     <td class="leg-ind" title="${isPickup?'Pickup':'Delivery'} leg"></td>
+    <td class="alert-cell"><input type="checkbox" class="alert-chk" ${row.is_alerted?'checked':''} onchange="toggleLoadAlert(this, '${row.id}')" title="Flag this load as needing attention"></td>
     <td>${makeStatusSelect(row.status || 'Active')}</td>
     <td class="locked-val">${fmtDate(row.load_date)}</td>
     <td class="locked-val">${row.time_et || '—'}</td>
@@ -2306,16 +2306,23 @@ async function loadSidebar() {
   // Base query; when "My Lanes Only" is on AND the user is linked to a rep,
   // scope to only that rep's lanes.
   let lanesQuery = db.from('lanes')
-    .select('id, origin, destination, rep_id, lane_group, is_alerted, reps(name)')
+    .select('id, origin, destination, rep_id, lane_group, reps(name)')
     .eq('status','Active')
     .order('origin');
   if (myLanesOnly && currentUserRepId) {
     lanesQuery = lanesQuery.eq('rep_id', currentUserRepId);
   }
-  const [lanesRes, locsRes] = await Promise.all([
+  // Also fetch every alerted load so we can show per-lane counts
+  const [lanesRes, locsRes, alertedRes] = await Promise.all([
     lanesQuery,
     db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('gsdb_code', 'is', null).order('stop_order'),
+    db.from('loads').select('lane_id').eq('is_alerted', true),
   ]);
+  // Map lane_id → number of alerted loads on that lane
+  const alertedCountByLane = new Map();
+  (alertedRes.data || []).forEach(r => {
+    alertedCountByLane.set(r.lane_id, (alertedCountByLane.get(r.lane_id) || 0) + 1);
+  });
 
   const lanes = lanesRes.data || [];
   const locs  = locsRes.data  || [];
@@ -2335,17 +2342,24 @@ async function loadSidebar() {
     const rep = ln.reps?.name || 'Unassigned';
     if (ln.lane_group) {
       if (!groups[ln.lane_group]) {
-        groups[ln.lane_group] = { ids: [], origin: stripOriginCode(ln.origin), dests: [], gsdbs: [], rep, alerted: false };
+        groups[ln.lane_group] = { ids: [], origin: stripOriginCode(ln.origin), dests: [], gsdbs: [], rep, alertedLoadCount: 0 };
         items.push(groups[ln.lane_group]);
       }
       const g = groups[ln.lane_group];
       g.ids.push(ln.id);
-      if (ln.is_alerted) g.alerted = true; // any sub-lane alerted → whole group shows alerted
+      g.alertedLoadCount += alertedCountByLane.get(ln.id) || 0;
       const city = ln.destination.split(',')[0];
       if (!g.dests.includes(city)) g.dests.push(city);
       (gsdbMap[ln.id] || []).forEach(c => { if (!g.gsdbs.includes(c)) g.gsdbs.push(c); });
     } else {
-      items.push({ ids: [ln.id], origin: stripOriginCode(ln.origin), dests: [stripOriginCode(ln.destination)], gsdbs: gsdbMap[ln.id] || [], rep, alerted: !!ln.is_alerted });
+      items.push({
+        ids: [ln.id],
+        origin: stripOriginCode(ln.origin),
+        dests: [stripOriginCode(ln.destination)],
+        gsdbs: gsdbMap[ln.id] || [],
+        rep,
+        alertedLoadCount: alertedCountByLane.get(ln.id) || 0,
+      });
     }
   });
 
@@ -2376,9 +2390,9 @@ async function loadSidebar() {
       const hasActive = repItems.some(item => isActive(item));
       const inHash   = hashReps.includes(rep.toLowerCase());
       const expand   = hasActive || inHash;
-      const alertedCount = repItems.filter(i => i.alerted).length;
-      const alertBadge = alertedCount
-        ? `<span class="rep-alert-count" title="${alertedCount} lane${alertedCount !== 1 ? 's' : ''} flagged">⚠ ${alertedCount}</span>`
+      const alertedLoads = repItems.reduce((s, i) => s + (i.alertedLoadCount || 0), 0);
+      const alertBadge = alertedLoads
+        ? `<span class="rep-alert-count" title="${alertedLoads} alerted load${alertedLoads !== 1 ? 's' : ''}">⚠ ${alertedLoads}</span>`
         : '';
       return `
       <div class="rep-group" data-rep="${rep}">
@@ -2389,7 +2403,7 @@ async function loadSidebar() {
         <div class="rep-lanes${expand ? '' : ' collapsed'}">
           ${repItems.map(item => {
             const active = isActive(item) ? ' active' : '';
-            const alerted = item.alerted ? ' alerted' : '';
+            const alerted = (item.alertedLoadCount || 0) > 0 ? ' alerted' : '';
             const gsdb = item.gsdbs.join(' · ');
             const dest = item.dests.length > 1 ? item.dests.join(' · ') : item.dests[0];
             const idsAttr = item.ids.length > 1
@@ -2484,10 +2498,6 @@ async function loadLaneInfo(laneIds) {
   if (!allLanes.length) return;
   const lane = allLanes[0];
   const isGrouped = allLanes.length > 1;
-
-  // Apply alert state — true if any sub-lane is alerted
-  const anyAlerted = allLanes.some(l => l.is_alerted);
-  applyLaneAlertUI(anyAlerted);
 
   // Header
   if (isGrouped) {
@@ -2909,42 +2919,36 @@ function toggleLaneInfo() {
   btn.textContent = body.classList.contains('collapsed') ? 'Show' : 'Hide';
 }
 
-// ─── Lane alert (crisis flag) ────────────────────────────────────
-function applyLaneAlertUI(isAlerted) {
-  const card = document.querySelector('.lane-info-card');
-  const btn  = document.getElementById('lane-alert-btn');
-  if (card) card.classList.toggle('alerted', isAlerted);
-  if (btn) {
-    btn.classList.toggle('active', isAlerted);
-    btn.textContent = isAlerted ? '🚨 Alerted' : '🚨 Alert';
-    btn.title = isAlerted
-      ? 'This lane is flagged as needing attention. Click to clear.'
-      : 'Flag this lane as needing attention';
-  }
-  // Mirror on sidebar items for the current lane
-  document.querySelectorAll('.lane-item').forEach(el => {
-    const match = currentLaneIds.some(id =>
-      el.dataset.laneId === id || (el.dataset.laneIds || '').split(',').includes(id)
-    );
-    if (match) el.classList.toggle('alerted', isAlerted);
-  });
-}
-
-async function toggleLaneAlert() {
-  if (!currentLaneIds?.length) return;
-  const card = document.querySelector('.lane-info-card');
-  const newState = !card.classList.contains('alerted');
-  // Optimistic UI
-  applyLaneAlertUI(newState);
-  // Write to DB — update all sub-lanes of a grouped lane to match
-  const { error } = await db.from('lanes').update({ is_alerted: newState }).in('id', currentLaneIds);
+// ─── Per-load alert ──────────────────────────────────────────────
+async function toggleLoadAlert(chk, loadId) {
+  const tr = chk.closest('tr');
+  if (tr) tr.classList.toggle('row-alerted', chk.checked);
+  const { error } = await db.from('loads')
+    .update({ is_alerted: chk.checked, updated_at: new Date().toISOString() })
+    .eq('id', loadId);
   if (error) {
-    console.error('toggleLaneAlert failed', error);
-    applyLaneAlertUI(!newState); // revert
+    console.error('toggleLoadAlert failed', error);
+    chk.checked = !chk.checked;
+    if (tr) tr.classList.toggle('row-alerted', chk.checked);
     return;
   }
-  // Refresh sidebar so rep-group alert counts update
-  await loadSidebar();
+  // Refresh the lane-level cues — check the current schedule's DOM for any
+  // alerted checkbox and reload the sidebar for rep-group counts.
+  refreshLaneAlertCueFromDom();
+  loadSidebar(); // async, but fire-and-forget is fine
+}
+
+// Reflect whether any load in the current schedule is alerted, by checking
+// the rendered checkboxes — avoids an extra DB round-trip.
+function refreshLaneAlertCueFromDom() {
+  const any = !!document.querySelector('.sched .alert-chk:checked');
+  document.querySelector('.lane-info-card')?.classList.toggle('alerted', any);
+}
+
+// Apply alert cue based on a freshly-loaded data array of loads
+function applyLaneAlertCue(loadsArr) {
+  const any = loadsArr.some(l => l.is_alerted);
+  document.querySelector('.lane-info-card')?.classList.toggle('alerted', any);
 }
 
 // ─── FSC ──────────────────────────────────────────────────────────
