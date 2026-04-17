@@ -1054,16 +1054,21 @@
     background: #F9FAFB; color: var(--navy);
     font-family: 'Barlow', Arial, sans-serif; font-size: 9.5px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .4px;
-    padding: 6px 8px; text-align: left; border-bottom: 2px solid var(--border);
+    padding: 6px 8px; text-align: center; border-bottom: 2px solid var(--border);
     white-space: nowrap; position: sticky; top: 23px; z-index: 2;
   }
   .distro-table tbody td {
     padding: 5px 8px; border-bottom: 1px solid #F3F4F6; color: #374151;
-    white-space: nowrap; font-variant-numeric: tabular-nums;
+    white-space: nowrap; font-variant-numeric: tabular-nums; text-align: center;
+  }
+  /* Route #s column (8th col) — narrow + wrap at two-per-line */
+  .distro-table thead tr.col-row th:nth-child(8),
+  .distro-table tbody td:nth-child(8) {
+    max-width: 100px; white-space: normal; word-break: break-word; line-height: 1.25;
   }
   .distro-table tbody tr:hover td { background: #F9FAFB; }
   .distro-table tbody tr.pair-start td { border-top: 2px solid var(--navy); }
-  .distro-table td.num { text-align: right; font-family: 'SF Mono', Menlo, monospace; }
+  .distro-table td.num { font-family: 'SF Mono', Menlo, monospace; }
   .distro-table td.neg { color: var(--red); }
   .distro-table td.pos { color: #065F46; }
   .distro-table td.rfq { font-weight: 700; color: var(--navy); }
@@ -1073,6 +1078,19 @@
   .distro-table tbody tr.inactive-row td { background: #FAFAFA; color: #9CA3AF; }
   .distro-table .lane-link { color: var(--blue); text-decoration: none; cursor: pointer; }
   .distro-table .lane-link:hover { text-decoration: underline; }
+
+  /* Collapsible column groups — group header is always clickable. When a
+     group is collapsed, its per-column headers and data cells hide; the
+     group header cell shrinks to a single column. */
+  .distro-table .group-row th { cursor: pointer; user-select: none; }
+  .distro-table .group-row th .grp-chev { margin-right: 4px; display: inline-block; }
+  .distro-table.distro-hide-basics   [data-group="basics"]:not(.grp-header),
+  .distro-table.distro-hide-geo      [data-group="geo"]:not(.grp-header),
+  .distro-table.distro-hide-ops      [data-group="ops"]:not(.grp-header),
+  .distro-table.distro-hide-expected [data-group="expected"]:not(.grp-header),
+  .distro-table.distro-hide-market   [data-group="market"]:not(.grp-header),
+  .distro-table.distro-hide-actual   [data-group="actual"]:not(.grp-header),
+  .distro-table.distro-hide-delta    [data-group="delta"]:not(.grp-header) { display: none; }
 
   .lc-credential {
     font-family: monospace; background: #F3F4F6; padding: 2px 6px;
@@ -1304,6 +1322,7 @@
         <select id="distro-direction" onchange="filterDistro()">
           <option value="">Both</option><option value="IB">IB only</option><option value="OB">OB only</option>
         </select>
+        <button class="sb-collapse-all" id="distro-collapse-all-btn" onclick="toggleAllDistroGroups()">Hide All</button>
         <span class="distro-count" id="distro-count">—</span>
       </div>
       <div class="distro-table-wrap">
@@ -1709,6 +1728,7 @@ let currentLaneId  = 'b1000000-0000-0000-0000-000000000001';
 let currentLaneIds = [currentLaneId];
 let currentWeekStart = getMondayISO(new Date());
 let currentDieselPrice = null;
+let currentView = 'lanes';  // 'lanes' | 'home' | 'distro'
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function getMondayISO(d) {
@@ -2713,17 +2733,20 @@ function getHashState() {
   return {
     lanes: params.lane ? params.lane.split(',').filter(Boolean) : [],
     reps:  params.reps  ? params.reps.split(',').map(r => r.replace(/\+/g, ' ')).filter(Boolean) : [],
+    view:  params.view || null,
   };
 }
 
 function updateHash() {
-  const lanesPart = currentLaneIds.length ? 'lane=' + currentLaneIds.join(',') : '';
+  const parts = [];
+  if (currentView !== 'lanes') parts.push('view=' + currentView);
+  if (currentLaneIds.length) parts.push('lane=' + currentLaneIds.join(','));
   const openReps = [...document.querySelectorAll('.rep-group')]
     .filter(g => !g.querySelector('.rep-lanes')?.classList.contains('collapsed'))
     .map(g => encodeURIComponent(g.dataset.rep || '').replace(/%20/g, '+'))
     .filter(Boolean);
-  const repsPart = openReps.length ? 'reps=' + openReps.join(',') : '';
-  const hash = [lanesPart, repsPart].filter(Boolean).join('&');
+  if (openReps.length) parts.push('reps=' + openReps.join(','));
+  const hash = parts.join('&');
   history.replaceState(null, '', hash ? '#' + hash : location.pathname + location.search);
 }
 
@@ -2731,14 +2754,21 @@ function updateHash() {
 async function loadLaneInfo(laneIds) {
   const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
 
-  const [lanesRes, locsRes, gsdbRes, routesRes, suppRes, plantRes] = await Promise.all([
+  const [lanesRes, locsRes, gsdbRes, routesRes] = await Promise.all([
     db.from('lanes').select('*').in('id', ids),
     db.from('lane_locations').select('*').in('lane_id', ids).not('name', 'is', null).order('stop_order'),
     db.from('lane_locations').select('gsdb_code').in('lane_id', ids).not('gsdb_code', 'is', null).order('stop_order'),
     db.from('lane_routes').select('*').in('lane_id', ids),
-    db.from('supplier_contacts').select('*').eq('lane_id', ids[0]),
-    db.from('plant_contacts').select('*').eq('lane_id', ids[0]),
   ]);
+
+  // Contacts are keyed by GSDB — look up by the lane's GSDB codes
+  const laneGsdbs = [...new Set((gsdbRes.data || []).map(l => l.gsdb_code).filter(Boolean))];
+  const [suppRes, plantRes] = laneGsdbs.length
+    ? await Promise.all([
+        db.from('ref_supplier_contacts').select('*').in('gsdb', laneGsdbs).order('sort_order'),
+        db.from('ref_plant_contacts').select('*').in('gsdb', laneGsdbs).order('sort_order'),
+      ])
+    : [{ data: [] }, { data: [] }];
 
   const allLanes = lanesRes.data || [];
   if (!allLanes.length) return;
@@ -3247,6 +3277,11 @@ async function initPage() {
       el.classList.add('active');
     }
   }
+
+  // Restore page from URL hash
+  if (hashState.view === 'home') showLanding();
+  else if (hashState.view === 'distro') showLaneDistro();
+  else document.getElementById('btn-lanes')?.classList.add('active');
 }
 
 // ─── Landing page ────────────────────────────────────────────────
@@ -3406,6 +3441,8 @@ function showLanding() {
   document.getElementById('btn-lanes')?.classList.remove('active');
   document.getElementById('btn-distro')?.classList.remove('active');
   document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
+  currentView = 'home';
+  updateHash();
   if (!landingLoaded) loadLanding();
 }
 
@@ -3441,6 +3478,8 @@ function showLaneView() {
       if (lanes?.classList.contains('collapsed')) group.querySelector('.rep-header').click();
     }
   }
+  currentView = 'lanes';
+  updateHash();
 }
 
 // Kept for back-compat: selectLane calls hideLanding when user picks a lane
@@ -3465,33 +3504,82 @@ async function loadLaneDistro() {
   distroLoaded = true;
 }
 
+const DISTRO_GROUPS = [
+  { key:'basics',   label:'Basics',                            cls:'grp-basic' },
+  { key:'geo',      label:'Origin & Destination',              cls:'grp-geo' },
+  { key:'ops',      label:'Ops',                               cls:'grp-ops' },
+  { key:'expected', label:'Expected',                          cls:'grp-expected' },
+  { key:'market',   label:'Market',                            cls:'grp-market' },
+  { key:'actual',   label:'Actual (Mar 2026)',                 cls:'grp-actual' },
+  { key:'delta',    label:'Exp vs Actual / Market vs Actual',  cls:'grp-delta' },
+];
+const DISTRO_COLS = [
+  ['basics','Active'], ['basics','Last Update'], ['basics','RFQ #'], ['basics','Drop'],
+  ['basics','Milk Run'], ['basics','Transit (hr)'], ['basics','Stops'],
+  ['basics','Route #s'], ['basics','Dir'],
+  ['geo','Origin GSDB'], ['geo','Origin'], ['geo','State'],
+  ['geo','Dest GSDB'], ['geo','Act Dest GSDB'], ['geo','Dest'], ['geo','State'], ['geo','Admin'],
+  ['ops','Backup'], ['ops','Trailers'], ['ops','Miles'], ['ops','RPM'],
+  ['expected','Loads/Wk'], ['expected','Loads/Mo'], ['expected','Ford Rate'], ['expected','Fuel'],
+  ['expected','Gross/Load'], ['expected','Gross/Wk'], ['expected','TTT/Load'], ['expected','Net/Load'],
+  ['expected','TTT/Mo'], ['expected','Net/Mo (Exp Ct)'], ['expected','Net/Mo (Act Ct)'],
+  ['market','Mkt TTT/Load'], ['market','Mkt Net/Load'], ['market','Mkt TTT/Mo'],
+  ['market','Mkt Net/Mo (Exp)'], ['market','Mkt Net/Mo (Act)'],
+  ['actual','Loads'], ['actual','TTT'], ['actual','Gross Rev'], ['actual','Net Rev'], ['actual','Avg TTT/Load'],
+  ['delta','Δ Loads'], ['delta','Δ Gross'], ['delta','Δ Net'], ['delta','Mkt vs Act Net'],
+];
+const collapsedDistroGroups = new Set();
+
 function renderDistroHeader() {
   const thead = document.querySelector('#distro-table thead');
-  thead.innerHTML = `
-    <tr class="group-row">
-      <th class="grp-basic" colspan="9">Basics</th>
-      <th class="grp-geo" colspan="8">Origin &amp; Destination</th>
-      <th class="grp-ops" colspan="4">Ops</th>
-      <th class="grp-expected" colspan="12">Expected</th>
-      <th class="grp-market" colspan="5">Market</th>
-      <th class="grp-actual" colspan="5">Actual (Mar 2026)</th>
-      <th class="grp-delta" colspan="4">Exp vs Actual / Market vs Actual</th>
-    </tr>
-    <tr class="col-row">
-      <th>Active</th><th>Last Update</th><th>RFQ #</th><th>Drop</th><th>Milk Run</th>
-      <th>Transit (hr)</th><th>Stops</th><th>Route #s</th><th>Dir</th>
-      <th>Origin GSDB</th><th>Origin</th><th>State</th>
-      <th>Dest GSDB</th><th>Act Dest GSDB</th><th>Dest</th><th>State</th>
-      <th>Admin</th>
-      <th>Backup</th><th>Trailers</th><th>Miles</th><th>RPM</th>
-      <th>Loads/Wk</th><th>Loads/Mo</th><th>Ford Rate</th><th>Fuel</th>
-      <th>Gross/Load</th><th>Gross/Wk</th><th>TTT/Load</th><th>Net/Load</th>
-      <th>TTT/Mo</th><th>Net/Mo (Exp Ct)</th><th>Net/Mo (Act Ct)</th>
-      <th>Mkt TTT/Load</th><th>Mkt Net/Load</th><th>Mkt TTT/Mo</th>
-      <th>Mkt Net/Mo (Exp)</th><th>Mkt Net/Mo (Act)</th>
-      <th>Loads</th><th>TTT</th><th>Gross Rev</th><th>Net Rev</th><th>Avg TTT/Load</th>
-      <th>Δ Loads</th><th>Δ Gross</th><th>Δ Net</th><th>Mkt vs Act Net</th>
-    </tr>`;
+  const groupCounts = Object.fromEntries(DISTRO_GROUPS.map(g => [g.key, 0]));
+  DISTRO_COLS.forEach(([g]) => groupCounts[g]++);
+  const groupRow = DISTRO_GROUPS.map(g => {
+    const c = collapsedDistroGroups.has(g.key);
+    const span = c ? 1 : groupCounts[g.key];
+    const chev = c ? '▸' : '▾';
+    return `<th class="${g.cls} grp-header" data-group="${g.key}" colspan="${span}"
+      onclick="toggleDistroGroup('${g.key}')"
+      title="${c ? 'Expand' : 'Collapse'} ${g.label.replace(/"/g, '')}"><span class="grp-chev">${chev}</span>${g.label}</th>`;
+  }).join('');
+  const colRow = DISTRO_COLS.map(([g, h]) => `<th data-group="${g}">${h}</th>`).join('');
+  thead.innerHTML = `<tr class="group-row">${groupRow}</tr><tr class="col-row">${colRow}</tr>`;
+}
+
+function toggleDistroGroup(key) {
+  if (collapsedDistroGroups.has(key)) collapsedDistroGroups.delete(key);
+  else collapsedDistroGroups.add(key);
+  const table = document.getElementById('distro-table');
+  table.classList.toggle('distro-hide-' + key, collapsedDistroGroups.has(key));
+  renderDistroHeader();
+  updateDistroCollapseAllBtn();
+}
+
+function toggleAllDistroGroups() {
+  const table = document.getElementById('distro-table');
+  const anyExpanded = DISTRO_GROUPS.some(g => !collapsedDistroGroups.has(g.key));
+  if (anyExpanded) {
+    // Collapse everything
+    DISTRO_GROUPS.forEach(g => {
+      collapsedDistroGroups.add(g.key);
+      table.classList.add('distro-hide-' + g.key);
+    });
+  } else {
+    // Expand everything
+    DISTRO_GROUPS.forEach(g => {
+      collapsedDistroGroups.delete(g.key);
+      table.classList.remove('distro-hide-' + g.key);
+    });
+  }
+  renderDistroHeader();
+  updateDistroCollapseAllBtn();
+}
+
+function updateDistroCollapseAllBtn() {
+  const btn = document.getElementById('distro-collapse-all-btn');
+  if (!btn) return;
+  const anyExpanded = DISTRO_GROUPS.some(g => !collapsedDistroGroups.has(g.key));
+  btn.textContent = anyExpanded ? 'Hide All' : 'Show All';
 }
 
 function fmtCurrency(v) {
@@ -3572,53 +3660,55 @@ function renderDistroBody(rows) {
     prevRfq = r.rfq_number;
     const inactive = r.active === 'No';
     const dirCls = r.ib_ob === 'IB' ? 'dir-ib' : 'dir-ob';
+    const td = (grp, content, cls = '') =>
+      `<td data-group="${grp}"${cls ? ` class="${cls}"` : ''}>${content}</td>`;
     return `<tr class="${pairStart ? 'pair-start' : ''} ${inactive ? 'inactive-row' : ''}">
-      <td>${r.active || '—'}</td>
-      <td>${fmtDateISO(r.last_formal_update)}</td>
-      <td class="rfq">${r.rfq_number || '—'}</td>
-      <td>${r.drop_lane || '—'}</td>
-      <td>${r.milk_run || '—'}</td>
-      <td class="num">${r.transit_hours ?? '—'}</td>
-      <td>${r.stops || '—'}</td>
-      <td>${r.route_numbers || '—'}</td>
-      <td class="${dirCls}">${r.ib_ob || '—'}</td>
-      <td>${r.origin_gsdb || '—'}</td>
-      <td>${r.origin_city || '—'}</td>
-      <td>${r.origin_state || '—'}</td>
-      <td>${r.dest_gsdb || '—'}</td>
-      <td>${r.act_dest_gsdb || '—'}</td>
-      <td>${r.dest_city || '—'}</td>
-      <td>${r.dest_state || '—'}</td>
-      <td>${r.lane_admin || '—'}</td>
-      <td>${r.backup_admin || '—'}</td>
-      <td>${r.trailers_needed || '—'}</td>
-      <td class="num">${fmtInt(r.ford_miles)}</td>
-      <td class="num">${fmtNum(r.rpm, 3)}</td>
-      <td class="num">${fmtNum(r.exp_loads_week, 1)}</td>
-      <td class="num">${fmtNum(r.exp_loads_month, 1)}</td>
-      <td class="num">${fmtCurrency(r.exp_ford_rate)}</td>
-      <td class="num">${fmtCurrency(r.exp_fuel)}</td>
-      <td class="num">${fmtCurrency(r.exp_gross_rev_load)}</td>
-      <td class="num">${fmtCurrency(r.exp_gross_rev_week)}</td>
-      <td class="num">${fmtCurrency(r.exp_ttt_load)}</td>
-      <td class="num ${signClass(r.exp_net_rev_load)}">${fmtCurrency(r.exp_net_rev_load)}</td>
-      <td class="num">${fmtCurrency(r.exp_ttt_month)}</td>
-      <td class="num ${signClass(r.exp_net_rev_month_exp)}">${fmtCurrency(r.exp_net_rev_month_exp)}</td>
-      <td class="num ${signClass(r.exp_net_rev_month_act)}">${fmtCurrency(r.exp_net_rev_month_act)}</td>
-      <td class="num">${fmtCurrency(r.mkt_ttt_load)}</td>
-      <td class="num ${signClass(r.mkt_net_rev_load)}">${fmtCurrency(r.mkt_net_rev_load)}</td>
-      <td class="num">${fmtCurrency(r.mkt_ttt_month)}</td>
-      <td class="num ${signClass(r.mkt_net_rev_month_exp)}">${fmtCurrency(r.mkt_net_rev_month_exp)}</td>
-      <td class="num ${signClass(r.mkt_net_rev_month_act)}">${fmtCurrency(r.mkt_net_rev_month_act)}</td>
-      <td class="num">${fmtInt(r.act_loads_month)}</td>
-      <td class="num">${fmtCurrency(r.act_ttt_month)}</td>
-      <td class="num">${fmtCurrency(r.act_gross_rev_month)}</td>
-      <td class="num ${signClass(r.act_net_rev_month)}">${fmtCurrency(r.act_net_rev_month)}</td>
-      <td class="num">${fmtCurrency(r.act_avg_ttt_load)}</td>
-      <td class="num ${signClass(r.delta_loads)}">${fmtNum(r.delta_loads, 1)}</td>
-      <td class="num ${signClass(r.delta_gross_rev)}">${fmtCurrency(r.delta_gross_rev)}</td>
-      <td class="num ${signClass(r.delta_net_rev)}">${fmtCurrency(r.delta_net_rev)}</td>
-      <td class="num ${signClass(r.mkt_vs_act_net_rev)}">${fmtCurrency(r.mkt_vs_act_net_rev)}</td>
+      ${td('basics', r.active || '—')}
+      ${td('basics', fmtDateISO(r.last_formal_update))}
+      ${td('basics', r.rfq_number ? String(r.rfq_number).replace(/-\d+$/, '') : '—', 'rfq')}
+      ${td('basics', r.drop_lane || '—')}
+      ${td('basics', r.milk_run || '—')}
+      ${td('basics', r.transit_hours ?? '—', 'num')}
+      ${td('basics', r.stops && r.stops !== 'NA' ? r.stops : '—')}
+      ${td('basics', r.route_numbers || '—')}
+      ${td('basics', r.ib_ob || '—', dirCls)}
+      ${td('geo', r.origin_gsdb || '—')}
+      ${td('geo', r.origin_city || '—')}
+      ${td('geo', r.origin_state || '—')}
+      ${td('geo', r.dest_gsdb || '—')}
+      ${td('geo', r.act_dest_gsdb || '—')}
+      ${td('geo', r.dest_city || '—')}
+      ${td('geo', r.dest_state || '—')}
+      ${td('geo', r.lane_admin || '—')}
+      ${td('ops', r.backup_admin || '—')}
+      ${td('ops', r.trailers_needed || '—')}
+      ${td('ops', fmtInt(r.ford_miles), 'num')}
+      ${td('ops', fmtNum(r.rpm, 3), 'num')}
+      ${td('expected', fmtNum(r.exp_loads_week, 1), 'num')}
+      ${td('expected', fmtNum(r.exp_loads_month, 1), 'num')}
+      ${td('expected', fmtCurrency(r.exp_ford_rate), 'num')}
+      ${td('expected', fmtCurrency(r.exp_fuel), 'num')}
+      ${td('expected', fmtCurrency(r.exp_gross_rev_load), 'num')}
+      ${td('expected', fmtCurrency(r.exp_gross_rev_week), 'num')}
+      ${td('expected', fmtCurrency(r.exp_ttt_load), 'num')}
+      ${td('expected', fmtCurrency(r.exp_net_rev_load), 'num ' + signClass(r.exp_net_rev_load))}
+      ${td('expected', fmtCurrency(r.exp_ttt_month), 'num')}
+      ${td('expected', fmtCurrency(r.exp_net_rev_month_exp), 'num ' + signClass(r.exp_net_rev_month_exp))}
+      ${td('expected', fmtCurrency(r.exp_net_rev_month_act), 'num ' + signClass(r.exp_net_rev_month_act))}
+      ${td('market', fmtCurrency(r.mkt_ttt_load), 'num')}
+      ${td('market', fmtCurrency(r.mkt_net_rev_load), 'num ' + signClass(r.mkt_net_rev_load))}
+      ${td('market', fmtCurrency(r.mkt_ttt_month), 'num')}
+      ${td('market', fmtCurrency(r.mkt_net_rev_month_exp), 'num ' + signClass(r.mkt_net_rev_month_exp))}
+      ${td('market', fmtCurrency(r.mkt_net_rev_month_act), 'num ' + signClass(r.mkt_net_rev_month_act))}
+      ${td('actual', fmtInt(r.act_loads_month), 'num')}
+      ${td('actual', fmtCurrency(r.act_ttt_month), 'num')}
+      ${td('actual', fmtCurrency(r.act_gross_rev_month), 'num')}
+      ${td('actual', fmtCurrency(r.act_net_rev_month), 'num ' + signClass(r.act_net_rev_month))}
+      ${td('actual', fmtCurrency(r.act_avg_ttt_load), 'num')}
+      ${td('delta', fmtNum(r.delta_loads, 1), 'num ' + signClass(r.delta_loads))}
+      ${td('delta', fmtCurrency(r.delta_gross_rev), 'num ' + signClass(r.delta_gross_rev))}
+      ${td('delta', fmtCurrency(r.delta_net_rev), 'num ' + signClass(r.delta_net_rev))}
+      ${td('delta', fmtCurrency(r.mkt_vs_act_net_rev), 'num ' + signClass(r.mkt_vs_act_net_rev))}
     </tr>`;
   }).join('');
 }
@@ -3637,6 +3727,8 @@ function showLaneDistro() {
   document.getElementById('btn-lanes')?.classList.remove('active');
   document.getElementById('btn-distro')?.classList.add('active');
   document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
+  currentView = 'distro';
+  updateHash();
   if (!distroLoaded) loadLaneDistro();
 }
 
