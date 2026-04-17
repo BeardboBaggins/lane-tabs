@@ -183,6 +183,49 @@
     background: rgba(255,255,255,.1); border: none;
     border-radius: 4px; padding: 3px 8px; cursor: pointer; margin-left: 12px;
   }
+  /* Alert button — Avenger Red per brand; light-red off state, solid pulsing on */
+  .lane-alert-btn {
+    font-size: 11px; font-weight: 700; color: #991B1B;
+    background: #FEE2E2; border: 1px solid #FECACA;
+    border-radius: 4px; padding: 3px 10px; cursor: pointer;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .lane-alert-btn:hover { background: #FECACA; border-color: #F87171; }
+  .lane-alert-btn.active {
+    background: #AC171C; border-color: #AC171C; color: #fff;
+    box-shadow: 0 0 0 0 rgba(172,23,28,.6);
+    animation: lane-alert-pulse 2s ease-in-out infinite;
+  }
+  @keyframes lane-alert-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(172,23,28,.6); }
+    50%      { box-shadow: 0 0 0 5px rgba(172,23,28,0); }
+  }
+
+  /* Alerted lane card — red left border + tinted header */
+  .lane-info-card.alerted { border-left: 4px solid #AC171C; }
+  .lane-info-card.alerted .lane-info-header {
+    background: linear-gradient(90deg, #AC171C 0%, var(--navy) 18%);
+  }
+
+  /* Alerted sidebar item — red tint + bold + red left bar + warning icon */
+  .lane-item.alerted {
+    background: #FEE2E2; color: #991B1B; font-weight: 700;
+    border-left: 3px solid #AC171C;
+    padding-left: 11px; /* compensate for the 3px border to keep text aligned */
+  }
+  .lane-item.alerted:hover { background: #FECACA; }
+  .lane-item.alerted.active { background: #FECACA; }
+  .lane-item.alerted::before {
+    content: "⚠ "; color: #AC171C; font-weight: 700;
+  }
+
+  /* Alert count badge in rep-group header */
+  .rep-alert-count {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: #FEE2E2; color: #AC171C; font-weight: 700;
+    font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 4px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
   .li-body.collapsed { display: none; }
   .lane-title-block {}
   .lane-full-name {
@@ -823,6 +866,7 @@
           <div class="lane-gsdb-codes">G25AC &nbsp;·&nbsp; A64RB &nbsp;/&nbsp; AP05A</div>
         </div>
         <div class="lane-badges">
+          <button class="lane-alert-btn" id="lane-alert-btn" onclick="event.stopPropagation(); toggleLaneAlert()" title="Flag this lane as needing attention">🚨 Alert</button>
           <button class="li-collapse-btn" id="li-toggle-btn">Hide ▲</button>
         </div>
       </div>
@@ -1779,7 +1823,7 @@ function stripOriginCode(origin) {
 
 async function loadSidebar() {
   const [lanesRes, locsRes] = await Promise.all([
-    db.from('lanes').select('id, origin, destination, rep_id, lane_group, reps(name)').eq('status','Active').order('origin'),
+    db.from('lanes').select('id, origin, destination, rep_id, lane_group, is_alerted, reps(name)').eq('status','Active').order('origin'),
     db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('gsdb_code', 'is', null).order('stop_order'),
   ]);
 
@@ -1801,16 +1845,17 @@ async function loadSidebar() {
     const rep = ln.reps?.name || 'Unassigned';
     if (ln.lane_group) {
       if (!groups[ln.lane_group]) {
-        groups[ln.lane_group] = { ids: [], origin: stripOriginCode(ln.origin), dests: [], gsdbs: [], rep };
+        groups[ln.lane_group] = { ids: [], origin: stripOriginCode(ln.origin), dests: [], gsdbs: [], rep, alerted: false };
         items.push(groups[ln.lane_group]);
       }
       const g = groups[ln.lane_group];
       g.ids.push(ln.id);
+      if (ln.is_alerted) g.alerted = true; // any sub-lane alerted → whole group shows alerted
       const city = ln.destination.split(',')[0];
       if (!g.dests.includes(city)) g.dests.push(city);
       (gsdbMap[ln.id] || []).forEach(c => { if (!g.gsdbs.includes(c)) g.gsdbs.push(c); });
     } else {
-      items.push({ ids: [ln.id], origin: stripOriginCode(ln.origin), dests: [stripOriginCode(ln.destination)], gsdbs: gsdbMap[ln.id] || [], rep });
+      items.push({ ids: [ln.id], origin: stripOriginCode(ln.origin), dests: [stripOriginCode(ln.destination)], gsdbs: gsdbMap[ln.id] || [], rep, alerted: !!ln.is_alerted });
     }
   });
 
@@ -1829,21 +1874,26 @@ async function loadSidebar() {
       const hasActive = repItems.some(item => isActive(item));
       const inHash   = hashReps.includes(rep.toLowerCase());
       const expand   = hasActive || inHash;
+      const alertedCount = repItems.filter(i => i.alerted).length;
+      const alertBadge = alertedCount
+        ? `<span class="rep-alert-count" title="${alertedCount} lane${alertedCount !== 1 ? 's' : ''} flagged">⚠ ${alertedCount}</span>`
+        : '';
       return `
       <div class="rep-group" data-rep="${rep}">
         <div class="rep-header" onclick="toggleRepGroup(this)">
-          <span>${rep} <span style="font-weight:400;color:var(--gray);font-size:11px">(${repItems.length})</span></span>
+          <span>${rep} <span style="font-weight:400;color:var(--gray);font-size:11px">(${repItems.length})</span>${alertBadge}</span>
           <span class="rep-chevron" style="${expand ? '' : 'transform:rotate(-90deg)'}">▾</span>
         </div>
         <div class="rep-lanes${expand ? '' : ' collapsed'}">
           ${repItems.map(item => {
             const active = isActive(item) ? ' active' : '';
+            const alerted = item.alerted ? ' alerted' : '';
             const gsdb = item.gsdbs.join(' · ');
             const dest = item.dests.length > 1 ? item.dests.join(' · ') : item.dests[0];
             const idsAttr = item.ids.length > 1
               ? `data-lane-ids="${item.ids.join(',')}"`
               : `data-lane-id="${item.ids[0]}"`;
-            return `<div class="lane-item${active}" onclick="selectLane(this)" ${idsAttr}>
+            return `<div class="lane-item${active}${alerted}" onclick="selectLane(this)" ${idsAttr}>
               ${item.origin} → ${dest}
               <div class="lane-gsdb">${gsdb}</div>
             </div>`;
@@ -1905,6 +1955,10 @@ async function loadLaneInfo(laneIds) {
   if (!allLanes.length) return;
   const lane = allLanes[0];
   const isGrouped = allLanes.length > 1;
+
+  // Apply alert state — true if any sub-lane is alerted
+  const anyAlerted = allLanes.some(l => l.is_alerted);
+  applyLaneAlertUI(anyAlerted);
 
   // Header
   if (isGrouped) {
@@ -2308,6 +2362,44 @@ function toggleLaneInfo() {
   const btn  = document.getElementById('li-toggle-btn');
   body.classList.toggle('collapsed');
   btn.textContent = body.classList.contains('collapsed') ? 'Show ▼' : 'Hide ▲';
+}
+
+// ─── Lane alert (crisis flag) ────────────────────────────────────
+function applyLaneAlertUI(isAlerted) {
+  const card = document.querySelector('.lane-info-card');
+  const btn  = document.getElementById('lane-alert-btn');
+  if (card) card.classList.toggle('alerted', isAlerted);
+  if (btn) {
+    btn.classList.toggle('active', isAlerted);
+    btn.textContent = isAlerted ? '🚨 Alerted' : '🚨 Alert';
+    btn.title = isAlerted
+      ? 'This lane is flagged as needing attention. Click to clear.'
+      : 'Flag this lane as needing attention';
+  }
+  // Mirror on sidebar items for the current lane
+  document.querySelectorAll('.lane-item').forEach(el => {
+    const match = currentLaneIds.some(id =>
+      el.dataset.laneId === id || (el.dataset.laneIds || '').split(',').includes(id)
+    );
+    if (match) el.classList.toggle('alerted', isAlerted);
+  });
+}
+
+async function toggleLaneAlert() {
+  if (!currentLaneIds?.length) return;
+  const card = document.querySelector('.lane-info-card');
+  const newState = !card.classList.contains('alerted');
+  // Optimistic UI
+  applyLaneAlertUI(newState);
+  // Write to DB — update all sub-lanes of a grouped lane to match
+  const { error } = await db.from('lanes').update({ is_alerted: newState }).in('id', currentLaneIds);
+  if (error) {
+    console.error('toggleLaneAlert failed', error);
+    applyLaneAlertUI(!newState); // revert
+    return;
+  }
+  // Refresh sidebar so rep-group alert counts update
+  await loadSidebar();
 }
 
 // ─── FSC ──────────────────────────────────────────────────────────
