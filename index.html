@@ -335,15 +335,20 @@
   }
   table.li-routes td.days { font-family: inherit; font-size: 12px; letter-spacing: .5px; }
 
-  /* 7-dot day row (M T W R F Sa Su) */
-  .day-dots { display: inline-flex; gap: 3px; justify-content: center; }
-  .day-dot {
-    width: 16px; height: 16px; border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 700; font-family: 'Barlow', Arial, sans-serif;
-    background: #F3F4F6; color: #D1D5DB;
+  /* 7-segment day bar (U M T W R F S) — one continuous strip divided by vertical rules */
+  .day-bar {
+    display: inline-flex; justify-content: center;
+    border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
+    font-family: 'Barlow', Arial, sans-serif;
   }
-  .day-dot.on { background: var(--blue); color: #fff; }
+  .day-seg {
+    width: 18px; padding: 3px 0; text-align: center;
+    font-size: 9px; font-weight: 700;
+    background: #F9FAFB; color: #D1D5DB;
+    border-right: 1px solid var(--border);
+  }
+  .day-seg:last-child { border-right: none; }
+  .day-seg.on { background: var(--blue); color: #fff; }
 
   /* Routes view toggle (Table / Grid) */
   .routes-view-toggle {
@@ -1760,12 +1765,13 @@ function selectLane(el) {
 }
 
 // ─── Routes-table render helpers ──────────────────────────────────
-// Render a space-separated day string ("M W F") as a 7-dot row
+// Render a space-separated day string ("M W F") as a segmented bar
+// (Sunday-first to match the Grid and Timeline views)
 function renderDayDots(daysStr) {
-  const order = ['M','T','W','R','F','S','U'];
+  const order = ['U','M','T','W','R','F','S'];
   const set = new Set((daysStr || '').split(/\s+/).filter(Boolean));
-  return `<span class="day-dots">${order.map(d =>
-    `<span class="day-dot${set.has(d) ? ' on' : ''}">${d}</span>`
+  return `<span class="day-bar">${order.map(d =>
+    `<span class="day-seg${set.has(d) ? ' on' : ''}">${d}</span>`
   ).join('')}</span>`;
 }
 
