@@ -3,1190 +3,2771 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ford MEL Individual Scorecard</title>
+<title>AVGD Automotive — Lane Distribution Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script>try{Object.keys(localStorage).filter(k=>k.startsWith('babel')).forEach(k=>localStorage.removeItem(k))}catch(e){}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
-  /* ── Avenger Logistics Brand Variables ── */
   :root {
-    --avb:   #659AD2;   /* Avenger Blue */
-    --avr:   #AC171C;   /* Avenger Red  */
-    --dark:  #192633;   /* Dark Blue    */
-    --dgray: #808285;   /* Dark Gray    */
-    --mgray: #BCBEC0;   /* Medium Gray  */
-    --lgray: #F0F0F0;   /* Light Gray   */
-    --green: #2e7d32;
-    --yellow:#b97a00;
-    --border:#BCBEC0;
+    --navy:    #192633;   /* Avenger Dark */
+    --blue:    #659AD2;   /* Avenger Blue */
+    --avr:     #AC171C;   /* Avenger Red  */
+    --ib-bg:   #deeaf6;
+    --ib-text: #1a5a8a;
+    --ob-bg:   #FFF3E0;
+    --ob-text: #E06C00;
+    --page-bg: #F0F0F0;
+    --card-bg: #FFFFFF;
+    --green:   #2e7d32;
+    --red:     #AC171C;
+    --gray:    #808285;
+    --border:  #BCBEC0;
+    --sidebar-w: 260px;
+    --topbar-h:  56px;
   }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Lato', 'Segoe UI', Arial, sans-serif; font-weight: 400; background: var(--lgray); color: #1a1a1a; font-size: 13px; }
-  a { color: var(--avb); cursor: pointer; text-decoration: none; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ── Layout ── */
-  .app-header { background: var(--dark); color: white; padding: 0; position: relative; }
-  .app-header-inner { display: flex; align-items: center; gap: 18px; padding: 14px 24px; }
-  .app-header-accent { height: 4px; background: linear-gradient(90deg, var(--avr) 0%, var(--avr) 40%, var(--avb) 60%, var(--avb) 100%); }
-  .app-header .app-title { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: white; }
-  .app-header .subtitle { font-family: 'Lato', Arial, sans-serif; font-size: 12px; color: var(--mgray); margin-top: 2px; }
-  .header-logo { height: 40px; }
-  .header-divider { width: 1px; height: 36px; background: rgba(255,255,255,0.18); }
-  .tabs { display: flex; background: #fff; border-bottom: 2px solid var(--border); padding: 0 24px; }
-  .tab { padding: 11px 22px; cursor: pointer; border-bottom: 3px solid transparent; font-family: 'Lato', Arial, sans-serif; font-weight: 700; color: var(--dgray); font-size: 13px; transition: color 0.15s; }
-  .tab.active { border-bottom-color: var(--avb); color: var(--dark); }
-  .tab:hover:not(.active) { color: var(--avb); }
-  .content { padding: 20px; max-width: 1400px; margin: 0 auto; }
+  body {
+    font-family: 'Lato', 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    background: var(--page-bg);
+    color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
 
-  /* ── Upload ── */
-  .drop-zone { border: 2px dashed var(--mgray); border-radius: 10px; background: #fff; padding: 44px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
-  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--avb); background: #f0f6ff; }
-  .drop-zone-icon { font-size: 40px; margin-bottom: 10px; }
-  .drop-zone h3 { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--dark); margin-bottom: 8px; }
-  .drop-zone p { color: var(--dgray); font-size: 12px; }
-  .file-input { display: none; }
-  .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Lato', inherit; font-weight: 700; }
-  .btn-primary { background: var(--avb); color: white; }
-  .btn-primary:hover { background: #4d80b8; }
-  .btn-danger { background: var(--avr); color: white; }
-  .btn-danger:hover { background: #8c1115; }
-  .btn-sm { padding: 4px 10px; font-size: 12px; }
-  .loaded-files { margin-top: 16px; }
-  .summary-bar { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 24px; margin-top: 16px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
-  .summary-stat { text-align: center; }
-  .summary-stat .val { font-family: 'Barlow', Arial, sans-serif; font-size: 26px; font-weight: 700; color: var(--dark); }
-  .summary-stat .lbl { font-size: 11px; color: var(--dgray); margin-top: 2px; }
-  .summary-divider { width: 1px; height: 44px; background: var(--border); }
+  /* ─── TOP BAR ─────────────────────────────────────────────── */
+  .topbar-wrap { flex-shrink: 0; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .topbar {
+    height: var(--topbar-h);
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: #fff;
+  }
+  .topbar-accent {
+    height: 4px;
+    background: linear-gradient(90deg, var(--avr) 0%, var(--avr) 40%, var(--blue) 60%, var(--blue) 100%);
+  }
+  .topbar-brand {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 17px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .topbar-brand span {
+    font-family: 'Lato', Arial, sans-serif;
+    opacity: .6; font-weight: 400; margin-left: 10px; font-size: 12px;
+    text-transform: none; letter-spacing: 0;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-user { font-size: 12px; opacity: .75; }
+  .btn-logout {
+    font-size: 11px; padding: 4px 10px; border-radius: 4px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+    color: #fff; cursor: pointer;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.2); }
 
-  /* ── Leaderboard header ── */
-  .leaderboard-header { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .page-title { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--dark); }
-  .note { font-size: 11px; color: var(--dgray); font-style: italic; margin-top: 2px; }
+  /* ─── BODY LAYOUT ─────────────────────────────────────────── */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
 
-  /* ── Tables ── */
-  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; background: #fff; }
-  thead th { background: var(--dark); color: white; padding: 10px 11px; text-align: center; white-space: nowrap; font-family: 'Barlow', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none; }
-  thead th:hover { background: #243546; }
-  thead th.sort-asc::after { content: ' ▲'; font-size: 9px; }
-  thead th.sort-desc::after { content: ' ▼'; font-size: 9px; }
-  tbody tr { border-bottom: 1px solid #e8e8e8; cursor: pointer; transition: background 0.1s; }
-  tbody tr:nth-child(even) { background: #fafafa; }
-  tbody tr:hover { background: #eef4fb; }
-  tbody tr.carrier-row { background: #e8f0f8; cursor: default; border-bottom: 2px solid var(--avb); }
-  tbody tr.carrier-row:hover { background: #ddeaf6; }
-  td { padding: 8px 11px; text-align: center; white-space: nowrap; }
-  td.name-cell { text-align: left; font-weight: 700; color: var(--dark); }
-  .rank { color: var(--mgray); font-size: 11px; }
-  .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 700; font-family: 'Barlow', Arial, sans-serif; }
-  .rank-badge.gold   { background: #b8860b; color: #fff8dc; }
-  .rank-badge.silver { background: #808285; color: #ffffff; }
-  .rank-badge.bronze { background: #8b5e3c; color: #fff0e0; }
-  .rank-badge.other  { background: transparent; color: var(--mgray); }
+  /* ─── SIDEBAR ─────────────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+    transition: width .18s ease;
+    position: relative;
+  }
+  .sidebar.collapsed { width: 32px; }
+  .sidebar.collapsed .sidebar-search,
+  .sidebar.collapsed #sidebar-lanes { display: none; }
+  .sidebar-toggle {
+    position: sticky; top: 0; z-index: 6;
+    background: #fff; border: none; border-bottom: 1px solid var(--border);
+    padding: 8px 0; cursor: pointer; font-size: 14px; color: var(--gray);
+    width: 100%; text-align: center; user-select: none;
+    font-family: 'Barlow', Arial, sans-serif; font-weight: 700;
+  }
+  .sidebar-toggle:hover { color: var(--navy); background: #F3F4F6; }
+  .sidebar.collapsed .sidebar-toggle { border-bottom: none; }
+  .sidebar-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 33px; background: #fff; z-index: 5;
+  }
+  .sidebar-search input {
+    width: 100%; padding: 6px 10px; border-radius: 6px;
+    border: 1px solid var(--border); font-size: 12px; background: var(--page-bg);
+  }
+  /* My Lanes toggle */
+  .sidebar-myfilter {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    background: #fff; display: flex; align-items: center; gap: 8px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .sidebar.collapsed .sidebar-myfilter { display: none; }
+  .sidebar-myfilter label {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--gray); user-select: none;
+  }
+  .sidebar-myfilter label.disabled { cursor: not-allowed; opacity: .55; }
+  .sidebar-myfilter input[type="checkbox"] { cursor: inherit; }
+  .sidebar-myfilter .myfilter-hint { font-size: 10px; color: var(--gray); font-weight: 400; margin-left: auto; }
+  .rep-group { border-bottom: 1px solid var(--border); }
+  .rep-header {
+    padding: 8px 14px 6px;
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--gray);
+    background: #F9FAFB;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+  }
+  .rep-header:hover { background: #F3F4F6; }
+  .rep-chevron { font-size: 10px; color: var(--gray); transition: transform .15s; }
+  .rep-lanes.collapsed { display: none; }
+  .lane-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #374151;
+    border-left: 3px solid transparent;
+    line-height: 1.35;
+    transition: background .1s;
+  }
+  .lane-item:hover { background: #F3F4F6; }
+  .lane-item.active {
+    background: var(--ib-bg);
+    border-left-color: var(--blue);
+    color: var(--ib-text);
+    font-weight: 700;
+  }
+  .lane-gsdb {
+    font-size: 10px; color: var(--gray); margin-top: 1px; font-family: monospace;
+  }
+  .lane-item.active .lane-gsdb { color: #93C5FD; }
 
-  /* ── Score cells ── */
-  .score { font-family: 'Lato', Arial, sans-serif; font-weight: 700; font-size: 13px; }
-  .score.green  { color: var(--green); }
-  .score.yellow { color: var(--yellow); }
-  .score.red    { color: var(--avr); }
-  .score.gray   { color: var(--mgray); }
-  .score-cell { min-width: 72px; }
-  .score-cell-bg-green  { background: rgba(46,125,50,0.07); }
-  .score-cell-bg-yellow { background: rgba(185,122,0,0.07); }
-  .score-cell-bg-red    { background: rgba(172,23,28,0.07); }
-  .delta { font-size: 11px; font-weight: 400; }
-  .delta.neg { color: var(--avr); }
-  .delta.pos { color: var(--green); }
-  .low-n { color: var(--mgray); font-style: italic; font-size: 11px; }
+  /* ─── MAIN CONTENT ────────────────────────────────────────── */
+  .main-content {
+    flex: 1;
+    min-width: 0;          /* prevent flex item from growing with schedule table */
+    overflow-x: hidden;    /* clip any overflow; each child handles its own scroll */
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
 
-  /* ── Individual view ── */
-  .back-btn { background: none; border: 1.5px solid var(--avb); color: var(--avb); border-radius: 6px; padding: 5px 14px; cursor: pointer; font-family: 'Lato', Arial, sans-serif; font-weight: 700; font-size: 12px; margin-bottom: 16px; transition: background 0.15s, color 0.15s; }
-  .back-btn:hover { background: var(--avb); color: white; }
-  .person-header { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; gap: 24px; }
-  .person-name { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--dark); }
-  .person-composite { font-family: 'Barlow', Arial, sans-serif; font-size: 38px; font-weight: 700; }
-  .person-composite.green  { color: var(--green); }
-  .person-composite.yellow { color: var(--yellow); }
-  .person-composite.red    { color: var(--avr); }
-  .score-breakdown { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
-  .score-breakdown table thead th { font-size: 11px; padding: 8px 11px; }
-  .category-row td { font-weight: 700; background: #eef4fb; color: var(--dark); }
+  /* ─── LANE INFO (TOP SECTION) ─────────────────────────────── */
+  .lane-info-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .lane-info-header {
+    background: var(--navy);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .lane-info-header:hover { background: #24243e; }
+  .li-collapse-btn {
+    font-size: 11px; color: rgba(255,255,255,.5);
+    background: rgba(255,255,255,.1); border: none;
+    border-radius: 4px; padding: 3px 8px; cursor: pointer; margin-left: 12px;
+  }
+  /* Alert button — Avenger Red per brand; light-red off state, solid pulsing on */
+  .lane-alert-btn {
+    font-size: 11px; font-weight: 700; color: #991B1B;
+    background: #FEE2E2; border: 1px solid #FECACA;
+    border-radius: 4px; padding: 3px 10px; cursor: pointer;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .lane-alert-btn:hover { background: #FECACA; border-color: #F87171; }
+  .lane-alert-btn.active {
+    background: #AC171C; border-color: #AC171C; color: #fff;
+    box-shadow: 0 0 0 0 rgba(172,23,28,.6);
+    animation: lane-alert-pulse 2s ease-in-out infinite;
+  }
+  @keyframes lane-alert-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(172,23,28,.6); }
+    50%      { box-shadow: 0 0 0 5px rgba(172,23,28,0); }
+  }
 
-  /* ── Defect tables ── */
-  .defect-section { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-  .defect-section-header { padding: 10px 16px; background: #f5f5f5; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background 0.15s; }
-  .defect-section-header:hover { background: #eef4fb; }
-  .defect-section-title { font-family: 'Lato', Arial, sans-serif; font-weight: 700; color: var(--dark); font-size: 13px; }
-  .defect-count { font-size: 11px; color: var(--dgray); }
-  .toggle-icon { color: var(--dgray); font-size: 11px; }
-  .defect-table-wrap { overflow-x: auto; }
-  .defect-table { font-size: 11px; }
-  .defect-table thead th { background: #364d60; font-size: 11px; padding: 6px 9px; }
-  .defect-table td { padding: 5px 9px; font-size: 11px; }
-  .fail-row td { background: #fff; }
-  .fail-row.row-alt td { background: #eef3fa !important; }
+  /* Alerted lane card — red left border + tinted header */
+  .lane-info-card.alerted { border-left: 4px solid #AC171C; }
+  .lane-info-card.alerted .lane-info-header {
+    background: linear-gradient(90deg, #AC171C 0%, var(--navy) 18%);
+  }
 
-  /* ── Footnote ── */
-  .footnote { font-size: 11px; color: var(--dgray); font-style: italic; padding: 8px 16px; border-top: 1px solid var(--border); background: #fafafa; }
+  /* Alerted sidebar item — red tint + bold + red left bar + warning icon */
+  .lane-item.alerted {
+    background: #FEE2E2; color: #991B1B; font-weight: 700;
+    border-left: 3px solid #AC171C;
+    padding-left: 11px; /* compensate for the 3px border to keep text aligned */
+  }
+  .lane-item.alerted:hover { background: #FECACA; }
+  .lane-item.alerted.active { background: #FECACA; }
+  .lane-item.alerted::before {
+    content: "⚠ "; color: #AC171C; font-weight: 700;
+  }
 
-  /* ── Empty / loading states ── */
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--dgray); }
-  .empty-state h3 { margin-bottom: 8px; color: var(--dark); font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; }
-  .loading { text-align: center; padding: 40px; color: var(--avb); font-size: 14px; font-family: 'Lato', Arial, sans-serif; }
+  /* Alert count badge in rep-group header */
+  .rep-alert-count {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: #FEE2E2; color: #AC171C; font-weight: 700;
+    font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 4px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .li-body.collapsed { display: none; }
+  .lane-title-block {}
+  .lane-full-name {
+    font-family: 'Barlow', Arial, sans-serif;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .lane-gsdb-codes {
+    margin-top: 3px;
+    font-family: monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,.55);
+    letter-spacing: .3px;
+  }
+  .lane-badges { display: flex; gap: 6px; align-items: center; }
+  .badge {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 12px;
+  }
+  .badge-ib { background: var(--ib-bg); color: var(--ib-text); }
+  .badge-ob { background: var(--ob-bg); color: var(--ob-text); }
+  .badge-active { background: #D1FAE5; color: #065F46; }
+  .badge-inactive { background: #FEE2E2; color: #991B1B; }
+
+  /* ── Lane info sections ── */
+  .li-section {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .li-section:last-child { border-bottom: none; }
+
+  /* Scroll wrapper for wide tables inside lane info */
+  .li-table-scroll { overflow-x: auto; }
+
+  /* Rates row */
+  .li-rates {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px 20px;
+  }
+  .li-field label {
+    display: block; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700; margin-bottom: 2px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .li-field .lv {
+    font-size: 13px; color: #111827; font-weight: 500;
+  }
+  .li-field .lv.mono { font-family: monospace; font-size: 12px; }
+  .li-field .lv.calc { font-size: 12px; color: #6B7280; font-style: italic; }
+
+  /* Locations table */
+  table.li-locs {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  table.li-locs th {
+    text-align: left; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700;
+    font-family: 'Barlow', Arial, sans-serif;
+    padding: 0 10px 5px 0; white-space: nowrap;
+  }
+  table.li-locs td {
+    padding: 5px 10px 5px 0; border-top: 1px solid #F3F4F6;
+    vertical-align: middle; white-space: nowrap;
+  }
+  .gsdb-tag {
+    font-family: monospace; font-size: 11px; font-weight: 700;
+    background: #EFF6FF; color: #1D4ED8; padding: 2px 6px; border-radius: 4px;
+  }
+  .live-badge  { background: #D1FAE5; color: #065F46; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .drop-badge  { background: #FEF3C7; color: #92400E; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .multi-badge { background: #DBEAFE; color: #1E40AF; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+
+  /* Routes table */
+  table.li-routes {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  table.li-routes th {
+    text-align: center; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700;
+    font-family: 'Barlow', Arial, sans-serif;
+    padding: 0 12px 5px 12px; white-space: nowrap;
+  }
+  table.li-routes td {
+    padding: 5px 12px; border-top: 1px solid #F3F4F6;
+    font-family: monospace; font-size: 12px; vertical-align: middle;
+    text-align: center;
+  }
+  table.li-routes td.days { font-family: inherit; font-size: 12px; letter-spacing: .5px; }
+
+  /* 7-dot day row (M T W R F Sa Su) */
+  .day-dots { display: inline-flex; gap: 3px; justify-content: center; }
+  .day-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; font-family: 'Barlow', Arial, sans-serif;
+    background: #F3F4F6; color: #D1D5DB;
+  }
+  .day-dot.on { background: var(--blue); color: #fff; }
+
+  /* Routes view toggle (Table / Grid) */
+  .routes-view-toggle {
+    display: inline-flex; gap: 2px; margin-bottom: 10px;
+    background: #F3F4F6; border-radius: 6px; padding: 2px;
+  }
+  .rv-btn {
+    background: none; border: none; cursor: pointer; padding: 4px 12px;
+    font-size: 11px; font-weight: 700; color: var(--gray); border-radius: 4px;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .rv-btn:hover { color: var(--navy); }
+  .rv-btn.active { background: #fff; color: var(--navy); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  /* Routes grid view */
+  .routes-grid {
+    display: grid;
+    grid-template-columns: minmax(140px, auto) repeat(7, minmax(72px, 1fr));
+    font-size: 11px;
+    border-top: 1px solid #F3F4F6;
+  }
+  .routes-grid .rg-cell {
+    padding: 8px 6px; border-bottom: 1px solid #F3F4F6;
+    text-align: center; vertical-align: middle;
+  }
+  .routes-grid .rg-head {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700;
+    padding: 0 6px 5px; border-bottom: 1px solid var(--border);
+  }
+  .routes-grid .rg-route {
+    text-align: left; display: flex; flex-direction: column; gap: 3px;
+  }
+  .rg-route-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .rg-route-num {
+    font-family: monospace; font-weight: 700; font-size: 11px;
+  }
+  .rg-route-dock {
+    font-family: monospace; font-size: 10px; color: var(--gray); white-space: nowrap;
+  }
+  .rg-marker {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-family: monospace;
+  }
+  .rg-marker + .rg-marker { margin-top: 2px; }
+  .rg-marker-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; border-radius: 50%; font-size: 9px;
+    font-weight: 700; color: #fff;
+  }
+  .rg-pu .rg-marker-icon { background: var(--blue); }
+  .rg-del .rg-marker-icon { background: #059669; }
+  .rg-empty { color: #E5E7EB; }
+  .rg-row-meta {
+    padding: 8px 6px; border-bottom: 1px solid #F3F4F6;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+
+  /* Routes timeline (Gantt-style) */
+  .routes-timeline { font-size: 11px; }
+  .rt-grid {
+    display: grid; grid-template-columns: 140px 1fr;
+    column-gap: 10px; row-gap: 2px; align-items: center;
+  }
+  .rt-day-labels {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--navy); font-weight: 700;
+    padding-bottom: 5px; border-bottom: 1px solid var(--border);
+  }
+  .rt-day-label { text-align: center; }
+  .rt-route-label {
+    font-family: monospace; font-size: 11px;
+    padding: 6px 0; line-height: 1.2;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .rt-track {
+    position: relative; height: 28px;
+    /* 6-hour sub-grid (light) + day boundaries (strong, 2px). 7 days × 4 chunks = 28 cells */
+    background:
+      linear-gradient(to right,
+        transparent calc(100%/7 - 2px), #6B7280 calc(100%/7 - 2px),
+        #6B7280 calc(100%/7), transparent calc(100%/7)
+      ),
+      linear-gradient(to right,
+        transparent calc(100%/28 - 1px), #E5E7EB calc(100%/28 - 1px),
+        #E5E7EB calc(100%/28), transparent calc(100%/28)
+      );
+    background-size: calc(100%/7) 100%, calc(100%/28) 100%;
+    border-bottom: 1px solid #F3F4F6;
+  }
+
+  /* Bottom time ruler (6h marks: 00, 06, 12, 18) */
+  .rt-time-ruler {
+    display: grid; grid-template-columns: repeat(28, 1fr);
+    font-family: monospace; font-size: 8px; color: var(--gray);
+    padding-top: 3px; border-top: 1px solid #E5E7EB;
+  }
+  .rt-time-ruler > span {
+    text-align: left; padding-left: 2px; white-space: nowrap;
+  }
+  .rt-bar {
+    position: absolute; top: 6px; height: 16px;
+    background: #DBEAFE; border: 1px solid var(--blue);
+    border-radius: 8px; display: flex; align-items: center; overflow: hidden;
+    min-width: 10px;
+  }
+  .rt-bar-pu, .rt-bar-del {
+    width: 10px; height: 100%; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 8px; color: #fff; flex-shrink: 0;
+  }
+  .rt-bar-pu  { background: var(--blue); }
+  .rt-bar-del { background: #059669; margin-left: auto; }
+  /* Wrapped bars — flatten the "cut" edge so the split reads clearly */
+  .rt-bar--continues { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-style: dashed; }
+  .rt-bar--continued { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-style: dashed; }
+
+  /* Lane meta strip */
+  .li-meta {
+    display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+  }
+
+  /* Contacts 2-col */
+  .li-contacts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .li-contact-col {
+    padding: 10px 16px 10px 0;
+    border-right: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .li-contact-col:last-child { border-right: none; padding-right: 0; padding-left: 16px; }
+  .li-contact-col:first-child { padding-left: 0; }
+  .li-contact-col h4 {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--navy); font-weight: 700; margin-bottom: 8px;
+    padding-bottom: 5px; border-bottom: 2px solid var(--blue);
+    display: inline-block;
+  }
+  .li-contact-row { display: flex; gap: 6px; margin-bottom: 4px; color: #374151; }
+  .li-contact-row .lk { font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--navy); font-weight: 700; min-width: 40px; padding-top: 1px;
+    font-family: 'Barlow', Arial, sans-serif; }
+  .li-contact-row .ll { color: #111827; }
+  .li-contact-row .ll a { color: var(--blue); text-decoration: none; }
+  .li-rates-sub {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .li-notes-area {
+    width: 100%; min-height: 52px; border: 1px solid var(--border);
+    border-radius: 5px; padding: 6px 8px; font-size: 12px;
+    color: #374151; resize: vertical; font-family: inherit;
+    background: #FAFAFA;
+  }
+
+  /* ─── SCHEDULE SECTION (BOTTOM) ──────────────────────────── */
+  .schedule-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .schedule-toolbar {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FAFAFA;
+  }
+  .week-nav { display: flex; align-items: center; gap: 10px; }
+  .week-nav .week-label { font-size: 14px; font-weight: 700; color: #111827; }
+  .btn-week {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--border); background: #fff;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+    color: #374151;
+  }
+  .btn-week:hover { background: var(--page-bg); }
+  .btn-today {
+    font-size: 11px; padding: 4px 10px; border-radius: 5px;
+    border: 1px solid var(--border); background: #fff; cursor: pointer; color: #374151;
+  }
+  .schedule-toolbar-right { display: flex; gap: 8px; align-items: center; }
+  .status-filter {
+    font-size: 12px; padding: 5px 8px; border-radius: 5px;
+    border: 1px solid var(--border); background: #fff; color: #374151;
+  }
+  .btn-add-row {
+    font-size: 12px; padding: 5px 12px; border-radius: 5px;
+    background: var(--blue); color: #fff; border: none; cursor: pointer; font-weight: 600;
+  }
+  .btn-add-row:hover { background: #3D5BDD; }
+
+  /* Day sections */
+  .day-section { border-bottom: 1px solid var(--border); }
+  .day-section:last-child { border-bottom: none; }
+
+  .day-header {
+    padding: 9px 20px;
+    background: #F9FAFB;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .day-header:hover { background: #F3F4F6; }
+  .day-name { font-family: 'Barlow', Arial, sans-serif; font-weight: 700; font-size: 13px; color: #1a1a1a; letter-spacing: .03em; text-transform: uppercase; }
+  .day-date { font-size: 11px; color: var(--gray); }
+  .day-count { font-size: 10px; color: var(--gray); }
+  .day-chevron { margin-left: auto; font-size: 12px; color: var(--gray); }
+
+  /* Schedule table */
+  .schedule-wrap { overflow-x: auto; }
+  table.sched {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.sched th {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    font-weight: 700;
+    font-family: 'Barlow', Arial, sans-serif;
+    color: var(--navy);
+    background: #F0F0F0;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.sched td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #F3F4F6;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  /* Group routes visually with a faint top border */
+  table.sched tr.route-top td { border-top: 2px solid var(--border); }
+  table.sched tr.route-top:first-child td { border-top: none; }
+  /* Leg indicator */
+  td.leg-ind {
+    width: 4px; padding: 0;
+  }
+  tr.route-top td.leg-ind { background: #BFDBFE; }
+  tr.route-bot td.leg-ind { background: #FDE68A; }
+
+  /* Status pill */
+  .status-sel {
+    appearance: none;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 3px 8px;
+  }
+  .status-Active    { background: #D1FAE5; color: #065F46; }
+  .status-Booked    { background: #DBEAFE; color: #1E40AF; }
+  .status-Canceled  { background: #FEE2E2; color: #991B1B; }
+  .status-InTransit { background: #FEF3C7; color: #92400E; }
+  .status-AtShipper { background: #EDE9FE; color: #5B21B6; }
+  .status-AtDelivery{ background: #E0F2FE; color: #0C4A6E; }
+  .status-AtMidwest { background: #FFEDD5; color: #9A3412; }
+  .status-Delivered  { background: #F3F4F6; color: #374151; }
+  .status-TONU      { background: #FEE2E2; color: #991B1B; }
+  .status-Brokered  { background: #F0FDF4; color: #166534; }
+
+  .route-num {
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1D4ED8;
+    background: #EFF6FF;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .time-val { font-family: monospace; font-weight: 600; font-size: 12px; }
+  .date-val { color: #4B5563; }
+  .empty-cell { color: #D1D5DB; }
+
+  input.cell-input {
+    border: 1px solid transparent; border-radius: 4px;
+    padding: 2px 4px; font-size: 12px; background: transparent;
+    width: 100%; min-width: 70px;
+  }
+  input.cell-input:focus { border-color: var(--blue); outline: none; background: #fff; }
+
+  /* Empty day placeholder */
+  .day-empty {
+    padding: 10px 20px;
+    color: var(--gray); font-size: 12px; font-style: italic;
+  }
+
+  /* Occurrence notification email chip box */
+  .occ-email-box {
+    display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 8px; background: #fff; min-height: 34px; cursor: text;
+  }
+  .occ-actions { margin-left: auto; display: flex; gap: 4px; flex-shrink: 0; }
+  .occ-email-box:focus-within { border-color: var(--blue); }
+  .occ-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #EFF6FF; color: #1D4ED8;
+    font-size: 11px; padding: 2px 6px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .occ-chip-rm {
+    background: none; border: none; cursor: pointer;
+    color: #93C5FD; font-size: 12px; padding: 0; line-height: 1;
+  }
+  .occ-chip-rm:hover { color: #1D4ED8; }
+  .occ-chip--locked {
+    background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD;
+  }
+  .occ-chip--temp {
+    background: #FDECEA; color: #AC171C; border: 1px dashed #F4A8AA;
+  }
+  .occ-chip-lock {
+    font-size: 10px; color: #7DD3FC; line-height: 1;
+  }
+  .occ-email-input {
+    border: none; outline: none; font-size: 12px;
+    flex: 1; min-width: 120px; background: transparent; color: #374151;
+  }
+  .occ-action-btn {
+    font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 5px;
+    border: 1px solid var(--border); background: #fff; cursor: pointer; color: #374151;
+    white-space: nowrap;
+  }
+  .occ-action-btn:hover { background: var(--page-bg); }
+  .occ-action-btn--email { background: var(--ib-bg); color: var(--ib-text); border-color: #BFDBFE; }
+  .occ-action-btn--email:hover { background: #DBEAFE; }
+  .occ-action-btn.copied { background: #D1FAE5; color: #065F46; border-color: #A7F3D0; }
+  .occ-email-quick-add { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .occ-quick-btn {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    border: 1px solid #BFDBFE; background: #EFF6FF; color: #1D4ED8;
+    cursor: pointer; white-space: nowrap; transition: background 0.1s;
+  }
+  .occ-quick-btn:hover { background: #DBEAFE; }
+  .occ-quick-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* ─── Occurrence records (mockup) ──────────────────────── */
+  .occ-header-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .occ-header-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--gray); font-weight: 700;
+  }
+  .occ-chevron {
+    font-size: 10px; color: var(--gray); transition: transform 0.2s;
+  }
+  .occ-header-row.collapsed .occ-chevron { transform: rotate(-90deg); }
+  .occ-new-btn {
+    margin-left: auto; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 5px; cursor: pointer;
+    background: var(--blue); color: #fff; border: none;
+  }
+  .occ-new-btn:hover { opacity: .9; }
+  .occ-body { display: flex; flex-direction: column; gap: 0; }
+  .occ-body.collapsed { display: none; }
+
+  /* Generic collapsible section body (Contact Info, Notes, etc.) */
+  .li-section-body.collapsed { display: none; }
+
+  .occ-list {
+    border: 1px solid var(--border); border-radius: 6px;
+    background: #fff; overflow: hidden;
+  }
+  .occ-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    cursor: pointer; font-size: 12px;
+  }
+  .occ-row:last-child { border-bottom: none; }
+  .occ-row:hover { background: #F9FAFB; }
+  .occ-row.selected { background: #EFF6FF; }
+  .occ-row-type { font-weight: 600; color: #111827; flex: 1; }
+  .occ-delete-btn {
+    background: none; border: none; cursor: pointer;
+    color: #9CA3AF; font-size: 16px; line-height: 1;
+    padding: 0 2px; opacity: 0; transition: opacity 0.15s, color 0.15s;
+  }
+  .occ-row:hover .occ-delete-btn { opacity: 1; }
+  .occ-delete-btn:hover { color: #EF4444; }
+
+  .occ-detail {
+    margin-top: 10px; border: 1px solid var(--border); border-radius: 6px;
+    background: #FAFAFA; padding: 12px 14px;
+  }
+  .occ-detail-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .occ-detail-type {
+    font-size: 14px; font-weight: 700; color: #111827; flex: 1;
+  }
+  .occ-detail-section { margin-top: 10px; }
+  .occ-notes-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px;
+  }
+  .occ-saved-meta {
+    font-size: 10px; color: var(--gray); font-style: italic;
+  }
+  .occ-save-btn {
+    background: var(--blue); color: #fff; border-color: var(--blue);
+  }
+  .occ-save-btn:hover:not(:disabled) { opacity: .9; }
+  .occ-save-btn:disabled {
+    background: #E5E7EB; color: #9CA3AF; border-color: #E5E7EB;
+    cursor: not-allowed;
+  }
+  .occ-chip-meta {
+    font-size: 10px; color: #93C5FD; margin-left: 4px;
+  }
+  .occ-detail-section > label {
+    display: block; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--gray); font-weight: 700; margin-bottom: 5px;
+  }
+  .occ-detail-actions {
+    display: flex; gap: 6px; margin-top: 10px;
+  }
+
+  /* Lane info dropdown selects */
+  .lv-select {
+    font-size: 13px; font-weight: 500; color: #111827;
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 3px 6px; background: #fff; cursor: pointer;
+    max-width: 100%;
+  }
+  .lv-select:focus { outline: none; border-color: var(--blue); }
+  .lv-select-inline {
+    font-size: 12px; color: #111827;
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 4px; background: #fff; cursor: pointer;
+  }
+  .lv-select-inline:focus { outline: none; border-color: var(--blue); }
+
+  /* ─── COLLAPSED STATE ──────────────────────────────────────── */
+  .day-body.collapsed { display: none; }
+
+  /* ─── DAY ADD BUTTON ────────────────────────────────────────── */
+  .day-add-btn {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: var(--blue); color: #fff; border: none; cursor: pointer;
+    font-weight: 700; opacity: .75; flex-shrink: 0;
+  }
+  .day-add-btn:hover { opacity: 1; }
+
+  /* ─── SIDEBAR LOADING ───────────────────────────────────────── */
+  .sidebar-loading { padding: 18px 16px; font-size: 12px; color: var(--gray); }
+
+  /* ─── SCROLLBAR ────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ─── TOAST ────────────────────────────────────────────────── */
+  #toast-stack {
+    position: fixed; top: 16px; right: 16px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    min-width: 240px; max-width: 360px;
+    padding: 10px 14px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; line-height: 1.4;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    animation: toast-in .18s ease-out;
+  }
+  .toast--error   { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+  .toast--success { background: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+  .toast--info    { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .toast.fade-out { opacity: 0; transition: opacity .25s; }
+  @keyframes toast-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* ─── AUTH OVERLAY ─────────────────────────────────────────── */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #192633 0%, #0F1A24 100%);
+  }
+  .auth-overlay[hidden] { display: none !important; }
+  .auth-card {
+    width: 360px; max-width: calc(100vw - 32px);
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    padding: 28px 26px; font-family: 'Lato', Arial, sans-serif;
+  }
+  .auth-brand {
+    font-family: 'Barlow', Arial, sans-serif; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    font-size: 20px; color: var(--navy); text-align: center;
+    margin-bottom: 4px;
+  }
+  .auth-subtitle {
+    text-align: center; font-size: 11px; color: var(--gray);
+    letter-spacing: .3px; margin-bottom: 22px;
+  }
+  .auth-field { margin-bottom: 12px; }
+  .auth-field label {
+    display: block; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--gray); margin-bottom: 4px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .auth-field input {
+    width: 100%; padding: 9px 12px; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 5px;
+    font-family: inherit; background: #fff;
+  }
+  .auth-field input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(101,154,210,.25); }
+  .auth-submit {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: var(--blue); color: #fff; border: none;
+    border-radius: 5px; font-size: 13px; font-weight: 700;
+    cursor: pointer; letter-spacing: .3px;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase;
+  }
+  .auth-submit:hover { background: #5488C2; }
+  .auth-submit:disabled { opacity: .5; cursor: not-allowed; }
+  .auth-toggle {
+    margin-top: 14px; text-align: center; font-size: 12px; color: var(--gray);
+  }
+  .auth-toggle a {
+    color: var(--blue); text-decoration: none; font-weight: 700; cursor: pointer;
+  }
+  .auth-toggle a:hover { text-decoration: underline; }
+  .auth-error {
+    background: #FEE2E2; color: #991B1B; padding: 8px 12px; border-radius: 5px;
+    font-size: 12px; margin-bottom: 12px; border: 1px solid #FECACA;
+  }
+  .auth-info {
+    background: #DBEAFE; color: #1E40AF; padding: 8px 12px; border-radius: 5px;
+    font-size: 12px; margin-bottom: 12px; border: 1px solid #BFDBFE;
+  }
+
+  /* ─── TOPBAR LOGOUT BTN (real) ─────────────────────────── */
+  .btn-logout {
+    font-size: 11px; color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 4px; padding: 4px 10px; cursor: pointer;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.2); color: #fff; }
 </style>
 </head>
 <body>
-<div id="root"></div>
 
-<script type="text/babel">
-const { useState, useCallback, useRef, useMemo, useEffect } = React;
+<!-- ═══ AUTH OVERLAY ═══════════════════════════════════════════ -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-brand">AVGD Automotive</div>
+    <div class="auth-subtitle">Lane Distribution Dashboard</div>
 
-// ─── Supabase config ──────────────────────────────────────────────────────────
-const SB_URL = 'https://oiclnaqsxiuiltnogzss.supabase.co';
-const SB_KEY = 'sb_publishable_EcKSFysP8AIbdC7k3MrN_Q_J0Kq_vCo';
+    <div class="auth-error"    id="auth-error"    hidden></div>
+    <div class="auth-info"     id="auth-info"     hidden></div>
 
-async function sbSave(weekLabel, data) {
-  const res = await fetch(`${SB_URL}/rest/v1/mel_snapshots`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SB_KEY,
-      'Authorization': `Bearer ${SB_KEY}`,
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify({ week_label: weekLabel, data })
-  });
-  if (!res.ok) throw new Error(`Save failed: ${res.status}`);
-}
-
-async function sbLoad() {
-  const res = await fetch(
-    `${SB_URL}/rest/v1/mel_snapshots?order=created_at.desc&limit=1`,
-    { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
-  );
-  if (!res.ok) throw new Error(`Load failed: ${res.status}`);
-  const rows = await res.json();
-  return rows.length ? rows[0] : null;
-}
-
-// ─── Sortable hook ────────────────────────────────────────────────────────────
-function useSortable(rows) {
-  const [sortCol, setSortCol] = useState(null);
-  const [sortDir, setSortDir] = useState('asc');
-  function handleSort(col) {
-    if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
-    else { setSortCol(col); setSortDir('asc'); }
-  }
-  const sorted = useMemo(() => {
-    if (!sortCol) return rows;
-    return [...rows].sort((a, b) => {
-      let av = a[sortCol], bv = b[sortCol];
-      if (av instanceof Date) av = av.getTime();
-      if (bv instanceof Date) bv = bv.getTime();
-      if (av == null) return 1; if (bv == null) return -1;
-      const an = parseFloat(av), bn = parseFloat(bv);
-      if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an;
-      return sortDir === 'asc'
-        ? String(av).localeCompare(String(bv))
-        : String(bv).localeCompare(String(av));
-    });
-  }, [rows, sortCol, sortDir]);
-  return { sorted, sortCol, sortDir, handleSort };
-}
-function STh({ col, sk, sd, onSort, children }) {
-  return (
-    <th onClick={() => onSort(col)} style={{cursor:'pointer',userSelect:'none'}}>
-      {children}{sk===col ? (sd==='asc' ? ' ▲' : ' ▼') : ''}
-    </th>
-  );
-}
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-const TARGETS = {
-  composite: { green: 0.97, yellow: 0.90 },
-  otp:       { green: 0.98, yellow: 0.90 },
-  comm:      { green: 0.95, yellow: 0.88 },
-  asn:       { green: 0.98, yellow: 0.90 },
-};
-
-const MIN_LOADS = 5;
-
-function getColor(score, type) {
-  if (score === null || score === undefined) return 'gray';
-  const t = TARGETS[type] || TARGETS.composite;
-  if (score >= t.green) return 'green';
-  if (score >= t.yellow) return 'yellow';
-  return 'red';
-}
-
-function pct(v, decimals = 1) {
-  if (v === null || v === undefined) return '—';
-  return (v * 100).toFixed(decimals) + '%';
-}
-
-function toTitleCase(str) {
-  if (!str) return str;
-  return String(str).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function normName(name) {
-  return toTitleCase(String(name || '').trim());
-}
-
-// ─── Excel Parser ─────────────────────────────────────────────────────────────
-function detectFileType(sheetNames) {
-  if (sheetNames.includes('OTP_Defect')) return 'scorecard';
-  if (sheetNames.includes('Worksheet'))  return 'loadlist';
-  return 'unknown';
-}
-
-function parseWorkbook(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
-        const sheets = {};
-        wb.SheetNames.forEach(name => {
-          sheets[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: null });
-        });
-        const fileType = detectFileType(wb.SheetNames);
-        resolve({ sheets, fileType, fileName: file.name });
-      } catch(err) { reject(err); }
-    };
-    reader.onerror = reject;
-    reader.readAsBinaryString(file);
-  });
-}
-
-// ─── Data Processing ──────────────────────────────────────────────────────────
-// parsedFiles is an array of { sheets, fileType, fileName }
-function processData(parsedFiles) {
-  const SKIP_NAMES = new Set(['Ford', 'Ford Admin', 'Ford Inbound', 'House Account', '',
-    'Trey Elliott', 'Sunny Tate']);
-
-  const merged = {
-    otp: [], otc: [], gps: [], eta: [], asn: [],
-    carrierScore: [], commSummary: [], checkCall: []
-  };
-
-  // Per-person load counts from Load List files (deduplicated by LOAD#)
-  const loadListLoads = new Set();   // track LOAD# already counted
-  const loadListCounts = {};         // person → load count from Load List
-  let hasLoadList = false;
-
-  // Fallback: Raw Data sheet load counts (deduplicated by LOAD#)
-  const rawDataLoads = new Set();
-  const rawDataCounts = {};
-
-  parsedFiles.forEach(({ sheets, fileType }) => {
-    if (fileType === 'loadlist') {
-      hasLoadList = true;
-      (sheets['Worksheet'] || []).forEach(r => {
-        const loadNum = String(r['LOAD#'] || '').trim();
-        const person = normName(r['LOAD ACCT MANAGER'] || '');
-        if (!loadNum || !person || SKIP_NAMES.has(person)) return;
-        if (loadListLoads.has(loadNum)) return; // deduplicate across weeks
-        loadListLoads.add(loadNum);
-        loadListCounts[person] = (loadListCounts[person] || 0) + 1;
-      });
-    }
-
-    if (fileType === 'scorecard') {
-      const push = (key, sheetName, dedup) => {
-        const rows = sheets[sheetName] || [];
-        if (!dedup) { merged[key].push(...rows); return; }
-        const existing = new Set(merged[key].map(r => dedup(r)));
-        rows.forEach(r => { if (!existing.has(dedup(r))) merged[key].push(r); });
-      };
-      push('otp', 'OTP_Defect',         r => `${r['Load ID']}|${r['214 Event']}`);
-      push('otc', 'OTC_Defect',         r => `${r['Load ID']}|${r['Event Description']}`);
-      push('gps', 'GPS_Defect',         r => `${r['Load ID']}`);
-      push('eta', 'ETA_Defect',         r => `${r['Load ID']}`);
-      push('asn', 'ASN_Defect',         r => `${r['Load ID']}`);
-      push('checkCall', 'Check_Call_Defect', null);
-      // Always use the most recently uploaded scorecard for carrier benchmarks
-      if (sheets['Carrier_Score'])  merged.carrierScore  = sheets['Carrier_Score'];
-      if (sheets['Comm_Summary'])   merged.commSummary   = sheets['Comm_Summary'];
-
-      // Build Raw Data fallback counts (deduplicated)
-      (sheets['Raw Data'] || []).forEach(r => {
-        const loadNum = String(r['LOAD#'] || '').trim();
-        const person = normName(r['LOAD ACCT MANAGER'] || '');
-        if (!loadNum || !person || SKIP_NAMES.has(person)) return;
-        if (rawDataLoads.has(loadNum)) return;
-        rawDataLoads.add(loadNum);
-        rawDataCounts[person] = (rawDataCounts[person] || 0) + 1;
-      });
-    }
-  });
-
-  // Use Load List counts if available, otherwise fall back to Raw Data
-  const loadCounts = hasLoadList ? loadListCounts : rawDataCounts;
-  const totalLoads = Object.values(loadCounts).reduce((s, n) => s + n, 0);
-
-  // Carrier totals
-  const csRow = k => (merged.carrierScore.find(r => r['Category'] === k) || {});
-  const commRow = k => (merged.commSummary.find(r => r['Category'] === k) || {});
-  const carrier = {
-    otpOpps:     csRow('On Time Performance')['Opportunities'] || 0,
-    otpSucc:     csRow('On Time Performance')['Success'] || 0,
-    otpScore:    csRow('On Time Performance')['Score'] || 0,
-    commOpps:    csRow('Communication')['Opportunities'] || 0,
-    commSucc:    csRow('Communication')['Success'] || 0,
-    commScore:   csRow('Communication')['Score'] || 0,
-    asnOpps:     csRow('ASN Containment')['Opportunities'] || 0,
-    asnSucc:     csRow('ASN Containment')['Success'] || 0,
-    asnScore:    csRow('ASN Containment')['Score'] || 0,
-    overall:     csRow('Overall')['Score'] || 0,
-    overallOpps: csRow('Overall')['Opportunities'] || 0,
-    overallSucc: csRow('Overall')['Success'] || 0,
-    etaOpps:     commRow('ETA')['SumOfOpportunities'] || 0,
-    gpsOpps:     commRow('GPS')['SumOfOpportunities'] || 0,
-    otcOpps:     commRow('On Time Communication')['SumOfOpportunities'] || 0,
-    etaScore:    commRow('ETA')['Comm Score'] || 0,
-    gpsScore:    commRow('GPS')['Comm Score'] || 0,
-    otcScore:    commRow('On Time Communication')['Comm Score'] || 0,
-  };
-
-  // Collect all lane admins from defect sheets + load counts
-  const allPeople = new Set();
-  ['otp','otc','gps','eta','asn'].forEach(key => {
-    merged[key].forEach(r => {
-      const n = normName(r['Lane Admin']);
-      if (n && !SKIP_NAMES.has(n)) allPeople.add(n);
-    });
-  });
-  Object.keys(loadCounts).forEach(n => { if (!SKIP_NAMES.has(n)) allPeople.add(n); });
-
-  // Compute scores per person
-  const people = [];
-  allPeople.forEach(person => {
-    const loads = loadCounts[person] || 0;
-    const loadShare = totalLoads > 0 ? loads / totalLoads : 0;
-
-    // ── OTP ──────────────────────────────────────────────────────
-    const otpRows = merged.otp.filter(r => normName(r['Lane Admin']) === person);
-    const otpDefects = otpRows.filter(r => r['Success'] === 0 || r['Success'] === '0');
-    const otpDefectsDA = otpDefects.filter(r => r['214 Event'] === 'DA');
-    const otpDefectsPA = otpDefects.filter(r => r['214 Event'] === 'PA');
-
-    const estOtpOpps = loadShare * carrier.otpOpps;
-    const estDAOpps = estOtpOpps * 0.50;
-    const estPAOpps = estOtpOpps * 0.50;
-    const daScore = estDAOpps > 0 ? Math.max(0, (estDAOpps - otpDefectsDA.length) / estDAOpps) : 1.0;
-    const paScore = estPAOpps > 0 ? Math.max(0, (estPAOpps - otpDefectsPA.length) / estPAOpps) : 1.0;
-    const otpScore = estOtpOpps > 0
-      ? daScore * 0.60 + paScore * 0.40
-      : null;
-    const otpOppsEst = Math.round(estOtpOpps);
-
-    // ── GPS ──────────────────────────────────────────────────────
-    const gpsRows = merged.gps.filter(r => normName(r['Lane Admin']) === person);
-    const gpsDefects = gpsRows.filter(r => r['Success'] === 0 || r['Success'] === '0');
-    const estGpsOpps = loadShare * carrier.gpsOpps;
-    const gpsScore = estGpsOpps > 0
-      ? Math.max(0, (estGpsOpps - gpsDefects.length) / estGpsOpps)
-      : 1.0;
-    const gpsOppsEst = Math.round(estGpsOpps);
-
-    // ── OTC (Stop Updates) ────────────────────────────────────────
-    const otcRows = merged.otc.filter(r => normName(r['Lane Admin']) === person);
-    const otcDefects = otcRows.filter(r => {
-      const d = parseFloat(r['Communication Delay']);
-      return !isNaN(d) && d > 30;
-    });
-    const estOtcOpps = loadShare * carrier.otcOpps;
-    const otcScore = estOtcOpps > 0
-      ? Math.max(0, (estOtcOpps - otcDefects.length) / estOtcOpps)
-      : 1.0;
-    const otcOppsEst = Math.round(estOtcOpps);
-
-    // ── ETA ──────────────────────────────────────────────────────
-    const etaRows = merged.eta.filter(r => normName(r['Lane Admin']) === person);
-    // All ETA_Defect rows are failures; count them
-    const etaDefects = etaRows.length;
-    const estEtaOpps = loadShare * carrier.etaOpps;
-    const etaScore = estEtaOpps > 0
-      ? Math.max(0, (estEtaOpps - etaDefects) / estEtaOpps)
-      : 1.0;
-    const etaOppsEst = Math.round(estEtaOpps);
-
-    // ── Comm ─────────────────────────────────────────────────────
-    // Telematics (10%) not available — assumed 100% for all; weights: StopUpd 45 + ETA 25 + GPS 20 + Telematics 10 = 100
-    const commScore = otcScore * 0.45 + etaScore * 0.25 + gpsScore * 0.20 + 0.10;
-
-    // ── ASN ──────────────────────────────────────────────────────
-    const asnRows = merged.asn.filter(r => normName(r['Lane Admin']) === person);
-    let asnScore, asnOpps, asnSucc;
-    if (asnRows.length === 0) {
-      asnScore = 1.0; asnOpps = 0; asnSucc = 0;
-    } else {
-      const asnCompliant = asnRows.filter(r => {
-        const atFault = String(r['Carrier at Fault?'] || '').toLowerCase();
-        const delayed = String(r['Delayed Response'] || '').toLowerCase();
-        return atFault !== 'yes' && atFault !== 'true' && delayed !== 'yes' && delayed !== 'true';
-      });
-      asnOpps = asnRows.length;
-      asnSucc = asnCompliant.length;
-      asnScore = asnOpps > 0 ? asnSucc / asnOpps : 1.0;
-    }
-
-    // ── Composite ────────────────────────────────────────────────
-    const composite = otpScore !== null
-      ? otpScore * 0.60 + commScore * 0.30 + asnScore * 0.10
-      : null;
-
-    people.push({
-      name: person,
-      loads,
-      composite,
-      otp: { score: otpScore, opps: otpOppsEst, defects: otpDefects.length,
-             daDefects: otpDefectsDA.length, paDefects: otpDefectsPA.length,
-             daScore, paScore,
-             daOpps: Math.ceil(estOtpOpps / 2), paOpps: Math.floor(estOtpOpps / 2),
-             allRows: otpRows },
-      comm: { score: commScore,
-              otc: { score: otcScore, opps: otcOppsEst, defects: otcDefects.length, rows: otcRows },
-              eta: { score: etaScore, opps: etaOppsEst, defects: etaRows.length, rows: etaRows },
-              gps: { score: gpsScore, opps: gpsOppsEst, defects: gpsDefects.length, rows: gpsRows } },
-      asn: { score: asnScore, opps: asnOpps, succ: asnSucc, rows: asnRows },
-    });
-  });
-
-  const ccTotal = merged.checkCall.length;
-  const ccLate = merged.checkCall.filter(r => r['Late Response'] == 1 || r['NO Response'] == 1).length;
-  return { people, carrier, ccTotal, ccLate, hasLoadList, totalLoads };
-}
-
-// ─── Score Cell ───────────────────────────────────────────────────────────────
-function ScoreCell({ score, type, showDelta, minN, n }) {
-  const insufficient = minN && n < MIN_LOADS;
-  if (score === null || score === undefined || insufficient) {
-    return <td className="score-cell"><span className="low-n">{insufficient ? `n<${MIN_LOADS}` : '—'}</span></td>;
-  }
-  const color = getColor(score, type);
-  const target = TARGETS[type]?.green;
-  return (
-    <td className={`score-cell score-cell-bg-${color}`}>
-      <span className={`score ${color}`}>{pct(score)}</span>
-      {showDelta && target && (
-        <div className={`delta ${score >= target ? 'pos' : 'neg'}`}>
-          {score >= target ? '+' : ''}{pct(score - target, 1)}
-        </div>
-      )}
-    </td>
-  );
-}
-
-function StatusDot({ score, type, n }) {
-  if (n !== undefined && n < MIN_LOADS) return <span>⬜</span>;
-  if (score === null) return <span>—</span>;
-  const color = getColor(score, type);
-  if (color === 'green') return <span>🟢</span>;
-  if (color === 'yellow') return <span>🟡</span>;
-  return <span>🔴</span>;
-}
-
-// ─── Defect Detail Tables ──────────────────────────────────────────────────────
-function CollapsibleDefect({ title, count, children }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="defect-section">
-      <div className="defect-section-header" onClick={() => setOpen(o => !o)}>
-        <span className="defect-section-title">{title}</span>
-        <span style={{display:'flex',gap:'8px',alignItems:'center'}}>
-          <span className="defect-count">{count} defect{count !== 1 ? 's' : ''}</span>
-          <span className="toggle-icon">{open ? '▲' : '▼'}</span>
-        </span>
+    <form id="auth-form" onsubmit="submitAuth(event)">
+      <div class="auth-field" id="auth-name-field" hidden>
+        <label for="auth-name">Display Name</label>
+        <input type="text" id="auth-name" autocomplete="name" placeholder="e.g., Trey Elliott" />
       </div>
-      {open && <div className="defect-table-wrap">{children}</div>}
+      <div class="auth-field">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" autocomplete="email" required />
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" autocomplete="current-password" minlength="6" required />
+      </div>
+      <button type="submit" class="auth-submit" id="auth-submit">Sign In</button>
+    </form>
+
+    <div class="auth-toggle" id="auth-toggle-to-signup">
+      Need an account? <a onclick="setAuthMode('signup')">Sign up</a>
     </div>
-  );
-}
-
-function fmtDT(val) {
-  if (!val) return '—';
-  const d = val instanceof Date ? val : new Date(val);
-  if (isNaN(d)) return String(val);
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const dy = String(d.getDate()).padStart(2, '0');
-  const yr = String(d.getFullYear()).slice(2);
-  const hr = String(d.getHours()).padStart(2, '0');
-  const mn = String(d.getMinutes()).padStart(2, '0');
-  return `${mo}/${dy}/${yr} ${hr}:${mn}`;
-}
-
-function OTPDefectTable({ rows }) {
-  const defects = rows.filter(r => r['Success'] === 0 || r['Success'] === '0');
-  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(defects);
-  if (!defects.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No controllable late events.</p>;
-  return (
-    <table className="defect-table">
-      <thead><tr>
-        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
-        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
-        <STh col="Route Number" sk={sk} sd={sd} onSort={handleSort}>Route</STh>
-        <STh col="214 Event" sk={sk} sd={sd} onSort={handleSort}>Event</STh>
-        <STh col="Scheduled Arrival" sk={sk} sd={sd} onSort={handleSort}>Schd Time</STh>
-        <STh col="Reported DTT Local" sk={sk} sd={sd} onSort={handleSort}>Rptd Time</STh>
-      </tr></thead>
-      <tbody>
-        {sorted.map((r, i) => (
-          <tr key={i} className="fail-row">
-            <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
-            <td>{r['Load ID'] || '—'}</td>
-            <td>{r['Route Number']}</td>
-            <td><strong>{r['214 Event']}</strong></td>
-            <td>{fmtDT(r['Scheduled Arrival'])}</td>
-            <td>{fmtDT(r['Reported DTT Local'])}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function OTCDefectTable({ rows }) {
-  const defects = rows.filter(r => { const d = parseFloat(r['Communication Delay']); return !isNaN(d) && d > 30; });
-  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(defects);
-  if (!defects.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No late stop updates.</p>;
-  const abbrevEvent = v => {
-    if (!v) return '—';
-    const s = v.toLowerCase();
-    if (s.includes('pickup') && s.includes('arrival'))   return 'PA';
-    if (s.includes('pickup') && s.includes('departure')) return 'PD';
-    if (s.includes('delivery') && s.includes('arrival')) return 'DA';
-    if (s.includes('delivery') && s.includes('departure')) return 'DD';
-    return v;
-  };
-  const srcColor = v => {
-    if (!v) return {};
-    const s = v.toUpperCase();
-    if (s === 'EDI') return {color:'var(--green)', fontWeight:700};
-    if (s === 'WEB') return {color:'var(--yellow)', fontWeight:700};
-    return {};
-  };
-  return (
-    <table className="defect-table">
-      <thead><tr>
-        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
-        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
-        <STh col="Completed Date" sk={sk} sd={sd} onSort={handleSort}>Date</STh>
-        <STh col="Stop No" sk={sk} sd={sd} onSort={handleSort}>Stop</STh>
-        <STh col="Event Description" sk={sk} sd={sd} onSort={handleSort}>Event</STh>
-        <STh col="Reported DTT ET" sk={sk} sd={sd} onSort={handleSort}>Act Time (ET)</STh>
-        <STh col="Communication DTT ET" sk={sk} sd={sd} onSort={handleSort}>Sent Time (ET)</STh>
-        <STh col="Communication Delay" sk={sk} sd={sd} onSort={handleSort}>Delay (min)</STh>
-        <STh col="Source" sk={sk} sd={sd} onSort={handleSort}>Source</STh>
-      </tr></thead>
-      <tbody>
-        {(() => {
-          const grouping = sk === null || sk === 'Load#';
-          let gIdx = 0;
-          return sorted.map((r, i) => {
-            if (grouping && (i === 0 || r['Load#'] !== sorted[i-1]['Load#'])) gIdx++;
-            const showLoad = !grouping || i === 0 || r['Load#'] !== sorted[i-1]['Load#'];
-            const altRow = grouping && gIdx % 2 === 0;
-          return (
-          <tr key={i} className={`fail-row${altRow ? ' row-alt' : ''}`}>
-            <td>{showLoad ? <a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a> : ''}</td>
-            <td>{showLoad ? (r['Load ID'] || '—') : ''}</td>
-            <td>{r['Completed Date'] ? new Date(r['Completed Date']).toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}) : '—'}</td>
-            <td>{r['Stop No']} — {r['Stop Site']}</td>
-            <td>{abbrevEvent(r['Event Description'])}</td>
-            <td>{fmtDT(r['Reported DTT ET']) || r['Reported Time ET'] || '—'}</td>
-            <td>{fmtDT(r['Communication DTT ET']) || r['Communication Time ET'] || '—'}</td>
-            <td><strong style={{color:'#c62828'}}>{Math.round(r['Communication Delay'])}</strong></td>
-            <td><span style={srcColor(r['Source'])}>{r['Source'] || '—'}</span></td>
-          </tr>
-          );
-          });
-        })()}
-      </tbody>
-    </table>
-  );
-}
-
-function ETADefectTable({ rows }) {
-  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(rows);
-  if (!rows.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No ETA defects.</p>;
-  const okX = v => (v === 1 || v === '1' || v === 'YES') ? '✅' : '❌';
-  return (
-    <table className="defect-table">
-      <thead><tr>
-        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
-        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
-        <STh col="Origin ID" sk={sk} sd={sd} onSort={handleSort}>Lane</STh>
-        <STh col="Route Name" sk={sk} sd={sd} onSort={handleSort}>Route</STh>
-        <STh col="Start Date" sk={sk} sd={sd} onSort={handleSort}>Start Date</STh>
-        <STh col="Scheduled Delivery Arrival Date/Time" sk={sk} sd={sd} onSort={handleSort}>Sch Del</STh>
-        <STh col="Actual Delivery Arrival Date/Time" sk={sk} sd={sd} onSort={handleSort}>Act Del</STh>
-        <STh col="Late Delivery" sk={sk} sd={sd} onSort={handleSort}>Late?</STh>
-        <STh col="Actual Final Pick Departure Date/Time ET" sk={sk} sd={sd} onSort={handleSort}>Act PD</STh>
-        <STh col="First ETA Reported" sk={sk} sd={sd} onSort={handleSort}>1st ETA Rptd</STh>
-        <STh col="First ETA Rcvd" sk={sk} sd={sd} onSort={handleSort}>1st ETA Rcvd</STh>
-        <STh col="First ETA Success" sk={sk} sd={sd} onSort={handleSort}>1st ET OK</STh>
-        <STh col="Last ETA Reported" sk={sk} sd={sd} onSort={handleSort}>Last ETA Rptd</STh>
-        <STh col="Last ETA Rcvd" sk={sk} sd={sd} onSort={handleSort}>Last ETA Rcvd</STh>
-        <STh col="Late Delivery ETA Success" sk={sk} sd={sd} onSort={handleSort}>Late Del ETA OK</STh>
-        <STh col="CutOff" sk={sk} sd={sd} onSort={handleSort}>ETA Cutoff</STh>
-        <STh col="Last ETA Accurate" sk={sk} sd={sd} onSort={handleSort}>ETA Accurate</STh>
-      </tr></thead>
-      <tbody>
-        {sorted.map((r, i) => {
-          const fe = r['First ETA Success'];
-          const ld = r['Late Delivery ETA Success'];
-          const la = r['Last ETA Accurate'];
-          const late = String(r['Late Delivery'] || '').toUpperCase();
-          return (
-            <tr key={i} className="fail-row">
-              <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
-              <td>{r['Load ID'] || '—'}</td>
-              <td>{r['Origin ID'] && r['Destination ID'] ? `${r['Origin ID']} - ${r['Destination ID']}` : '—'}</td>
-              <td>{r['Route Name']}</td>
-              <td>{r['Start Date'] ? new Date(r['Start Date']).toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}) : '—'}</td>
-              <td>{fmtDT(r['Scheduled Delivery Arrival Date/Time'])}</td>
-              <td>{fmtDT(r['Actual Delivery Arrival Date/Time'])}</td>
-              <td>{late === 'YES' ? '✅' : late === 'NO' ? '❌' : '—'}</td>
-              <td>{fmtDT(r['Actual Final Pick Departure Date/Time ET'])}</td>
-              <td>{fmtDT(r['First ETA Reported'])}</td>
-              <td>{fmtDT(r['First ETA Rcvd'])}</td>
-              <td>{fe !== undefined && fe !== null && fe !== '' ? okX(fe) : '—'}</td>
-              <td>{fmtDT(r['Last ETA Reported'])}</td>
-              <td>{fmtDT(r['Last ETA Rcvd'])}</td>
-              <td>{r['Late Delivery'] === 'YES' ? okX(ld) : 'N/A'}</td>
-              <td>{fmtDT(r['CutOff'])}</td>
-              <td>{la !== undefined && la !== null && la !== '' ? okX(la) : '—'}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-function GPSDefectTable({ rows }) {
-  const defects = rows.filter(r => r['Success'] === 0 || r['Success'] === '0');
-  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(defects);
-  if (!defects.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No GPS defects.</p>;
-  return (
-    <table className="defect-table">
-      <thead><tr>
-        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
-        <STh col="Load ID" sk={sk} sd={sd} onSort={handleSort}>PTN</STh>
-        <STh col="Origin ID" sk={sk} sd={sd} onSort={handleSort}>Lane</STh>
-        <STh col="Route Name" sk={sk} sd={sd} onSort={handleSort}>Route</STh>
-        <STh col="Start Date" sk={sk} sd={sd} onSort={handleSort}>Start Date</STh>
-        <STh col="Drive Time" sk={sk} sd={sd} onSort={handleSort}>Drive Time (hrs)</STh>
-        <STh col="Expected Pings" sk={sk} sd={sd} onSort={handleSort}>Expected Pings</STh>
-        <STh col="Actual Transactions" sk={sk} sd={sd} onSort={handleSort}>Actual Pings</STh>
-        <th>Result</th>
-      </tr></thead>
-      <tbody>
-        {sorted.map((r, i) => (
-          <tr key={i} className="fail-row">
-            <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
-            <td>{r['Load ID'] || '—'}</td>
-            <td>{r['Origin ID'] && r['Destination ID'] ? `${r['Origin ID']} - ${r['Destination ID']}` : '—'}</td>
-            <td>{r['Route Name']}</td>
-            <td>{r['Start Date'] ? new Date(r['Start Date']).toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}) : '—'}</td>
-            <td>{r['Drive Time'] ? Number(r['Drive Time']).toFixed(1) : '—'}</td>
-            <td>{r['Expected Pings']}</td>
-            <td>{r['Actual Transactions']}</td>
-            <td><span style={{color:'#c62828',fontWeight:700}}>FAIL</span></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function ASNDefectTable({ rows }) {
-  const { sorted, sortCol: sk, sortDir: sd, handleSort } = useSortable(rows);
-  if (!rows.length) return <p style={{padding:'12px',color:'#888',fontSize:'11px'}}>No ASN defects this period.</p>;
-  return (
-    <table className="defect-table">
-      <thead><tr>
-        <STh col="Load#" sk={sk} sd={sd} onSort={handleSort}>Load #</STh>
-        <STh col="Route Type" sk={sk} sd={sd} onSort={handleSort}>Route Type</STh>
-        <STh col="Delayed Response" sk={sk} sd={sd} onSort={handleSort}>Delayed Response</STh>
-        <STh col="Carrier at Fault?" sk={sk} sd={sd} onSort={handleSort}>Carrier at Fault</STh>
-      </tr></thead>
-      <tbody>
-        {sorted.map((r, i) => (
-          <tr key={i} className="fail-row">
-            <td><a href={`https://brokerage.modetrans.com/fats/loadform.php?id=${r['Load#']}`} target="_blank" rel="noopener noreferrer" style={{color:'var(--avb)',fontWeight:700}}>{r['Load#']}</a></td>
-            <td>{r['Route Type']}</td>
-            <td>{String(r['Delayed Response'] || '—')}</td>
-            <td>{String(r['Carrier at Fault?'] || '—')}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-// ─── Individual View ───────────────────────────────────────────────────────────
-function IndividualView({ person, carrier, onBack }) {
-  const c = getColor(person.composite, 'composite');
-  const rows = [
-    { cat: 'On-Time Performance', sub: null,               opps: person.otp.opps,   def: person.otp.defects,  defDetail: null, score: person.otp.score,  type: 'otp' },
-    { cat: null, sub: 'Delivery (60%)',  opps: person.otp.daOpps, def: person.otp.daDefects, defDetail: null, score: person.otp.daScore, type: 'otp' },
-    { cat: null, sub: 'Pickup (40%)',    opps: person.otp.paOpps, def: person.otp.paDefects, defDetail: null, score: person.otp.paScore, type: 'otp' },
-    { cat: 'Communication', sub: null, opps: null, def: null, score: person.comm.score, type: 'comm' },
-    { cat: null, sub: 'Stop Updates', opps: person.comm.otc.opps, def: person.comm.otc.defects, score: person.comm.otc.score, type: 'comm' },
-    { cat: null, sub: 'ETA',          opps: person.comm.eta.opps, def: person.comm.eta.defects, score: person.comm.eta.score, type: 'comm' },
-    { cat: null, sub: 'GPS',          opps: person.comm.gps.opps, def: person.comm.gps.defects, score: person.comm.gps.score, type: 'comm' },
-    { cat: 'ASN Containment', sub: null, opps: person.asn.opps || 0, def: person.asn.rows.length - person.asn.succ, score: person.asn.score, type: 'asn' },
-  ];
-
-  return (
-    <div>
-      <button className="back-btn" onClick={onBack}>← Back to Leaderboard</button>
-
-      <div className="person-header">
-        <div>
-          <div className="person-name">{person.name}</div>
-          <div style={{fontSize:'12px',color:'#888',marginTop:'4px'}}>{person.loads} loads</div>
-        </div>
-        <div>
-          <div className={`person-composite ${c}`}>{pct(person.composite)}</div>
-          <div style={{fontSize:'11px',color:'#888',textAlign:'center'}}>Composite MEL Score</div>
-        </div>
-        <div style={{flex:1}}/>
-        <div style={{textAlign:'right',fontSize:'12px',color:'#555'}}>
-          <div>Carrier Overall: <strong>{pct(carrier.overall)}</strong></div>
-          <div>Carrier OTP: <strong>{pct(carrier.otpScore)}</strong></div>
-          <div>Carrier Comm: <strong>{pct(carrier.commScore)}</strong></div>
-          <div>Carrier ASN: <strong>{pct(carrier.asnScore)}</strong></div>
-        </div>
-      </div>
-
-      <div className="score-breakdown">
-        <div className="table-wrap" style={{borderRadius:0,border:'none'}}>
-          <table>
-            <thead>
-              <tr>
-                <th style={{textAlign:'left',minWidth:'140px'}}>Category</th>
-                <th style={{textAlign:'left',minWidth:'120px'}}>Sub-Category</th>
-                <th>Est. Opps</th>
-                <th>Defects</th>
-                <th>Score</th>
-                <th>Target</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => {
-                const target = TARGETS[r.type]?.green;
-                return (
-                  <tr key={i} className={r.cat ? 'category-row' : ''}>
-                    <td style={{textAlign:'left'}}>{r.cat || ''}</td>
-                    <td style={{textAlign:'left',paddingLeft: r.cat ? '' : '24px'}}>{r.sub || ''}</td>
-                    <td>{r.opps !== null && r.opps !== undefined ? r.opps : '—'}</td>
-                    <td>{r.def !== null && r.def !== undefined
-                      ? <span>{r.def}{r.defDetail ? <span style={{fontSize:'10px',color:'#888',marginLeft:'4px'}}>({r.defDetail})</span> : null}</span>
-                      : '—'}</td>
-                    <td><span className={`score ${r.score !== null ? getColor(r.score, r.type) : 'gray'}`}>{pct(r.score)}</span></td>
-                    <td>{target ? pct(target) : '—'}</td>
-                    <td><StatusDot score={r.score} type={r.type} /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="footnote">
-          Opportunities estimated from this person's share of total loads (Load List used when available; otherwise Raw Data tab).
-          Telematics excluded — data not yet available.
-          Check Call data attributed at carrier level only.
-          Scores reflect Ford-scored events only as exported from BTMS.
-        </div>
-      </div>
-
-      <CollapsibleDefect title="OTP Defects — Controllable Late Events" count={person.otp.allRows.filter(r => r['Success'] === 0 || r['Success'] === '0').length}>
-        <OTPDefectTable rows={person.otp.allRows} />
-      </CollapsibleDefect>
-
-      <CollapsibleDefect title="Communication — Stop Updates (Late 214s)" count={person.comm.otc.defects}>
-        <OTCDefectTable rows={person.comm.otc.rows} />
-      </CollapsibleDefect>
-
-      <CollapsibleDefect title="Communication — ETA Defects" count={person.comm.eta.defects}>
-        <ETADefectTable rows={person.comm.eta.rows} />
-      </CollapsibleDefect>
-
-      <CollapsibleDefect title="Communication — GPS Defects" count={person.comm.gps.defects}>
-        <GPSDefectTable rows={person.comm.gps.rows} />
-      </CollapsibleDefect>
-
-      <CollapsibleDefect title="ASN Containment Defects" count={person.asn.rows.length}>
-        <ASNDefectTable rows={person.asn.rows} />
-      </CollapsibleDefect>
+    <div class="auth-toggle" id="auth-toggle-to-signin" hidden>
+      Already have an account? <a onclick="setAuthMode('signin')">Sign in</a>
     </div>
-  );
-}
+  </div>
+</div>
 
-// ─── Leaderboard ──────────────────────────────────────────────────────────────
-function Leaderboard({ data, onSelectPerson, onSaveToTeam, saving, saveMsg }) {
-  const { people, carrier, totalLoads } = data;
-  const [sortKey, setSortKey] = useState('composite');
-  const [sortDir, setSortDir] = useState('desc');
+<div id="toast-stack"></div>
 
-  const getSortVal = useCallback((p, key) => {
-    const m = {
-      composite: p.composite,
-      otp: p.otp.score,
-      comm: p.comm.score,
-      otc: p.comm.otc.score,
-      eta: p.comm.eta.score,
-      gps: p.comm.gps.score,
-      asn: p.asn.score,
-      loads: p.loads,
-    };
-    return m[key] ?? -Infinity;
-  }, []);
+<!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
+<div class="topbar-wrap">
+<header class="topbar">
+  <div class="topbar-brand">
+    AVGD Automotive
+    <span>Lane Distribution Dashboard</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-user" id="topbar-user">—</span>
+    <button class="btn-logout" onclick="signOut()">Log out</button>
+  </div>
+</header>
+<div class="topbar-accent"></div>
+</div>
 
-  const sorted = useMemo(() => {
-    return [...people].sort((a, b) => {
-      const va = getSortVal(a, sortKey);
-      const vb = getSortVal(b, sortKey);
-      return sortDir === 'desc' ? vb - va : va - vb;
-    });
-  }, [people, sortKey, sortDir]);
+<div class="app-body">
 
-  const handleSort = key => {
-    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
-    else { setSortKey(key); setSortDir('desc'); }
-  };
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
+    <div class="sidebar-search">
+      <input type="text" placeholder="Search lanes…" oninput="filterSidebar(this.value)" />
+    </div>
 
-  const Th = ({ k, children }) => (
-    <th onClick={() => handleSort(k)}
-        className={sortKey === k ? `sort-${sortDir}` : ''}>
-      {children}
-    </th>
-  );
+    <div class="sidebar-myfilter">
+      <label id="myfilter-label" title="">
+        <input type="checkbox" id="my-lanes-toggle" onchange="toggleMyLanes(this.checked)" />
+        My Lanes Only
+      </label>
+      <span class="myfilter-hint" id="myfilter-hint"></span>
+    </div>
 
-  const carrierComposite = carrier.otpScore * 0.60 + carrier.commScore * 0.30 + carrier.asnScore * 0.10;
+    <div id="sidebar-lanes"><div class="sidebar-loading">Loading lanes…</div></div>
+  </aside>
 
-  return (
-    <div>
-      <div className="leaderboard-header">
-        <div>
-          <div className="page-title">Individual Scorecard</div>
-          <div className="note">Scores estimated from load-share allocation. See methodology note below.</div>
+  <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- ── SECTION 1: LANE INFO (TOP) ──────────────────────── -->
+    <div class="lane-info-card">
+      <div class="lane-info-header" onclick="toggleLaneInfo()">
+        <div class="lane-title-block">
+          <div class="lane-full-name">Boyne City → Dearborn</div>
+          <div class="lane-gsdb-codes">G25AC &nbsp;·&nbsp; A64RB &nbsp;/&nbsp; AP05A</div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:'12px',color:'#666'}}>{carrier.overallOpps.toLocaleString()} total opportunities</div>
-          </div>
-          {onSaveToTeam && (
-            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
-              <button className="btn btn-primary btn-sm" onClick={onSaveToTeam} disabled={saving}
-                title="Save current scores so the whole team sees them">
-                {saving ? 'Saving…' : '☁ Save to Team'}
-              </button>
-              {saveMsg && <div style={{fontSize:'11px',color:saveMsg.startsWith('✓')?'var(--green)':'var(--avr)'}}>{saveMsg}</div>}
-            </div>
-          )}
+        <div class="lane-badges">
+          <button class="lane-alert-btn" id="lane-alert-btn" onclick="event.stopPropagation(); toggleLaneAlert()" title="Flag this lane as needing attention">🚨 Alert</button>
+          <button class="li-collapse-btn" id="li-toggle-btn">Hide ▲</button>
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table>
+      <div class="li-body" id="li-body">
+      <!-- ── Section 1: Rates & Frequency ── -->
+      <div class="li-section">
+        <div class="li-rates">
+          <div class="li-field"><label>Weekly Frequency</label><div class="lv" id="li-freq">—</div></div>
+          <div class="li-field"><label>Stop Charge</label><div class="lv" id="li-stop-charge">—</div></div>
+          <div class="li-field"><label>Backup Admin</label><div class="lv" id="li-backup-admin">—</div></div>
+          <div class="li-field"><label>Transit Hours</label><div class="lv" id="li-transit">—</div></div>
+          <div class="li-field"><label>IB Linehaul</label><div class="lv" id="li-ib-lh">—</div></div>
+          <div class="li-field"><label>OB Linehaul</label><div class="lv" id="li-ob-lh">—</div></div>
+          <div class="li-field"><label>IB FSC</label><div class="lv" id="li-ib-fsc">—</div></div>
+          <div class="li-field"><label>OB FSC</label><div class="lv" id="li-ob-fsc">—</div></div>
+        </div>
+      </div>
+
+      <!-- ── Section 2: Locations ── -->
+      <div class="li-section">
+        <div class="li-table-scroll">
+        <table class="li-locs">
           <thead>
             <tr>
-              <th>#</th>
-              <Th k="composite">Composite</Th>
-              <th style={{textAlign:'left'}}>Name</th>
-              <Th k="otp">OTP</Th>
-              <Th k="comm">OTC</Th>
-              <Th k="otc">Event Upd.</Th>
-              <Th k="eta">ETA</Th>
-              <Th k="gps">GPS</Th>
-              <Th k="asn">ASN</Th>
-              <Th k="loads">Loads</Th>
+              <th>GSDB Code</th>
+              <th>Name</th>
+              <th>Address</th>
+              <th>City / State / Zip</th>
+              <th>Time Zone</th>
+              <th>Ford Miles</th>
             </tr>
           </thead>
-          <tbody>
-            {/* Carrier benchmark row */}
-            <tr className="carrier-row">
-              <td style={{color:'#003087',fontWeight:700}}>★</td>
-              <td className="score-cell">
-                <span className={`score ${getColor(carrierComposite, 'composite')}`}>{pct(carrierComposite)}</span>
-              </td>
-              <td className="name-cell" style={{color:'#003087'}}>Carrier AVGD (Benchmark)</td>
-              <td className="score-cell"><span className={`score ${getColor(carrier.otpScore, 'otp')}`}>{pct(carrier.otpScore)}</span></td>
-              <td className="score-cell"><span className={`score ${getColor(carrier.commScore, 'comm')}`}>{pct(carrier.commScore)}</span></td>
-              <td className="score-cell"><span className={`score ${getColor(carrier.otcScore, 'comm')}`}>{pct(carrier.otcScore)}</span></td>
-              <td className="score-cell"><span className={`score ${getColor(carrier.etaScore, 'comm')}`}>{pct(carrier.etaScore)}</span></td>
-              <td className="score-cell"><span className={`score ${getColor(carrier.gpsScore, 'comm')}`}>{pct(carrier.gpsScore)}</span></td>
-              <td className="score-cell"><span className={`score ${getColor(carrier.asnScore, 'asn')}`}>{pct(carrier.asnScore)}</span></td>
-              <td style={{color:'#888'}}>{totalLoads.toLocaleString()}</td>
-            </tr>
-            {sorted.map((p, i) => (
-              <tr key={p.name} onClick={() => onSelectPerson(p)}>
-                <td className="rank">
-                  <span className={`rank-badge ${i===0?'gold':i===1?'silver':i===2?'bronze':'other'}`}>{i+1}</span>
-                </td>
-                <ScoreCell score={p.composite} type="composite" showDelta={true} minN={false} />
-                <td className="name-cell">{p.name}</td>
-                <ScoreCell score={p.otp.score} type="otp" minN={true} n={p.otp.opps} />
-                <ScoreCell score={p.comm.score} type="comm" minN={false} />
-                <ScoreCell score={p.comm.otc.score} type="comm" minN={false} />
-                <ScoreCell score={p.comm.eta.score} type="comm" minN={false} />
-                <ScoreCell score={p.comm.gps.score} type="comm" minN={false} />
-                <ScoreCell score={p.asn.score} type="asn" minN={false} />
-                <td>{p.loads}</td>
-              </tr>
-            ))}
-          </tbody>
+          <tbody id="li-locs-tbody"></tbody>
         </table>
+        </div>
       </div>
-      <div className="footnote" style={{marginTop:'8px',padding:'8px 12px',borderRadius:'4px',border:'1px solid #e0e0e0',background:'#fafafa'}}>
-        Individual opportunities estimated from each person's share of total loads (📋 Load List used when uploaded; otherwise Raw Data tab).
-        Scores reflect Ford-scored events only as exported from BTMS. Telematics excluded — data not yet available. Check Call data at carrier level only.
-        Color coding: 🟢 At/above target &nbsp;|&nbsp; 🟡 Below target &nbsp;|&nbsp; 🔴 Critical
+
+      <!-- ── Section 3: Routes & Schedule ── -->
+      <div class="li-section">
+        <div class="routes-view-toggle">
+          <button class="rv-btn active" data-view="table" onclick="setRoutesView('table')">Table</button>
+          <button class="rv-btn" data-view="grid" onclick="setRoutesView('grid')">Grid</button>
+          <button class="rv-btn" data-view="timeline" onclick="setRoutesView('timeline')">Timeline</button>
+        </div>
+        <div class="li-table-scroll routes-view routes-view-table">
+        <table class="li-routes">
+          <thead>
+            <tr>
+              <th>IB Route(s)</th>
+              <th>OB Route(s)</th>
+              <th>PU Days</th>
+              <th>PU Times</th>
+              <th>DEL Days</th>
+              <th>DEL Times</th>
+              <th>Live/Drop</th>
+              <th>Dock</th>
+            </tr>
+          </thead>
+          <tbody id="li-routes-tbody"></tbody>
+        </table>
+        </div>
+        <div class="li-table-scroll routes-view routes-view-grid" style="display:none">
+          <div id="li-routes-grid"></div>
+        </div>
+        <div class="li-table-scroll routes-view routes-view-timeline" style="display:none">
+          <div id="li-routes-timeline"></div>
+        </div>
       </div>
-    </div>
-  );
+
+      <!-- ── Section 4: Lane Occurrences (mockup) ── -->
+      <div class="li-section">
+        <div class="occ-header-row collapsed" onclick="toggleOccSection(this)">
+          <span class="occ-header-title">Lane Occurrences</span>
+          <span class="occ-chevron">▾</span>
+          <button class="occ-new-btn" onclick="event.stopPropagation(); newOccurrence()">+ New Occurrence</button>
+        </div>
+
+        <div class="occ-body collapsed" id="occ-body">
+        <div class="occ-list" id="occ-list"></div>
+
+        <div class="occ-detail" id="occ-detail">
+          <div class="occ-detail-head">
+            <span class="occ-detail-type">TONU</span>
+          </div>
+
+          <div class="occ-detail-section">
+            <label>Notes</label>
+            <textarea id="occ-notes-ta" class="li-notes-area" placeholder="Standard handling, escalation steps, who to call…" oninput="markNotesDirty()"></textarea>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="occ-notes-saved">Not yet saved</span>
+              <button class="occ-action-btn occ-save-btn" id="occ-notes-save" onclick="saveOccNotes()" disabled>Save</button>
+            </div>
+          </div>
+
+          <div class="occ-detail-section">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <label style="margin:0">Notification Emails</label>
+              <div class="occ-email-quick-add" style="margin:0">
+                <button class="occ-quick-btn" onclick="quickAddEmail('FordManager@avengerlogistics.com')">+ FordManager@</button>
+                <button class="occ-quick-btn" onclick="quickAddEmail('Trey.Elliott@avengerlogistics.com')">+ Trey</button>
+                <button class="occ-quick-btn" onclick="quickAddEmail('Sunny.Tate@avengerlogistics.com')">+ Sunny</button>
+              </div>
+            </div>
+            <div class="occ-email-box" id="occ-email-box">
+              <input class="occ-email-input" type="text" placeholder="Add email…" />
+            </div>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="occ-emails-updated">No emails yet</span>
+              <div style="display:flex; gap:6px;">
+                <button class="occ-action-btn" onclick="copyOccEmails(this)" title="Copy to clipboard">📋 Copy</button>
+                <button class="occ-action-btn occ-action-btn--email" onclick="launchOccEmail(this)" title="Open in email client">✉ Email Notification</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div><!-- /occ-body -->
+      </div>
+
+      <!-- ── Section 5: Contacts ── -->
+      <div class="li-section">
+        <div class="occ-header-row collapsed" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Contact Info</span>
+          <span class="occ-chevron">▾</span>
+        </div>
+        <div class="li-section-body collapsed">
+        <div class="li-table-scroll">
+        <div class="li-contacts">
+
+          <!-- Carrier Info -->
+          <div class="li-contact-col">
+            <h4>Carrier Info</h4>
+            <div class="li-contact-row"><span class="lk">Name</span><span class="ll">One Nation</span></div>
+            <div class="li-contact-row"><span class="lk">MC#</span><span class="ll">00020082</span></div>
+            <div class="li-contact-row"><span class="lk">POC</span><span class="ll"><select class="lv-select-inline"><option>Haroon</option><option>Ali</option><option>Other</option></select></span></div>
+            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:3137431451">313-743-1451</a></span></div>
+            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:onenation396@gmail.com">onenation396@gmail.com</a></span></div>
+            <div class="li-rates-sub">
+              <div class="li-contact-row"><span class="lk">IB Rate</span><span class="ll">$575.00</span></div>
+              <div class="li-contact-row"><span class="lk">OB Rate</span><span class="ll">$575.00</span></div>
+              <div class="li-contact-row"><span class="lk">Rate Upd.</span><span class="ll">—</span></div>
+              <div class="li-contact-row"><span class="lk">Trailers</span><span class="ll" id="li-trailers">—</span></div>
+            </div>
+          </div>
+
+          <!-- Supplier Info + Plant Info -->
+          <div class="li-contact-col" style="padding-left:16px">
+            <h4>Supplier Info</h4>
+            <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline" id="li-supp-sel"></select></span></div>
+            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a id="li-supp-phone" href="#">—</a></span></div>
+            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a id="li-supp-email" href="#">—</a></span></div>
+            <div class="li-rates-sub">
+              <h4 style="margin-bottom:6px;">Plant Info</h4>
+              <div class="li-contact-row"><span class="lk">Name</span><span class="ll"><select class="lv-select-inline" id="li-plant-sel"></select></span></div>
+              <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a id="li-plant-phone" href="#">—</a></span></div>
+              <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a id="li-plant-email" href="#">—</a></span></div>
+            </div>
+          </div>
+
+        </div>
+        </div>
+        </div><!-- /li-section-body Contact Info -->
+      </div>
+
+      <!-- ── Section 6: Notes ── -->
+      <div class="li-section">
+        <div class="occ-header-row" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Notes</span>
+          <span class="occ-chevron">▾</span>
+        </div>
+        <div class="li-section-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Lane Notes</div>
+            <textarea id="lane-notes-ta" class="li-notes-area" placeholder="General lane notes…" oninput="markLaneNotesDirty('lane')"></textarea>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="lane-notes-saved">Not yet saved</span>
+              <button class="occ-action-btn occ-save-btn" id="lane-notes-save" onclick="saveLaneNotes('lane')" disabled>Save</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:700;margin-bottom:6px;">Carrier Notes</div>
+            <textarea id="carrier-notes-ta" class="li-notes-area" placeholder="Carrier-specific notes…" oninput="markLaneNotesDirty('carrier')"></textarea>
+            <div class="occ-notes-footer">
+              <span class="occ-saved-meta" id="carrier-notes-saved">Not yet saved</span>
+              <button class="occ-action-btn occ-save-btn" id="carrier-notes-save" onclick="saveLaneNotes('carrier')" disabled>Save</button>
+            </div>
+          </div>
+        </div>
+        </div><!-- /li-section-body Notes -->
+      </div>
+      </div><!-- /li-body -->
+    </div><!-- /lane-info-card -->
+
+
+    <!-- ── SECTION 2: SCHEDULE (BOTTOM) ────────────────────── -->
+    <div class="schedule-card">
+
+      <div class="schedule-toolbar">
+        <div class="week-nav">
+          <button class="btn-week" title="Previous week" onclick="changeWeek(-1)">‹</button>
+          <span class="week-label" id="week-label">—</span>
+          <button class="btn-week" title="Next week" onclick="changeWeek(1)">›</button>
+          <button class="btn-today" onclick="goToToday()">Today</button>
+        </div>
+        <div class="schedule-toolbar-right">
+          <select class="status-filter" onchange="filterByStatus(this.value)">
+            <option value="">All statuses</option>
+            <option>Active</option>
+            <option>Booked</option>
+            <option>In Transit</option>
+            <option>At Delivery</option>
+            <option>Delivered</option>
+            <option>Canceled</option>
+            <option>TONU</option>
+            <option>Brokered</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ── MONDAY ── -->
+      <div class="day-section">
+        <div class="day-header" data-day-offset="0" onclick="toggleDay(this)">
+          <span class="day-name">Monday</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(0)">+ Add</button>
+          <span class="day-chevron">▾</span>
+        </div>
+        <div class="day-body">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead>
+                <tr>
+                  <th style="width:4px"></th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Time (ET)</th>
+                  <th>Route #</th>
+                  <th>Pro #</th>
+                  <th>Tracking #</th>
+                  <th>Ship #</th>
+                  <th>Driver</th>
+                  <th>Driver Cell</th>
+                  <th>Trailer #</th>
+                  <th>Trailer Status</th>
+                  <th>Truck #</th>
+                  <th>Sekula Pro #</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="monday-tbody">
+                <!-- 10 routes, each 2 rows (pickup + delivery) -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TUESDAY ── -->
+      <div class="day-section">
+        <div class="day-header" data-day-offset="1" onclick="toggleDay(this)">
+          <span class="day-name">Tuesday</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(1)">+ Add</button>
+          <span class="day-chevron">▾</span>
+        </div>
+        <div class="day-body">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="tuesday-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WEDNESDAY ── -->
+      <div class="day-section">
+        <div class="day-header" data-day-offset="2" onclick="toggleDay(this)">
+          <span class="day-name">Wednesday</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(2)">+ Add</button>
+          <span class="day-chevron collapsed">▸</span>
+        </div>
+        <div class="day-body collapsed">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="wednesday-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── THURSDAY ── -->
+      <div class="day-section">
+        <div class="day-header" data-day-offset="3" onclick="toggleDay(this)">
+          <span class="day-name">Thursday</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(3)">+ Add</button>
+          <span class="day-chevron collapsed">▸</span>
+        </div>
+        <div class="day-body collapsed">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="thursday-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FRIDAY ── -->
+      <div class="day-section">
+        <div class="day-header" data-day-offset="4" onclick="toggleDay(this)">
+          <span class="day-name">Friday</span>
+          <span class="day-date day-date-val">—</span>
+          <span class="day-count day-count-val"></span>
+          <button class="day-add-btn" onclick="event.stopPropagation();addLoadRow(4)">+ Add</button>
+          <span class="day-chevron collapsed">▸</span>
+        </div>
+        <div class="day-body collapsed">
+          <div class="schedule-wrap">
+            <table class="sched">
+              <thead><tr>
+                <th style="width:4px"></th><th>Status</th><th>Date</th><th>Time (ET)</th>
+                <th>Route #</th><th>Pro #</th><th>Tracking #</th><th>Ship #</th>
+                <th>Driver</th><th>Driver Cell</th><th>Trailer #</th><th>Trailer Status</th>
+                <th>Truck #</th><th>Sekula Pro #</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="friday-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /schedule-card -->
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ─── Supabase config ─────────────────────────────────────────────
+const SUPABASE_URL = 'https://paslrhwqttvlicgkwirr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc2xyaHdxdHR2bGljZ2t3aXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODQ1NjIsImV4cCI6MjA5MTY2MDU2Mn0.GH7zepxp3dy5rP49StnS-hNlayucfQFWSxm_2FcsSmk';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── State ───────────────────────────────────────────────────────
+let currentLaneId  = 'b1000000-0000-0000-0000-000000000001';
+let currentLaneIds = [currentLaneId];
+let currentWeekStart = getMondayISO(new Date());
+let currentDieselPrice = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────
+function getMondayISO(d) {
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const mon = new Date(d);
+  mon.setDate(diff);
+  return mon.toISOString().split('T')[0];
 }
 
-// ─── Upload View ──────────────────────────────────────────────────────────────
-const FILE_TYPE_META = {
-  scorecard: { label: 'Scorecard',  icon: '📊', chipStyle: { background: '#e8f0fe', border: '1px solid #c5d8ff', color: '#003087' } },
-  loadlist:  { label: 'Load List',  icon: '📋', chipStyle: { background: '#e8f5e9', border: '1px solid #a5d6a7', color: '#2e7d32' } },
-  unknown:   { label: 'Unknown',    icon: '❓', chipStyle: { background: '#fafafa', border: '1px solid #ccc',    color: '#888'    } },
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [,m,d] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[+m-1] + ' ' + +d;
+}
+
+function debounce(fn, ms) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+const trailerStatuses = ['Loaded', 'Empty to Ceva', 'Delivery At Ceva – Reload Same Trailer'];
+
+const statusClasses = {
+  'Active':      'status-Active',
+  'Booked':      'status-Booked',
+  'Canceled':    'status-Canceled',
+  'In Transit':  'status-InTransit',
+  'At Shipper':  'status-AtShipper',
+  'At Delivery': 'status-AtDelivery',
+  'At Midwest':  'status-AtMidwest',
+  'Delivered':   'status-Delivered',
+  'TONU':        'status-TONU',
+  'Brokered':    'status-Brokered',
 };
 
-function UploadView({ parsedFiles, onFiles, onClear, summary }) {
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef();
+const allStatuses = Object.keys(statusClasses);
 
-  const handleDrop = useCallback(e => {
-    e.preventDefault();
-    setDragging(false);
-    const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.xlsx'));
-    if (dropped.length) onFiles(dropped);
-  }, [onFiles]);
+function makeStatusSelect(current) {
+  const cls = statusClasses[current] || 'status-Active';
+  return `<select class="status-sel ${cls}" onchange="onStatusChange(this)">
+    ${allStatuses.map(s => `<option${s === current ? ' selected' : ''}>${s}</option>`).join('')}
+  </select>`;
+}
 
-  const handleChange = e => {
-    const sel = Array.from(e.target.files);
-    if (sel.length) onFiles(sel);
-    e.target.value = '';
+function makeTrailerStatusSelect(current) {
+  return `<select class="status-sel" style="background:#F9FAFB;color:#374151;font-weight:500">
+    <option value="">—</option>
+    ${trailerStatuses.map(s => `<option>${s}</option>`).join('')}
+  </select>`;
+}
+
+// ─── Week helpers ─────────────────────────────────────────────────
+const DAY_IDS = ['monday','tuesday','wednesday','thursday','friday'];
+
+function updateWeekLabel(weekStart) {
+  const mon = new Date(weekStart + 'T00:00:00');
+  const fri = new Date(mon); fri.setDate(fri.getDate() + 4);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monStr = months[mon.getMonth()] + ' ' + mon.getDate();
+  const friStr = months[fri.getMonth()] + ' ' + fri.getDate();
+  const el = document.getElementById('week-label');
+  if (el) el.textContent = `Week of ${monStr} – ${friStr}, ${fri.getFullYear()}`;
+}
+
+function changeWeek(delta) {
+  const d = new Date(currentWeekStart + 'T00:00:00');
+  d.setDate(d.getDate() + delta * 7);
+  currentWeekStart = d.toISOString().split('T')[0];
+  updateWeekLabel(currentWeekStart);
+  loadSchedule(currentLaneIds, currentWeekStart);
+}
+
+function goToToday() {
+  currentWeekStart = getMondayISO(new Date());
+  updateWeekLabel(currentWeekStart);
+  loadSchedule(currentLaneIds, currentWeekStart);
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const collapsed = sb.classList.toggle('collapsed');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  btn.textContent = collapsed ? '›' : '‹';
+  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch {}
+}
+
+// Restore sidebar collapsed state on load (default: open)
+(function restoreSidebarState() {
+  try {
+    if (localStorage.getItem('sidebarCollapsed') === '1') {
+      const sb = document.getElementById('sidebar');
+      const btn = document.getElementById('sidebar-toggle-btn');
+      if (sb && btn) {
+        sb.classList.add('collapsed');
+        btn.textContent = '›';
+        btn.title = 'Expand sidebar';
+      }
+    }
+  } catch {}
+})();
+
+function filterSidebar(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.lane-item').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  document.querySelectorAll('.rep-group').forEach(g => {
+    const anyVisible = [...g.querySelectorAll('.lane-item')].some(el => el.style.display !== 'none');
+    g.style.display = anyVisible ? '' : 'none';
+    // Re-expand collapsed groups that have matches
+    if (anyVisible && q) {
+      const lanes = g.querySelector('.rep-lanes');
+      const chevron = g.querySelector('.rep-chevron');
+      if (lanes) { lanes.classList.remove('collapsed'); if (chevron) chevron.style.transform = ''; }
+    }
+  });
+}
+
+// ─── Schedule ─────────────────────────────────────────────────────
+// Day-letter → offset from Monday (freight-industry convention: R=Thu, Sa=Sat, Su=Sun)
+const DAY_LETTER_OFFSET = { M:0, T:1, W:2, R:3, F:4, Sa:5, S:5, Su:6, U:6 };
+
+function parseRouteDays(str) {
+  if (!str) return [];
+  return str.split(/\s+/).filter(Boolean)
+    .map(t => DAY_LETTER_OFFSET[t])
+    .filter(v => v !== undefined);
+}
+
+// Generic fallback schedule — used when a lane_routes record has no pu_days/times.
+// Generates an IB trip (06:00 → 14:00) and an OB trip (15:00 → 22:00), Mon–Fri.
+// TEMPORARY: remove once real route data is filled in.
+const GENERIC_SCHEDULE = {
+  days: [0, 1, 2, 3, 4],          // M, T, W, R, F
+  ib: { puTime: '06:00', delTime: '14:00' },
+  ob: { puTime: '15:00', delTime: '22:00' },
+};
+
+// Generate pickup+delivery row pairs for `weekStart` from each lane_routes record.
+// Append-only: skips any (lane_id, leg, route_number, load_date) that already exists.
+async function populateWeekFromRoutes(laneIds, weekStart) {
+  const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
+
+  const { data: routes } = await db.from('lane_routes').select('*').in('lane_id', ids);
+  if (!routes?.length) return 0;
+
+  const { data: existing } = await db.from('loads')
+    .select('lane_id,leg,route_number,load_date')
+    .in('lane_id', ids).eq('week_start', weekStart);
+  const key = r => `${r.lane_id}|${r.leg}|${r.route_number||''}|${r.load_date}`;
+  const existingKeys = new Set((existing || []).map(key));
+
+  const weekBaseDate = new Date(weekStart + 'T00:00:00');
+  const rows = [];
+
+  const pushPair = (laneId, puOff, delOff, puTime, delTime, routeNum, isIb) => {
+    if (puOff > 4) return; // grid only renders Mon–Fri pickups
+    if (!routeNum) return;
+    const puDate = new Date(weekBaseDate);
+    puDate.setDate(puDate.getDate() + puOff);
+    const puDateStr = puDate.toISOString().split('T')[0];
+    const daysForward = delOff >= puOff ? delOff - puOff : (7 - puOff) + delOff;
+    const delDate = new Date(puDate);
+    delDate.setDate(delDate.getDate() + daysForward);
+    const delDateStr = delDate.toISOString().split('T')[0];
+
+    const pu = { lane_id: laneId, week_start: weekStart, status: 'Active',
+                 leg: 'pickup',   load_date: puDateStr, time_et: puTime,
+                 route_number: routeNum, is_ib: isIb };
+    const dl = { lane_id: laneId, week_start: weekStart, status: 'Active',
+                 leg: 'delivery', load_date: delDateStr, time_et: delTime,
+                 route_number: routeNum, is_ib: isIb };
+    if (!existingKeys.has(key(pu))) { rows.push(pu); existingKeys.add(key(pu)); }
+    if (!existingKeys.has(key(dl))) { rows.push(dl); existingKeys.add(key(dl)); }
   };
 
-  const hasScorecard = parsedFiles.some(f => f.fileType === 'scorecard');
-  const hasLoadList  = parsedFiles.some(f => f.fileType === 'loadlist');
+  for (const route of routes) {
+    if (route.pu_days) {
+      // Real schedule data — use it as-is, single route_number per trip
+      const puOffsets  = parseRouteDays(route.pu_days);
+      const delOffsets = parseRouteDays(route.del_days);
+      const routeNum   = route.ib_route || route.ob_route;
+      const puTime     = route.pu_times || null;
+      const delTime    = route.del_times || null;
+      puOffsets.forEach((puOff, i) => {
+        const delOff = delOffsets[i] ?? puOff;
+        pushPair(route.lane_id, puOff, delOff, puTime, delTime, routeNum, true);
+      });
+    } else {
+      // Generic fallback — IB trip + OB trip each weekday
+      const { ib, ob, days } = GENERIC_SCHEDULE;
+      days.forEach(dayOff => {
+        if (route.ib_route) pushPair(route.lane_id, dayOff, dayOff, ib.puTime, ib.delTime, route.ib_route, true);
+        if (route.ob_route) pushPair(route.lane_id, dayOff, dayOff, ob.puTime, ob.delTime, route.ob_route, false);
+      });
+    }
+  }
 
-  return (
-    <div>
-      <div
-        className={`drop-zone ${dragging ? 'drag-over' : ''}`}
-        onDragOver={e => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current.click()}
-      >
-        <div className="drop-zone-icon">📂</div>
-        <h3>Upload Weekly Files</h3>
-        <p>Drag & drop one or more .xlsx files — Scorecard and/or Load List — or click to browse</p>
-        <p style={{marginTop:'6px',fontSize:'11px',color:'#999'}}>
-          📊 Scorecard: <em>AVGD Phase1 SC - WE 3-28-26.xlsx</em> &nbsp;|&nbsp; 📋 Load List: <em>All Loads WE 3-28-26.xlsx</em>
-        </p>
-        <input ref={inputRef} className="file-input" type="file" accept=".xlsx" multiple onChange={handleChange} />
-      </div>
-
-      {parsedFiles.length > 0 && (
-        <>
-          <div className="loaded-files" style={{marginTop:'12px'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
-              <strong style={{fontSize:'13px'}}>Loaded files:</strong>
-              <button className="btn btn-danger btn-sm" onClick={onClear}>Clear All</button>
-            </div>
-            {parsedFiles.map((f, i) => {
-              const meta = FILE_TYPE_META[f.fileType] || FILE_TYPE_META.unknown;
-              return (
-                <span key={i} style={{display:'inline-flex',alignItems:'center',gap:'5px',borderRadius:'20px',padding:'4px 10px',margin:'3px',...meta.chipStyle,fontSize:'12px'}}>
-                  {meta.icon} {f.fileName}
-                  <span style={{fontSize:'10px',opacity:0.75,marginLeft:'2px'}}>({meta.label})</span>
-                </span>
-              );
-            })}
-          </div>
-
-          {/* Warning if load list is missing */}
-          {hasScorecard && !hasLoadList && (
-            <div style={{background:'#fff8e1',border:'1px solid #ffe082',borderRadius:'6px',padding:'10px 14px',marginTop:'10px',fontSize:'12px',color:'#7a5c00'}}>
-              ⚠️ <strong>No Load List uploaded.</strong> Load counts are being estimated from the Raw Data tab inside the Scorecard, which may include historical loads across many weeks. For more accurate scores, also upload the matching <em>All Loads WE [date].xlsx</em> file.
-            </div>
-          )}
-
-          {summary && (
-            <div className="summary-bar">
-              <div className="summary-stat"><div className="val">{summary.scorecardCount}</div><div className="lbl">📊 Scorecards</div></div>
-              <div className="summary-divider"/>
-              <div className="summary-stat"><div className="val">{summary.loadListCount}</div><div className="lbl">📋 Load Lists</div></div>
-              <div className="summary-divider"/>
-              <div className="summary-stat"><div className="val">{summary.totalLoads.toLocaleString()}</div><div className="lbl">Total Loads</div></div>
-              <div className="summary-divider"/>
-              <div className="summary-stat"><div className="val">{summary.teamMembers}</div><div className="lbl">Team Members</div></div>
-              <div className="summary-divider"/>
-              <div className="summary-stat"><div className="val">{summary.otpDefects}</div><div className="lbl">OTP Defects</div></div>
-              <div className="summary-divider"/>
-              <div className="summary-stat"><div className="val">{summary.commDefects}</div><div className="lbl">Comm Defects</div></div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+  if (!rows.length) return 0;
+  const { error } = await db.from('loads').insert(rows);
+  if (error) { console.error('populateWeekFromRoutes failed', error); return 0; }
+  return rows.length;
 }
 
-// ─── App Root ─────────────────────────────────────────────────────────────────
-function App() {
-  const [tab, setTab] = useState('upload');
-  const [parsedFiles, setParsedFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedPerson, setSelectedPerson] = useState(null);
-  const [cloudData, setCloudData] = useState(null);
-  const [cloudLabel, setCloudLabel] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState(null);
+async function loadSchedule(laneIds, weekStart) {
+  const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
+  const weekBaseDate = new Date(weekStart + 'T00:00:00');
 
-  useEffect(() => {
-    sbLoad().then(row => {
-      if (row) { setCloudData(row.data); setCloudLabel(row.week_label); setTab('leaderboard'); }
-    }).catch(() => {});
-  }, []);
+  // Update day-date labels
+  document.querySelectorAll('.day-header[data-day-offset]').forEach(hdr => {
+    const d = new Date(weekBaseDate);
+    d.setDate(d.getDate() + parseInt(hdr.dataset.dayOffset));
+    const el = hdr.querySelector('.day-date-val');
+    if (el) el.textContent = fmtDate(d.toISOString().split('T')[0]);
+  });
 
-  const data = useMemo(() => {
-    if (parsedFiles.length) return processData(parsedFiles);
-    if (cloudData) return cloudData;
-    return null;
-  }, [parsedFiles, cloudData]);
+  // Clear all tbodies and counts
+  DAY_IDS.forEach(day => {
+    const tb = document.getElementById(day + '-tbody');
+    if (tb) tb.innerHTML = '';
+  });
+  document.querySelectorAll('.day-count-val').forEach(el => el.textContent = '');
 
-  const summary = useMemo(() => {
-    if (!data) return null;
-    return {
-      scorecardCount: parsedFiles.filter(f => f.fileType === 'scorecard').length,
-      loadListCount:  parsedFiles.filter(f => f.fileType === 'loadlist').length,
-      totalLoads: data.totalLoads,
-      teamMembers: data.people.length,
-      otpDefects: data.people.reduce((s, p) => s + p.otp.defects, 0),
-      commDefects: data.people.reduce((s, p) => s + p.comm.otc.defects + p.comm.eta.defects + p.comm.gps.defects, 0),
-      hasLoadList: data.hasLoadList,
-    };
-  }, [data, parsedFiles]);
+  let { data } = await db.from('loads').select('*')
+    .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
 
-  const handleFiles = useCallback(async newFiles => {
-    setLoading(true);
-    setError(null);
-    try {
-      const parsed = await Promise.all(newFiles.map(parseWorkbook));
-      setParsedFiles(f => [...f, ...parsed]);
-      setTab('leaderboard');
-    } catch(e) {
-      setError('Error reading file: ' + e.message);
-    } finally { setLoading(false); }
-  }, []);
+  // Auto-populate empty weeks from Section 3 route schedule
+  if (!data || !data.length) {
+    const inserted = await populateWeekFromRoutes(ids, weekStart);
+    if (inserted > 0) {
+      const refetch = await db.from('loads').select('*')
+        .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
+      data = refetch.data;
+    }
+  }
 
-  const handleClear = useCallback(() => {
-    setParsedFiles([]); setSelectedPerson(null); setTab('upload');
-  }, []);
+  if (!data || !data.length) return;
 
-  const handleSelectPerson = useCallback(p => {
-    setSelectedPerson(p);
-    setTab('individual');
-  }, []);
+  // Pair rows in creation order: pickup immediately followed by its delivery
+  const sorted = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  let i = 0;
+  while (i < sorted.length) {
+    const row = sorted[i];
+    if (row.leg === 'pickup') {
+      const dl = sorted[i + 1]?.leg === 'delivery' ? sorted[i + 1] : null;
+      const puDate = new Date(row.load_date + 'T00:00:00');
+      const offset = Math.round((puDate - weekBaseDate) / 86400000);
+      const tbody = DAY_IDS[offset] ? document.getElementById(DAY_IDS[offset] + '-tbody') : null;
+      if (tbody) {
+        tbody.appendChild(makeLoadRow(row));
+        if (dl) tbody.appendChild(makeLoadRow(dl));
+      }
+      i += dl ? 2 : 1;
+    } else {
+      // Orphan delivery — place by its own date
+      const dlDate = new Date(row.load_date + 'T00:00:00');
+      const offset = Math.round((dlDate - weekBaseDate) / 86400000);
+      const tbody = DAY_IDS[offset] ? document.getElementById(DAY_IDS[offset] + '-tbody') : null;
+      if (tbody) tbody.appendChild(makeLoadRow(row));
+      i++;
+    }
+  }
 
-  const handleBack = useCallback(() => {
-    setSelectedPerson(null);
-    setTab('leaderboard');
-  }, []);
-
-  const handleSave = useCallback(async () => {
-    if (!data || !parsedFiles.length) return;
-    setSaving(true); setSaveMsg(null);
-    try {
-      const _d = new Date();
-      const weekLabel = _d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + ' ' + _d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
-      await sbSave(weekLabel, data);
-      setCloudData(data); setCloudLabel(weekLabel);
-      setSaveMsg('✓ Saved! Team will see this on next load.');
-      setParsedFiles([]);
-    } catch(e) { setSaveMsg('✗ Save failed: ' + e.message); }
-    finally { setSaving(false); }
-  }, [data, parsedFiles]);
-
-  return (
-    <div>
-      <div className="app-header">
-        <div className="app-header-inner">
-          <img src="data:image/png;base64,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" className="header-logo" alt="Avenger Logistics" />
-          <div className="header-divider"></div>
-          <div>
-            <div className="app-title">Ford Scorecard (MEL)</div>
-            <div className="subtitle">Individual Performance Dashboard</div>
-          </div>
-        </div>
-        <div className="app-header-accent"></div>
-      </div>
-
-      {cloudLabel && !parsedFiles.length && (
-        <div className="snapshot-banner">
-          📊 Showing team data saved <strong>{cloudLabel}</strong> — upload new files to refresh.
-        </div>
-      )}
-      {cloudLabel && parsedFiles.length > 0 && (
-        <div className="snapshot-banner" style={{background:'#1a3a1a'}}>
-          ⚠️ Showing your newly uploaded data — click <strong>Save to Team</strong> to publish it.
-        </div>
-      )}
-
-      <div className="tabs">
-        <div className={`tab ${tab === 'leaderboard' || tab === 'individual' ? 'active' : ''}`}
-             onClick={() => { if(data) { setSelectedPerson(null); setTab('leaderboard'); } }}>
-          Team Leaderboard {data ? `(${data.people.length})` : ''}
-        </div>
-        <div className={`tab ${tab === 'upload' ? 'active' : ''}`} onClick={() => { setSelectedPerson(null); setTab('upload'); }}>
-            Upload {parsedFiles.length > 0 && `(${parsedFiles.length})`}
-          </div>
-      </div>
-
-      <div className="content">
-        {loading && <div className="loading">⏳ Processing Excel data...</div>}
-        {error && <div style={{background:'#ffebee',border:'1px solid #ffcdd2',borderRadius:'6px',padding:'12px 16px',color:'#c62828',marginBottom:'12px'}}>{error}</div>}
-
-        {!loading && tab === 'upload' && (
-          <UploadView parsedFiles={parsedFiles} onFiles={handleFiles} onClear={handleClear} summary={summary} />
-        )}
-
-        {!loading && (tab === 'leaderboard') && (
-          !data
-            ? <div className="empty-state"><h3>No data loaded</h3><p>Upload a BTMS scorecard file to get started.</p></div>
-            : <Leaderboard data={data} onSelectPerson={handleSelectPerson}
-                onSaveToTeam={parsedFiles.length ? handleSave : null}
-                saving={saving} saveMsg={saveMsg} />
-        )}
-
-        {!loading && tab === 'individual' && selectedPerson && data && (
-          <IndividualView person={selectedPerson} carrier={data.carrier} onBack={handleBack} />
-        )}
-      </div>
-    </div>
-  );
+  // Apply filter + update route counts
+  applyStatusFilter();
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+// Status filter — hide rows whose status-sel value doesn't match.
+// A pickup and its paired delivery hide together so the grid isn't confusing.
+let currentStatusFilter = '';
+function filterByStatus(val) {
+  currentStatusFilter = val || '';
+  applyStatusFilter();
+}
+
+function applyStatusFilter() {
+  const filter = currentStatusFilter;
+  DAY_IDS.forEach((day, offset) => {
+    const tb = document.getElementById(day + '-tbody');
+    if (!tb) return;
+    const trs = [...tb.children];
+    for (let i = 0; i < trs.length; i++) {
+      const tr = trs[i];
+      const next = trs[i + 1];
+      const isPair = tr.classList.contains('route-top') && next?.classList.contains('route-bot');
+      const statusOf = el => el.querySelector('.status-sel')?.value || '';
+      const show = !filter
+        ? true
+        : isPair
+          ? (statusOf(tr) === filter || statusOf(next) === filter)
+          : (statusOf(tr) === filter);
+      tr.style.display = show ? '' : 'none';
+      if (isPair) { next.style.display = show ? '' : 'none'; i++; }
+    }
+    // Update count of visible routes
+    const n = [...tb.querySelectorAll('.route-top')].filter(tr => tr.style.display !== 'none').length;
+    const el = document.querySelector(`.day-header[data-day-offset="${offset}"] .day-count-val`);
+    if (el) el.textContent = n ? `${n} route${n !== 1 ? 's' : ''}` : '';
+  });
+}
+
+function makeLoadRow(row) {
+  const isPickup = row.leg === 'pickup';
+  const tr = document.createElement('tr');
+  tr.className = isPickup ? 'route-top' : 'route-bot';
+  tr.dataset.id = row.id;
+  const fields = [
+    ['pro_number','—',80],['tracking_number','—',90],['ship_number','—',80],
+    ['driver_name','Driver name',100],['driver_cell','(###) ###-####',100],
+    ['trailer_number','—',70],['truck_number','—',60],['sekula_pro','—',70],['notes','Note…',160]
+  ];
+  tr.innerHTML = `
+    <td class="leg-ind" title="${isPickup?'Pickup':'Delivery'} leg"></td>
+    <td>${makeStatusSelect(row.status || 'Active')}</td>
+    <td class="date-val">${fmtDate(row.load_date)}</td>
+    <td><input class="cell-input" data-field="time_et" value="${row.time_et||''}" placeholder="—" style="min-width:60px" onchange="updateLoad(this,'${row.id}')"></td>
+    <td><input class="cell-input" data-field="route_number" value="${row.route_number||''}" placeholder="—" style="min-width:80px" onchange="updateLoad(this,'${row.id}')"></td>
+    ${fields.slice(0,3).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+    ${fields.slice(3,5).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+    ${fields.slice(5,6).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+    <td>${makeTrailerStatusSelect(row.trailer_status||'')}</td>
+    ${fields.slice(6).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
+  `;
+  // Wire status select
+  tr.querySelector('.status-sel').addEventListener('change', async function() {
+    onStatusChange(this);
+    await db.from('loads').update({ status: this.value, updated_at: new Date().toISOString() }).eq('id', row.id);
+  });
+  // Wire trailer status select
+  const tsSelect = tr.querySelectorAll('select')[1];
+  if (tsSelect) {
+    tsSelect.addEventListener('change', async function() {
+      await db.from('loads').update({ trailer_status: this.value, updated_at: new Date().toISOString() }).eq('id', row.id);
+    });
+  }
+  return tr;
+}
+
+const updateLoad = debounce(async (input, loadId) => {
+  await db.from('loads').update({ [input.dataset.field]: input.value, updated_at: new Date().toISOString() }).eq('id', loadId);
+}, 600);
+
+async function addLoadRow(dayOffset = 0) {
+  const puDate = new Date(currentWeekStart + 'T00:00:00');
+  puDate.setDate(puDate.getDate() + dayOffset);
+  const puDateStr = puDate.toISOString().split('T')[0];
+  const dlDate = new Date(puDate);
+  dlDate.setDate(dlDate.getDate() + 1);
+  const dlDateStr = dlDate.toISOString().split('T')[0];
+  const base = { lane_id: currentLaneIds[0], week_start: currentWeekStart, status: 'Active' };
+  const [{ data: pu }, { data: dl }] = await Promise.all([
+    db.from('loads').insert({ ...base, leg: 'pickup',   load_date: puDateStr, is_ib: true  }).select().single(),
+    db.from('loads').insert({ ...base, leg: 'delivery', load_date: dlDateStr, is_ib: false }).select().single(),
+  ]);
+  const tbody = document.getElementById(DAY_IDS[dayOffset] + '-tbody');
+  if (!tbody) return;
+  if (pu) tbody.appendChild(makeLoadRow(pu));
+  if (dl) tbody.appendChild(makeLoadRow(dl));
+  // Refresh count
+  const n = tbody.querySelectorAll('.route-top').length;
+  const el = document.querySelector(`.day-header[data-day-offset="${dayOffset}"] .day-count-val`);
+  if (el) el.textContent = n ? `${n} route${n !== 1 ? 's' : ''}` : '';
+}
+
+function onStatusChange(sel) {
+  const cls = statusClasses[sel.value] || 'status-Active';
+  sel.className = 'status-sel ' + cls;
+  // Re-apply filter in case this row's new status no longer matches the active filter
+  if (currentStatusFilter) applyStatusFilter();
+}
+
+function toggleDay(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.day-chevron');
+  body.classList.toggle('collapsed');
+  chevron.classList.toggle('collapsed');
+  chevron.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+}
+
+function selectLane(el) {
+  document.querySelectorAll('.lane-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  const ids = el.dataset.laneIds ? el.dataset.laneIds.split(',') : el.dataset.laneId ? [el.dataset.laneId] : null;
+  if (!ids) return;
+  currentLaneIds = ids;
+  currentLaneId = ids[0];
+  loadLaneInfo(ids);
+  loadLaneOccurrences(ids[0]);
+  loadLaneNotes(ids[0]);
+  loadSchedule(ids, currentWeekStart);
+  updateHash();
+}
+
+// ─── Routes-table render helpers ──────────────────────────────────
+// Render a space-separated day string ("M W F") as a 7-dot row
+function renderDayDots(daysStr) {
+  const order = ['M','T','W','R','F','S','U'];
+  const set = new Set((daysStr || '').split(/\s+/).filter(Boolean));
+  return `<span class="day-dots">${order.map(d =>
+    `<span class="day-dot${set.has(d) ? ' on' : ''}">${d}</span>`
+  ).join('')}</span>`;
+}
+
+// Day-column grid view (alternative to the routes table) — Sunday first to match dispatch flow
+const GRID_DAY_ORDER = ['U','M','T','W','R','F','S'];
+const GRID_DAY_LABEL = { M:'Mon', T:'Tue', W:'Wed', R:'Thu', F:'Fri', S:'Sat', U:'Sun' };
+
+function renderRoutesGrid(routes) {
+  const host = document.getElementById('li-routes-grid');
+  if (!host) return;
+  if (!routes.length) { host.innerHTML = '<div style="padding:12px;color:var(--gray);font-size:12px">No routes</div>'; return; }
+
+  // Header row: "Route" + 7 day columns
+  let html = `<div class="routes-grid">`;
+  html += `<div class="rg-head" style="text-align:left">Route</div>`;
+  GRID_DAY_ORDER.forEach(d => { html += `<div class="rg-head">${GRID_DAY_LABEL[d]}</div>`; });
+
+  routes.forEach(route => {
+    const puDays = new Set((route.pu_days || '').split(/\s+/).filter(Boolean));
+    const delDays = new Set((route.del_days || '').split(/\s+/).filter(Boolean));
+    const puT = route.pu_times || '';
+    const delT = route.del_times || '';
+
+    // Route-label cell — IB/OB stacked, pill inline with IB, dock inline with OB
+    const pill = renderLiveDropPill(route.pu_live_drop);
+    const dockText = route.pu_dock || '';
+    html += `<div class="rg-cell rg-route">
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ib_route || '—'}</span>
+        <span>${pill}</span>
+      </div>
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ob_route || '—'}</span>
+        <span class="rg-route-dock">${dockText}</span>
+      </div>
+    </div>`;
+
+    // Day cells — PU marker ▲ + DEL marker ▼ as applicable
+    GRID_DAY_ORDER.forEach(d => {
+      const parts = [];
+      if (puDays.has(d)) {
+        parts.push(`<span class="rg-marker rg-pu"><span class="rg-marker-icon">▲</span>${puT || ''}</span>`);
+      }
+      if (delDays.has(d)) {
+        parts.push(`<span class="rg-marker rg-del"><span class="rg-marker-icon">▼</span>${delT || ''}</span>`);
+      }
+      html += `<div class="rg-cell" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+        ${parts.length ? parts.join('') : '<span class="rg-empty">—</span>'}
+      </div>`;
+    });
+  });
+
+  html += `</div>`;
+  host.innerHTML = html;
+}
+
+// Horizontal weekly timeline (Gantt): PU→DEL bars across M–Sun for each route
+function parseTimeToMins(t) {
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  return m ? parseInt(m[1],10)*60 + parseInt(m[2],10) : null;
+}
+// Sunday-first to match dispatch flow (Sun=0, Mon=1, ... Sat=6)
+const DAY_IDX = { U:0, M:1, T:2, W:3, R:4, F:5, S:6 };
+
+function renderRoutesTimeline(routes) {
+  const host = document.getElementById('li-routes-timeline');
+  if (!host) return;
+  if (!routes.length) { host.innerHTML = '<div style="padding:12px;color:var(--gray);font-size:12px">No routes</div>'; return; }
+
+  const WEEK_MINS = 7*24*60;
+
+  // Header row: empty corner + 7 day labels
+  let html = `<div class="routes-timeline">
+    <div class="rt-grid">
+      <div></div>
+      <div class="rt-day-labels">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="rt-day-label">${d}</div>`).join('')}
+      </div>`;
+
+  routes.forEach(route => {
+    const puDays = (route.pu_days || '').split(/\s+/).filter(Boolean);
+    const delDays = (route.del_days || '').split(/\s+/).filter(Boolean);
+    const puMin = parseTimeToMins(route.pu_times);
+    const delMin = parseTimeToMins(route.del_times);
+
+    // Build bars — position pair by index (PU[i] paired with DEL[i], next-week wrap if DEL < PU)
+    let bars = '';
+    if (puDays.length && puMin != null) {
+      puDays.forEach((puDay, i) => {
+        const delDay = delDays[i] ?? puDay;
+        const puStart = DAY_IDX[puDay] * 1440 + puMin;
+        let delEnd   = DAY_IDX[delDay] * 1440 + (delMin != null ? delMin : puMin);
+        if (delEnd <= puStart) delEnd += WEEK_MINS; // wrap to next week
+        const title = `${route.ib_route || ''}${route.ob_route ? ' / '+route.ob_route : ''}\nPU ${puDay} ${route.pu_times || ''}\nDEL ${delDay} ${route.del_times || ''}`;
+        const titleAttr = title.replace(/"/g,'&quot;');
+
+        if (delEnd <= WEEK_MINS) {
+          // Normal bar — fits within the week
+          const left  = (puStart / WEEK_MINS) * 100;
+          const width = ((delEnd - puStart) / WEEK_MINS) * 100;
+          bars += `<div class="rt-bar" style="left:${left}%;width:${width}%" title="${titleAttr}">
+            <span class="rt-bar-pu">▲</span>
+            <span class="rt-bar-del">▼</span>
+          </div>`;
+        } else {
+          // Wraps — draw two partial bars (continues right, continued on left)
+          const left1  = (puStart / WEEK_MINS) * 100;
+          const width1 = ((WEEK_MINS - puStart) / WEEK_MINS) * 100;
+          bars += `<div class="rt-bar rt-bar--continues" style="left:${left1}%;width:${width1}%" title="${titleAttr}">
+            <span class="rt-bar-pu">▲</span>
+          </div>`;
+          const wrapEnd = delEnd - WEEK_MINS;
+          const width2  = (wrapEnd / WEEK_MINS) * 100;
+          bars += `<div class="rt-bar rt-bar--continued" style="left:0%;width:${width2}%" title="${titleAttr}">
+            <span class="rt-bar-del">▼</span>
+          </div>`;
+        }
+      });
+    }
+
+    const pill = renderLiveDropPill(route.pu_live_drop);
+    const dockText = route.pu_dock || '';
+    html += `<div class="rt-route-label">
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ib_route || '—'}</span>
+        <span>${pill}</span>
+      </div>
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ob_route || '—'}</span>
+        <span class="rg-route-dock">${dockText}</span>
+      </div>
+    </div>
+    <div class="rt-track">${bars}</div>`;
+  });
+
+  // Bottom time ruler — 6h marks repeating (00, 06, 12, 18) × 7 days
+  const rulerLabels = Array.from({length: 28}, (_, i) => ['00','06','12','18'][i % 4]);
+  html += `<div></div>
+    <div class="rt-time-ruler">
+      ${rulerLabels.map(l => `<span>${l}</span>`).join('')}
+    </div>`;
+
+  html += `</div></div>`;
+  host.innerHTML = html;
+}
+
+function setRoutesView(view) {
+  document.querySelectorAll('.rv-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelector('.routes-view-table').style.display    = view === 'table'    ? '' : 'none';
+  document.querySelector('.routes-view-grid').style.display     = view === 'grid'     ? '' : 'none';
+  document.querySelector('.routes-view-timeline').style.display = view === 'timeline' ? '' : 'none';
+  try { localStorage.setItem('routesView', view); } catch {}
+}
+
+// Restore last view preference
+(function restoreRoutesView() {
+  try {
+    const v = localStorage.getItem('routesView');
+    if (v && v !== 'table') window.addEventListener('DOMContentLoaded', () => setRoutesView(v));
+  } catch {}
+})();
+
+// Render Live/Drop value as a colored pill
+//   Live=green, Drop=yellow, Multi=blue (match Multi before Drop to avoid false hits)
+function renderLiveDropPill(val) {
+  if (!val) return '—';
+  const s = val.trim();
+  if (/^multi/i.test(s)) return `<span class="multi-badge">${s}</span>`;
+  if (/live/i.test(s))   return `<span class="live-badge">${s}</span>`;
+  if (/drop/i.test(s))   return `<span class="drop-badge">${s}</span>`;
+  return s;
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────
+function stripOriginCode(origin) {
+  // "Louisville (CR2CF) (Drop), KY" → "Louisville, KY"
+  return origin.replace(/\s*\([^)]+\)/g, '');
+}
+
+async function loadSidebar() {
+  // Base query; when "My Lanes Only" is on AND the user is linked to a rep,
+  // scope to only that rep's lanes.
+  let lanesQuery = db.from('lanes')
+    .select('id, origin, destination, rep_id, lane_group, is_alerted, reps(name)')
+    .eq('status','Active')
+    .order('origin');
+  if (myLanesOnly && currentUserRepId) {
+    lanesQuery = lanesQuery.eq('rep_id', currentUserRepId);
+  }
+  const [lanesRes, locsRes] = await Promise.all([
+    lanesQuery,
+    db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('gsdb_code', 'is', null).order('stop_order'),
+  ]);
+
+  const lanes = lanesRes.data || [];
+  const locs  = locsRes.data  || [];
+
+  // Build gsdb map
+  const gsdbMap = {};
+  locs.forEach(l => {
+    const arr = (gsdbMap[l.lane_id] = gsdbMap[l.lane_id] || []);
+    if (!arr.includes(l.gsdb_code)) arr.push(l.gsdb_code);
+  });
+
+  // Collapse grouped lanes into single sidebar items
+  const groups = {}; // lane_group → item
+  const items  = []; // all sidebar items in order
+
+  lanes.forEach(ln => {
+    const rep = ln.reps?.name || 'Unassigned';
+    if (ln.lane_group) {
+      if (!groups[ln.lane_group]) {
+        groups[ln.lane_group] = { ids: [], origin: stripOriginCode(ln.origin), dests: [], gsdbs: [], rep, alerted: false };
+        items.push(groups[ln.lane_group]);
+      }
+      const g = groups[ln.lane_group];
+      g.ids.push(ln.id);
+      if (ln.is_alerted) g.alerted = true; // any sub-lane alerted → whole group shows alerted
+      const city = ln.destination.split(',')[0];
+      if (!g.dests.includes(city)) g.dests.push(city);
+      (gsdbMap[ln.id] || []).forEach(c => { if (!g.gsdbs.includes(c)) g.gsdbs.push(c); });
+    } else {
+      items.push({ ids: [ln.id], origin: stripOriginCode(ln.origin), dests: [stripOriginCode(ln.destination)], gsdbs: gsdbMap[ln.id] || [], rep, alerted: !!ln.is_alerted });
+    }
+  });
+
+  // Group by rep
+  const byRep = {};
+  items.forEach(item => (byRep[item.rep] = byRep[item.rep] || []).push(item));
+
+  const isActive = item => item.ids.some(id => currentLaneIds.includes(id));
+
+  const container = document.getElementById('sidebar-lanes');
+  const hashReps = getHashState().reps.map(r => r.toLowerCase());
+
+  // Empty state when "My Lanes Only" is on but the rep has no active lanes
+  if (!items.length) {
+    container.innerHTML = `<div style="padding:20px 16px;font-size:12px;color:var(--gray);line-height:1.5">
+      ${myLanesOnly
+        ? (currentUserRepId
+            ? `No active lanes assigned to <strong>${currentUserRepName}</strong>.`
+            : 'You\u2019re not linked to a rep yet.')
+        : 'No lanes to show.'}
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = Object.entries(byRep)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([rep, repItems]) => {
+      const hasActive = repItems.some(item => isActive(item));
+      const inHash   = hashReps.includes(rep.toLowerCase());
+      const expand   = hasActive || inHash;
+      const alertedCount = repItems.filter(i => i.alerted).length;
+      const alertBadge = alertedCount
+        ? `<span class="rep-alert-count" title="${alertedCount} lane${alertedCount !== 1 ? 's' : ''} flagged">⚠ ${alertedCount}</span>`
+        : '';
+      return `
+      <div class="rep-group" data-rep="${rep}">
+        <div class="rep-header" onclick="toggleRepGroup(this)">
+          <span>${rep} <span style="font-weight:400;color:var(--gray);font-size:11px">(${repItems.length})</span>${alertBadge}</span>
+          <span class="rep-chevron" style="${expand ? '' : 'transform:rotate(-90deg)'}">▾</span>
+        </div>
+        <div class="rep-lanes${expand ? '' : ' collapsed'}">
+          ${repItems.map(item => {
+            const active = isActive(item) ? ' active' : '';
+            const alerted = item.alerted ? ' alerted' : '';
+            const gsdb = item.gsdbs.join(' · ');
+            const dest = item.dests.length > 1 ? item.dests.join(' · ') : item.dests[0];
+            const idsAttr = item.ids.length > 1
+              ? `data-lane-ids="${item.ids.join(',')}"`
+              : `data-lane-id="${item.ids[0]}"`;
+            return `<div class="lane-item${active}${alerted}" onclick="selectLane(this)" ${idsAttr}>
+              ${item.origin} → ${dest}
+              <div class="lane-gsdb">${gsdb}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+function toggleRepGroup(header) {
+  const lanes = header.nextElementSibling;
+  const chevron = header.querySelector('.rep-chevron');
+  lanes.classList.toggle('collapsed');
+  chevron.style.transform = lanes.classList.contains('collapsed') ? 'rotate(-90deg)' : '';
+  updateHash();
+}
+
+// ─── URL Hash State ───────────────────────────────────────────────
+function getHashState() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw) return { lanes: [], reps: [] };
+  const params = {};
+  raw.split('&').forEach(part => {
+    const [k, v] = part.split('=');
+    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
+  });
+  return {
+    lanes: params.lane ? params.lane.split(',').filter(Boolean) : [],
+    reps:  params.reps  ? params.reps.split(',').map(r => r.replace(/\+/g, ' ')).filter(Boolean) : [],
+  };
+}
+
+function updateHash() {
+  const lanesPart = currentLaneIds.length ? 'lane=' + currentLaneIds.join(',') : '';
+  const openReps = [...document.querySelectorAll('.rep-group')]
+    .filter(g => !g.querySelector('.rep-lanes')?.classList.contains('collapsed'))
+    .map(g => encodeURIComponent(g.dataset.rep || '').replace(/%20/g, '+'))
+    .filter(Boolean);
+  const repsPart = openReps.length ? 'reps=' + openReps.join(',') : '';
+  const hash = [lanesPart, repsPart].filter(Boolean).join('&');
+  history.replaceState(null, '', hash ? '#' + hash : location.pathname + location.search);
+}
+
+// ─── Lane Info Card ───────────────────────────────────────────────
+async function loadLaneInfo(laneIds) {
+  const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
+
+  const [lanesRes, locsRes, gsdbRes, routesRes, suppRes, plantRes] = await Promise.all([
+    db.from('lanes').select('*').in('id', ids),
+    db.from('lane_locations').select('*').in('lane_id', ids).not('name', 'is', null).order('stop_order'),
+    db.from('lane_locations').select('gsdb_code').in('lane_id', ids).not('gsdb_code', 'is', null).order('stop_order'),
+    db.from('lane_routes').select('*').in('lane_id', ids),
+    db.from('supplier_contacts').select('*').eq('lane_id', ids[0]),
+    db.from('plant_contacts').select('*').eq('lane_id', ids[0]),
+  ]);
+
+  const allLanes = lanesRes.data || [];
+  if (!allLanes.length) return;
+  const lane = allLanes[0];
+  const isGrouped = allLanes.length > 1;
+
+  // Apply alert state — true if any sub-lane is alerted
+  const anyAlerted = allLanes.some(l => l.is_alerted);
+  applyLaneAlertUI(anyAlerted);
+
+  // Header
+  if (isGrouped) {
+    const originDisplay = stripOriginCode(lane.origin);
+    const dests = [...new Set(allLanes.map(l => l.destination.split(',')[0]))].join(' · ');
+    document.querySelector('.lane-full-name').textContent = `${originDisplay} \u2192 ${dests}`;
+  } else {
+    document.querySelector('.lane-full-name').textContent = `${stripOriginCode(lane.origin)} \u2192 ${stripOriginCode(lane.destination)}`;
+  }
+  const locs = locsRes.data || [];
+  const gsdbs = [...new Set((gsdbRes.data || []).map(l => l.gsdb_code))].join(' \u00b7 ');
+  document.querySelector('.lane-gsdb-codes').textContent = gsdbs || '—';
+
+  // Rates
+  const fmt$ = v => v != null ? '$' + Number(v).toFixed(2) : '—';
+  const totalIb = allLanes.reduce((s, l) => s + (l.weekly_freq_ib || 0), 0);
+  const totalOb = allLanes.reduce((s, l) => s + (l.weekly_freq_ob || 0), 0);
+  document.getElementById('li-freq').textContent =
+    `${totalIb || '—'} IB \u00b7 ${totalOb || '—'} OB`;
+  const sc = lane.stop_count;
+  document.getElementById('li-stop-charge').textContent =
+    sc != null ? `${sc} stop${sc !== 1 ? 's' : ''} · $${(sc * 50).toFixed(2)}` : '—';
+  document.getElementById('li-backup-admin').textContent = lane.backup_admin || '—';
+  document.getElementById('li-transit').textContent = lane.transit_hours ? `${lane.transit_hours} hrs` : '—';
+  document.getElementById('li-ib-lh').textContent = fmt$(lane.ib_linehaul);
+  document.getElementById('li-ob-lh').textContent = fmt$(lane.ob_linehaul);
+  const fsc = calcFsc(lane.ford_miles);
+  const fscStr = fsc != null ? '$' + fsc.toFixed(2) : '—';
+  document.getElementById('li-ib-fsc').textContent = fscStr;
+  document.getElementById('li-ob-fsc').textContent = fscStr;
+  const trailers = totalIb ? Math.ceil(totalIb * 0.75) : '—';
+  document.getElementById('li-trailers').textContent = trailers;
+
+  // Locations table
+  const locsTbody = document.getElementById('li-locs-tbody');
+  locsTbody.innerHTML = '';
+  locs.forEach((loc, i) => {
+    const isStop = i > 0 && i < locs.length - 1;
+    const tr = document.createElement('tr');
+    const cityLine = [loc.city, loc.state, loc.zip].filter(Boolean).join(', ').replace(/, (\S+)$/, ' $1');
+    tr.innerHTML = `
+      <td><span class="gsdb-tag">${loc.gsdb_code}</span>${isStop ? ` <span style="font-size:10px;color:var(--gray)">Stop ${i}</span>` : ''}</td>
+      <td>${loc.name || '—'}</td>
+      <td>${loc.address || '—'}</td>
+      <td>${cityLine || '—'}</td>
+      <td>${loc.time_zone || '—'}</td>
+      <td>${loc.ford_miles ? `${loc.ford_miles} mi` : '—'}</td>`;
+    locsTbody.appendChild(tr);
+  });
+
+  // Routes table — one row per sub-lane for grouped lanes
+  const routesTbody = document.getElementById('li-routes-tbody');
+  routesTbody.innerHTML = '';
+  (routesRes.data || []).forEach(route => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${route.ib_route || '—'}</td>
+      <td>${route.ob_route || '—'}</td>
+      <td class="days">${renderDayDots(route.pu_days)}</td>
+      <td>${route.pu_times || '—'}</td>
+      <td class="days">${renderDayDots(route.del_days)}</td>
+      <td>${route.del_times || '—'}</td>
+      <td>${renderLiveDropPill(route.pu_live_drop)}</td>
+      <td>${route.pu_dock || '—'}</td>`;
+    routesTbody.appendChild(tr);
+  });
+  renderRoutesGrid(routesRes.data || []);
+  renderRoutesTimeline(routesRes.data || []);
+
+  // Supplier contacts
+  const supps = suppRes.data || [];
+  const suppSel = document.getElementById('li-supp-sel');
+  suppSel.innerHTML = supps.length
+    ? supps.map(s => `<option value="${s.id}">${s.name}</option>`).join('')
+    : '<option value="">—</option>';
+  const updateSupp = () => {
+    const p = supps.find(s => s.id === suppSel.value) || supps[0];
+    const ph = document.getElementById('li-supp-phone');
+    const em = document.getElementById('li-supp-email');
+    ph.textContent = p?.phone || '—';
+    ph.href = p?.phone ? `tel:${p.phone.replace(/\D/g, '')}` : '#';
+    em.textContent = p?.email || '—';
+    em.href = p?.email ? `mailto:${p.email}` : '#';
+  };
+  suppSel.onchange = updateSupp;
+  updateSupp();
+
+  // Plant contacts
+  const plants = plantRes.data || [];
+  const plantSel = document.getElementById('li-plant-sel');
+  plantSel.innerHTML = plants.length
+    ? plants.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+    : '<option value="">—</option>';
+  const updatePlant = () => {
+    const p = plants.find(x => x.id === plantSel.value) || plants[0];
+    const ph = document.getElementById('li-plant-phone');
+    const em = document.getElementById('li-plant-email');
+    ph.textContent = p?.phone || '—';
+    ph.href = p?.phone ? `tel:${p.phone.replace(/\D/g, '')}` : '#';
+    em.textContent = p?.email || '—';
+    em.href = p?.email ? `mailto:${p.email}` : '#';
+  };
+  plantSel.onchange = updatePlant;
+  updatePlant();
+}
+
+// ─── Occurrence Emails ────────────────────────────────────────────
+let currentOccurrenceId = null;
+
+// ─── Toast notifications ──────────────────────────────────────────
+function showToast(msg, type = 'info', timeoutMs = 4000) {
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = `toast toast--${type}`;
+  t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('fade-out');
+    setTimeout(() => t.remove(), 250);
+  }, timeoutMs);
+}
+
+function reportDbError(prefix, error) {
+  if (!error) return false;
+  console.error(prefix, error);
+  showToast(`${prefix}: ${error.message || 'Unknown error'}`, 'error', 6000);
+  return true;
+}
+
+function refreshOccEmailsUpdated() {
+  const chips = [...document.querySelectorAll('#occ-email-box .occ-chip')];
+  const el = document.getElementById('occ-emails-updated');
+  if (!chips.length) { el.textContent = 'No emails yet'; return; }
+  const latest = chips
+    .map(c => c.dataset.createdAt)
+    .filter(Boolean)
+    .sort()
+    .pop();
+  el.textContent = latest ? `Last updated ${fmtNow(latest)}` : `Last updated ${fmtNow()}`;
+}
+
+function fmtChipDate(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+}
+
+function makeEmailChip(row) {
+  const span = document.createElement('span');
+  const locked = !!row.is_locked;
+  span.className = 'occ-chip' + (locked ? ' occ-chip--locked' : '');
+  span.dataset.id = row.id;
+  span.dataset.createdAt = row.created_at || new Date().toISOString();
+  span.dataset.locked = locked ? '1' : '';
+  const action = locked
+    ? `<span class="occ-chip-lock" title="Locked">🔒</span>`
+    : `<button class="occ-chip-rm" tabindex="-1">×</button>`;
+  span.innerHTML = `<span class="occ-chip-email">${row.email}</span><span class="occ-chip-meta">${fmtChipDate(span.dataset.createdAt)}</span>${action}`;
+  if (!locked) span.querySelector('.occ-chip-rm').onclick = () => removeOccEmail(span);
+  return span;
+}
+
+async function removeOccEmail(chip) {
+  const { error } = await db.from('lane_occurrence_emails').delete().eq('id', chip.dataset.id);
+  if (reportDbError('Remove email failed', error)) return;
+  chip.remove();
+  refreshOccEmailsUpdated();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.occ-email-input').addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    if (!currentOccurrenceId) return;
+    const input = e.target;
+    const email = input.value.trim();
+    if (!email) return;
+    const { data, error } = await db.from('lane_occurrence_emails')
+      .insert({ occurrence_id: currentOccurrenceId, email }).select().single();
+    if (reportDbError('Add email failed', error)) return;
+    if (data) {
+      const box = document.getElementById('occ-email-box');
+      box.insertBefore(makeEmailChip(data), input);
+      input.value = '';
+      refreshOccEmailsUpdated();
+    }
+  });
+});
+
+function getOccEmails() {
+  return [...document.querySelectorAll('#occ-email-box .occ-chip')]
+    .map(c => (c.querySelector('.occ-chip-email') || c.firstChild).textContent.trim());
+}
+
+function quickAddEmail(email) {
+  if (!currentOccurrenceId) return;
+  const existing = [...document.querySelectorAll('#occ-email-box .occ-chip')]
+    .map(c => c.querySelector('.occ-chip-email').textContent.trim().toLowerCase());
+  if (existing.includes(email.toLowerCase())) return;
+  // Temporary chip — not saved to DB, disappears on occurrence change
+  const span = document.createElement('span');
+  span.className = 'occ-chip occ-chip--temp';
+  span.innerHTML = `<span class="occ-chip-email">${email}</span><button class="occ-chip-rm" tabindex="-1">×</button>`;
+  span.querySelector('.occ-chip-rm').onclick = () => span.remove();
+  const box = document.getElementById('occ-email-box');
+  box.insertBefore(span, box.querySelector('.occ-email-input'));
+}
+
+function copyOccEmails(btn) {
+  const emails = getOccEmails();
+  if (!emails.length) return;
+  navigator.clipboard.writeText(emails.join('; ')).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function launchOccEmail() {
+  const emails = getOccEmails();
+  const occurrence = document.querySelector('.occ-detail-type')?.textContent || '';
+  const lane = document.querySelector('.lane-full-name')?.textContent || '';
+  window.location.href = `mailto:${emails.join(';')}?subject=${encodeURIComponent(`Lane Occurrence: ${lane} – ${occurrence}`)}`;
+}
+
+// ─── Occurrence list mockup interactions ──────────────────────────
+function fmtNow(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleString('en-US', {
+    month: 'numeric', day: 'numeric', year: '2-digit',
+    hour: 'numeric', minute: '2-digit'
+  });
+}
+
+function toggleOccSection(header) {
+  header.classList.toggle('collapsed');
+  document.getElementById('occ-body').classList.toggle('collapsed');
+}
+
+// Generic collapser for sections whose body is the header's next sibling
+function toggleLiSection(header) {
+  header.classList.toggle('collapsed');
+  const body = header.nextElementSibling;
+  if (body) body.classList.toggle('collapsed');
+}
+
+async function loadLaneOccurrences(laneId) {
+  const list = document.getElementById('occ-list');
+  list.innerHTML = '';
+  currentOccurrenceId = null;
+  const { data } = await db.from('lane_occurrences')
+    .select('id, name, sort_order')
+    .eq('lane_id', laneId)
+    .order('sort_order')
+    .order('name');
+  const rows = data || [];
+  rows.forEach(o => {
+    const row = document.createElement('div');
+    row.className = 'occ-row';
+    row.dataset.id = o.id;
+    row.dataset.sortOrder = o.sort_order;
+    row.onclick = () => selectOccurrence(row);
+    const deleteBtn = o.sort_order > 3
+      ? `<button class="occ-delete-btn" onclick="event.stopPropagation(); deleteOccurrence(this)" title="Delete">×</button>`
+      : '';
+    row.innerHTML = `<span class="occ-row-type">${o.name}</span>${deleteBtn}`;
+    list.appendChild(row);
+  });
+  if (rows.length) {
+    selectOccurrence(list.firstElementChild);
+  } else {
+    document.querySelector('#occ-detail .occ-detail-type').textContent = '—';
+    document.getElementById('occ-notes-ta').value = '';
+    document.getElementById('occ-notes-saved').textContent = 'No occurrences for this lane';
+    document.getElementById('occ-emails-updated').textContent = 'No emails yet';
+    document.getElementById('occ-email-box').querySelectorAll('.occ-chip').forEach(c => c.remove());
+  }
+}
+
+async function selectOccurrence(row) {
+  document.querySelectorAll('#occ-list .occ-row').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+  const id = row.dataset.id;
+  currentOccurrenceId = id;
+  document.querySelector('#occ-detail .occ-detail-type').textContent = row.querySelector('.occ-row-type').textContent;
+
+  const [occRes, emailsRes] = await Promise.all([
+    db.from('lane_occurrences').select('notes, notes_updated_at').eq('id', id).maybeSingle(),
+    db.from('lane_occurrence_emails').select('*').eq('occurrence_id', id).order('created_at'),
+  ]);
+
+  const notesTa = document.getElementById('occ-notes-ta');
+  notesTa.value = occRes.data?.notes || '';
+  const savedEl  = document.getElementById('occ-notes-saved');
+  const saveBtn  = document.getElementById('occ-notes-save');
+  savedEl.textContent = occRes.data?.notes_updated_at
+    ? `Saved ${fmtNow(occRes.data.notes_updated_at)}`
+    : 'Not yet saved';
+  saveBtn.disabled = true;
+  saveBtn.textContent = occRes.data?.notes_updated_at ? 'Saved ✓' : 'Save';
+
+  const box = document.getElementById('occ-email-box');
+  box.querySelectorAll('.occ-chip').forEach(c => c.remove());
+  const input = box.querySelector('.occ-email-input');
+  (emailsRes.data || []).forEach(r => box.insertBefore(makeEmailChip(r), input));
+  refreshOccEmailsUpdated();
+}
+
+function markNotesDirty() {
+  const btn = document.getElementById('occ-notes-save');
+  btn.disabled = false;
+  btn.textContent = 'Save';
+}
+
+async function saveOccNotes() {
+  if (!currentOccurrenceId) return;
+  const btn = document.getElementById('occ-notes-save');
+  const value = document.getElementById('occ-notes-ta').value;
+  const nowIso = new Date().toISOString();
+  const { error } = await db.from('lane_occurrences')
+    .update({ notes: value, notes_updated_at: nowIso })
+    .eq('id', currentOccurrenceId);
+  if (reportDbError('Save notes failed', error)) return;
+  document.getElementById('occ-notes-saved').textContent = `Saved ${fmtNow(nowIso)}`;
+  btn.disabled = true;
+  btn.textContent = 'Saved ✓';
+}
+
+async function newOccurrence() {
+  if (!currentLaneId) return;
+  const name = prompt('Occurrence name:');
+  if (!name || !name.trim()) return;
+  const { data, error } = await db.from('lane_occurrences')
+    .insert({ lane_id: currentLaneId, name: name.trim(), sort_order: 99 })
+    .select()
+    .single();
+  if (reportDbError('Create occurrence failed', error)) return;
+  const list = document.getElementById('occ-list');
+  const row = document.createElement('div');
+  row.className = 'occ-row';
+  row.dataset.id = data.id;
+  row.dataset.sortOrder = 99;
+  row.onclick = () => selectOccurrence(row);
+  row.innerHTML = `<span class="occ-row-type">${data.name}</span><button class="occ-delete-btn" onclick="event.stopPropagation(); deleteOccurrence(this)" title="Delete">×</button>`;
+  list.appendChild(row);
+  selectOccurrence(row);
+}
+
+async function deleteOccurrence(btn) {
+  const row = btn.closest('.occ-row');
+  const id = row.dataset.id;
+  if (!confirm('Delete this occurrence?')) return;
+  const { error } = await db.from('lane_occurrences').delete().eq('id', id);
+  if (reportDbError('Delete occurrence failed', error)) return;
+  if (currentOccurrenceId === id) {
+    currentOccurrenceId = null;
+    document.querySelector('#occ-detail .occ-detail-type').textContent = '—';
+    document.getElementById('occ-notes-ta').value = '';
+    document.getElementById('occ-notes-saved').textContent = '';
+  }
+  row.remove();
+}
+
+// ─── Lane Notes ───────────────────────────────────────────────────
+function setNotesSavedMeta(which, iso) {
+  const el = document.getElementById(`${which}-notes-saved`);
+  el.textContent = iso ? `Saved ${fmtNow(iso)}` : 'Not yet saved';
+  const btn = document.getElementById(`${which}-notes-save`);
+  btn.disabled = true;
+  btn.textContent = 'Saved ✓';
+}
+
+async function loadLaneNotes(laneId) {
+  const { data } = await db.from('lane_notes').select('*').eq('lane_id', laneId).maybeSingle();
+  document.getElementById('lane-notes-ta').value    = data?.lane_notes    || '';
+  document.getElementById('carrier-notes-ta').value = data?.carrier_notes || '';
+  setNotesSavedMeta('lane',    data?.updated_at);
+  setNotesSavedMeta('carrier', data?.updated_at);
+}
+
+function markLaneNotesDirty(which) {
+  const btn = document.getElementById(`${which}-notes-save`);
+  btn.disabled = false;
+  btn.textContent = 'Save';
+}
+
+async function saveLaneNotes(which) {
+  const field = which === 'lane' ? 'lane_notes' : 'carrier_notes';
+  const value = document.getElementById(`${which}-notes-ta`).value;
+  const nowIso = new Date().toISOString();
+  const { error } = await db.from('lane_notes').upsert({
+    lane_id:    currentLaneId,
+    [field]:    value,
+    updated_at: nowIso,
+  }, { onConflict: 'lane_id' });
+  if (reportDbError(`Save ${which === 'lane' ? 'lane' : 'carrier'} notes failed`, error)) return;
+  setNotesSavedMeta(which, nowIso);
+}
+
+function toggleLaneInfo() {
+  const body = document.getElementById('li-body');
+  const btn  = document.getElementById('li-toggle-btn');
+  body.classList.toggle('collapsed');
+  btn.textContent = body.classList.contains('collapsed') ? 'Show ▼' : 'Hide ▲';
+}
+
+// ─── Lane alert (crisis flag) ────────────────────────────────────
+function applyLaneAlertUI(isAlerted) {
+  const card = document.querySelector('.lane-info-card');
+  const btn  = document.getElementById('lane-alert-btn');
+  if (card) card.classList.toggle('alerted', isAlerted);
+  if (btn) {
+    btn.classList.toggle('active', isAlerted);
+    btn.textContent = isAlerted ? '🚨 Alerted' : '🚨 Alert';
+    btn.title = isAlerted
+      ? 'This lane is flagged as needing attention. Click to clear.'
+      : 'Flag this lane as needing attention';
+  }
+  // Mirror on sidebar items for the current lane
+  document.querySelectorAll('.lane-item').forEach(el => {
+    const match = currentLaneIds.some(id =>
+      el.dataset.laneId === id || (el.dataset.laneIds || '').split(',').includes(id)
+    );
+    if (match) el.classList.toggle('alerted', isAlerted);
+  });
+}
+
+async function toggleLaneAlert() {
+  if (!currentLaneIds?.length) return;
+  const card = document.querySelector('.lane-info-card');
+  const newState = !card.classList.contains('alerted');
+  // Optimistic UI
+  applyLaneAlertUI(newState);
+  // Write to DB — update all sub-lanes of a grouped lane to match
+  const { error } = await db.from('lanes').update({ is_alerted: newState }).in('id', currentLaneIds);
+  if (error) {
+    console.error('toggleLaneAlert failed', error);
+    applyLaneAlertUI(!newState); // revert
+    return;
+  }
+  // Refresh sidebar so rep-group alert counts update
+  await loadSidebar();
+}
+
+// ─── FSC ──────────────────────────────────────────────────────────
+async function loadFscSettings() {
+  const { data } = await db.from('fsc_settings').select('midwest_diesel_price').limit(1).single();
+  if (data) currentDieselPrice = parseFloat(data.midwest_diesel_price);
+}
+
+function calcFsc(miles) {
+  if (miles == null || currentDieselPrice == null || currentDieselPrice <= 0) return null;
+  const mpg = miles <= 250 ? 6.2 : miles <= 500 ? 6.5 : 6.8;
+  return (miles / mpg) * (currentDieselPrice - 1.045);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────
+async function initPage() {
+  // Restore lane from URL hash before any DB load
+  const hashState = getHashState();
+  if (hashState.lanes.length) {
+    currentLaneIds = hashState.lanes;
+    currentLaneId  = hashState.lanes[0];
+  }
+
+  updateWeekLabel(currentWeekStart);
+  await Promise.all([
+    loadFscSettings(),
+    loadSidebar(),
+    loadLaneInfo(currentLaneIds),
+    loadLaneOccurrences(currentLaneId),
+    loadLaneNotes(currentLaneId),
+    loadSchedule(currentLaneIds, currentWeekStart),
+  ]);
+
+  // After sidebar is built, mark active item (hash lane may differ from default)
+  if (hashState.lanes.length) {
+    const selector = hashState.lanes.length > 1
+      ? `[data-lane-ids="${hashState.lanes.join(',')}"]`
+      : `[data-lane-id="${hashState.lanes[0]}"]`;
+    const el = document.querySelector('.lane-item' + selector);
+    if (el) {
+      document.querySelectorAll('.lane-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+    }
+  }
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────
+let authMode = 'signin';          // 'signin' | 'signup'
+let currentUser = null;           // auth.users row
+let currentProfile = null;        // user_profiles row
+let currentUserRepId = null;      // reps.id linked to this user (null if unlinked)
+let currentUserRepName = null;    // reps.name for display in My Lanes label
+let appInitialized = false;
+let myLanesOnly = false;          // "My Lanes Only" filter state (restored from localStorage)
+
+const authEls = {
+  overlay:     () => document.getElementById('auth-overlay'),
+  form:        () => document.getElementById('auth-form'),
+  email:       () => document.getElementById('auth-email'),
+  password:    () => document.getElementById('auth-password'),
+  nameField:   () => document.getElementById('auth-name-field'),
+  name:        () => document.getElementById('auth-name'),
+  submit:      () => document.getElementById('auth-submit'),
+  errorBox:    () => document.getElementById('auth-error'),
+  infoBox:     () => document.getElementById('auth-info'),
+  toSignup:    () => document.getElementById('auth-toggle-to-signup'),
+  toSignin:    () => document.getElementById('auth-toggle-to-signin'),
+  topbarUser:  () => document.getElementById('topbar-user'),
+};
+
+function authMsg(type, text) {
+  const err = authEls.errorBox(), info = authEls.infoBox();
+  err.hidden = true; info.hidden = true;
+  if (!text) return;
+  const el = type === 'error' ? err : info;
+  el.textContent = text;
+  el.hidden = false;
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isSignup = mode === 'signup';
+  authEls.submit().textContent = isSignup ? 'Create Account' : 'Sign In';
+  authEls.nameField().hidden   = !isSignup;
+  authEls.toSignup().hidden    =  isSignup;
+  authEls.toSignin().hidden    = !isSignup;
+  authEls.password().autocomplete = isSignup ? 'new-password' : 'current-password';
+  authMsg(null);
+}
+
+async function submitAuth(ev) {
+  ev.preventDefault();
+  const email = authEls.email().value.trim();
+  const password = authEls.password().value;
+  const displayName = authEls.name().value.trim();
+  authEls.submit().disabled = true;
+  authMsg(null);
+
+  try {
+    if (authMode === 'signup') {
+      const { data, error } = await db.auth.signUp({
+        email, password,
+        options: { data: { display_name: displayName || email.split('@')[0] } }
+      });
+      if (error) throw error;
+      if (!data.session) {
+        // Email confirmation required — session will arrive via verification link
+        setAuthMode('signin');
+        authMsg('info', 'Account created. Check your inbox for a verification link to sign in.');
+        return;
+      }
+      // Auto-confirmed — onAuthStateChange will pick this up
+    } else {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    }
+  } catch (err) {
+    authMsg('error', err.message || 'Something went wrong. Please try again.');
+  } finally {
+    authEls.submit().disabled = false;
+  }
+}
+
+async function signOut() {
+  await db.auth.signOut();
+  // onAuthStateChange will re-show the overlay; clear URL hash so we land fresh next time
+  location.hash = '';
+  location.reload();
+}
+
+async function applySignedInState(session) {
+  currentUser = session?.user || null;
+  if (!currentUser) {
+    authEls.overlay().hidden = false;
+    authEls.topbarUser().textContent = '—';
+    return;
+  }
+
+  // Hide auth overlay
+  authEls.overlay().hidden = true;
+
+  // Load user_profile (may not exist yet if trigger hasn't fired)
+  let profile = null;
+  for (let tries = 0; tries < 3 && !profile; tries++) {
+    const { data } = await db.from('user_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+    profile = data;
+    if (!profile) await new Promise(r => setTimeout(r, 400)); // wait for trigger
+  }
+  currentProfile = profile;
+
+  // Top bar name: profile display_name → user metadata → email prefix
+  const name = profile?.display_name
+    || currentUser.user_metadata?.display_name
+    || currentUser.email?.split('@')[0]
+    || 'User';
+  authEls.topbarUser().textContent = name;
+
+  // Link user ↔ rep: first look for a rep already linked to this user; else try
+  // name match and auto-link. Stash the id so "My Lanes" can filter by it.
+  currentUserRepId = null;
+  currentUserRepName = null;
+  {
+    let { data: rep } = await db.from('reps').select('id,name').eq('user_id', currentUser.id).maybeSingle();
+    if (!rep && name) {
+      const { data: match } = await db.from('reps').select('id,name,user_id').ilike('name', name).maybeSingle();
+      if (match && !match.user_id) {
+        await db.from('reps').update({ user_id: currentUser.id }).eq('id', match.id);
+        rep = match;
+      }
+    }
+    if (rep) { currentUserRepId = rep.id; currentUserRepName = rep.name; }
+  }
+  updateMyLanesToggleState();
+
+  // Initialize the app only once per session
+  if (!appInitialized) {
+    appInitialized = true;
+    await initPage();
+  }
+}
+
+// ─── My Lanes filter ─────────────────────────────────────────────
+function updateMyLanesToggleState() {
+  const box = document.getElementById('my-lanes-toggle');
+  const label = document.getElementById('myfilter-label');
+  const hint = document.getElementById('myfilter-hint');
+  if (!box) return;
+  const linked = !!currentUserRepId;
+  box.disabled = !linked;
+  label.classList.toggle('disabled', !linked);
+  label.title = linked
+    ? `Show only lanes assigned to ${currentUserRepName}`
+    : 'Your account is not yet linked to a rep. Ask an admin to link you.';
+  hint.textContent = linked ? currentUserRepName : 'Not linked';
+  // Restore prior choice (if any)
+  try {
+    const saved = localStorage.getItem('myLanesOnly');
+    if (linked && saved === '1') {
+      myLanesOnly = true;
+      box.checked = true;
+    } else {
+      myLanesOnly = false;
+      box.checked = false;
+    }
+  } catch { myLanesOnly = false; }
+}
+
+async function toggleMyLanes(on) {
+  myLanesOnly = !!on;
+  try { localStorage.setItem('myLanesOnly', myLanesOnly ? '1' : '0'); } catch {}
+  await loadSidebar();
+}
+
+// Listen for auth state changes (SIGNED_IN / SIGNED_OUT)
+db.auth.onAuthStateChange((event, session) => {
+  applySignedInState(session);
+});
+
+// Initial check on page load
+(async () => {
+  const { data: { session } } = await db.auth.getSession();
+  await applySignedInState(session);
+})();
 </script>
 </body>
 </html>
