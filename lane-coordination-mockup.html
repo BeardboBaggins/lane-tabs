@@ -137,6 +137,24 @@
   .sidebar-myfilter label.disabled { cursor: not-allowed; opacity: .55; }
   .sidebar-myfilter input[type="checkbox"] { cursor: inherit; }
   .sidebar-myfilter .myfilter-hint { font-size: 10px; color: var(--gray); font-weight: 400; margin-left: auto; }
+
+  /* Collapse/Expand all rep groups — sticky directly under the My Lanes bar */
+  .sidebar-collapse-row {
+    padding: 4px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 81px; z-index: 3;
+    display: flex; justify-content: flex-start;
+  }
+  .sidebar.collapsed .sidebar-collapse-row { display: none; }
+  .sb-collapse-all {
+    background: none; border: none; cursor: pointer;
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--blue); padding: 2px 6px; border-radius: 3px;
+  }
+  .sb-collapse-all:hover { background: #EEF5FF; color: var(--navy); }
   .rep-group { border-bottom: 1px solid var(--border); }
   .rep-header {
     padding: 8px 14px 6px;
@@ -1040,6 +1058,10 @@
       <span class="myfilter-hint" id="myfilter-hint"></span>
     </div>
 
+    <div class="sidebar-collapse-row">
+      <button class="sb-collapse-all" id="sb-collapse-all-btn" onclick="toggleAllRepGroups()">Hide All</button>
+    </div>
+
     <div id="sidebar-lanes"><div class="sidebar-loading">Loading lanes…</div></div>
   </aside>
 
@@ -1058,7 +1080,7 @@
         </div>
         <div class="lane-badges">
           <button class="lane-alert-btn" id="lane-alert-btn" onclick="event.stopPropagation(); toggleLaneAlert()" title="Flag this lane as needing attention">🚨 Alert</button>
-          <button class="li-collapse-btn" id="li-toggle-btn">Hide ▲</button>
+          <button class="li-collapse-btn" id="li-toggle-btn">Hide</button>
         </div>
       </div>
 
@@ -1293,7 +1315,7 @@
             <option>TONU</option>
             <option>Brokered</option>
           </select>
-          <button class="schedule-collapse-btn" id="schedule-toggle-btn" onclick="toggleSchedule()">Hide ▲</button>
+          <button class="schedule-collapse-btn" id="schedule-toggle-btn" onclick="toggleSchedule()">Hide All</button>
         </div>
       </div>
 
@@ -1555,7 +1577,7 @@ function toggleSchedule() {
       chev.textContent = '▾';
     }
   });
-  btn.textContent = wantCollapsed ? 'Show ▼' : 'Hide ▲';
+  btn.textContent = wantCollapsed ? 'Show All' : 'Hide All';
   try { localStorage.setItem('scheduleAllCollapsed', wantCollapsed ? '1' : '0'); } catch {}
 }
 
@@ -1564,11 +1586,9 @@ function toggleSchedule() {
   try {
     if (localStorage.getItem('scheduleAllCollapsed') === '1') {
       window.addEventListener('DOMContentLoaded', () => {
-        // Wait for the schedule HTML to be present, then apply
         const apply = () => {
           const card = document.getElementById('schedule-card');
           if (!card) return false;
-          // Use the same toggle function to flip the state
           if (!card.classList.contains('all-collapsed')) toggleSchedule();
           return true;
         };
@@ -2384,6 +2404,8 @@ async function loadSidebar() {
       </div>`;
     })
     .join('');
+
+  updateCollapseAllBtn();
 }
 
 function toggleRepGroup(header) {
@@ -2392,6 +2414,31 @@ function toggleRepGroup(header) {
   lanes.classList.toggle('collapsed');
   chevron.style.transform = lanes.classList.contains('collapsed') ? 'rotate(-90deg)' : '';
   updateHash();
+  updateCollapseAllBtn();
+}
+
+// Toggle every rep group: if any is expanded, collapse all; otherwise expand all.
+function toggleAllRepGroups() {
+  const groups = [...document.querySelectorAll('.rep-group')];
+  if (!groups.length) return;
+  const anyExpanded = groups.some(g => !g.querySelector('.rep-lanes')?.classList.contains('collapsed'));
+  groups.forEach(g => {
+    const lanes = g.querySelector('.rep-lanes');
+    const chev  = g.querySelector('.rep-chevron');
+    if (!lanes) return;
+    lanes.classList.toggle('collapsed', anyExpanded);
+    if (chev) chev.style.transform = anyExpanded ? 'rotate(-90deg)' : '';
+  });
+  updateHash();
+  updateCollapseAllBtn();
+}
+
+function updateCollapseAllBtn() {
+  const btn = document.getElementById('sb-collapse-all-btn');
+  if (!btn) return;
+  const groups = [...document.querySelectorAll('.rep-group')];
+  const anyExpanded = groups.some(g => !g.querySelector('.rep-lanes')?.classList.contains('collapsed'));
+  btn.textContent = anyExpanded ? 'Hide All' : 'Show All';
 }
 
 // ─── URL Hash State ───────────────────────────────────────────────
@@ -2859,7 +2906,7 @@ function toggleLaneInfo() {
   const body = document.getElementById('li-body');
   const btn  = document.getElementById('li-toggle-btn');
   body.classList.toggle('collapsed');
-  btn.textContent = body.classList.contains('collapsed') ? 'Show ▼' : 'Hide ▲';
+  btn.textContent = body.classList.contains('collapsed') ? 'Show' : 'Hide';
 }
 
 // ─── Lane alert (crisis flag) ────────────────────────────────────
