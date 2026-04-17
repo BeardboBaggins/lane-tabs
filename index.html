@@ -96,7 +96,7 @@
   }
   .sidebar.collapsed { width: 32px; }
   .sidebar[hidden], .sidebar-toggle[hidden] { display: none !important; }
-  .lane-info-card[hidden], .schedule-card[hidden], .landing-page[hidden] { display: none !important; }
+  .lane-info-card[hidden], .schedule-card[hidden], .landing-page[hidden], .distro-page[hidden] { display: none !important; }
   .sidebar.collapsed .sidebar-search,
   .sidebar.collapsed #sidebar-lanes { display: none; }
   /* Floating sidebar-toggle pill, half-overlapping the sidebar edge */
@@ -991,6 +991,89 @@
     font-weight: 700; border-bottom: 1px solid var(--border);
   }
   .lc-table td { padding: 6px 8px; border-bottom: 1px solid #F3F4F6; color: #374151; }
+  /* ─── LANE DISTRO PAGE ────────────────────────────────────── */
+  .distro-page { padding: 20px 24px 60px; display: flex; flex-direction: column; gap: 16px; }
+  .distro-hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #24243e 100%);
+    color: #fff; border-radius: 10px; padding: 18px 24px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .distro-hero h1 {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 20px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .distro-hero-stats { display: flex; gap: 18px; flex-wrap: wrap; }
+  .distro-hero-stat {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px; padding: 6px 12px; min-width: 100px;
+  }
+  .distro-hero-stat .lbl {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.65);
+  }
+  .distro-hero-stat .val {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 18px; font-weight: 700; color: #fff;
+  }
+  .distro-toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    background: var(--card-bg); padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .distro-toolbar input, .distro-toolbar select {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px;
+    font-size: 12px; font-family: inherit; background: #fff; color: #111827;
+  }
+  .distro-toolbar input { min-width: 220px; }
+  .distro-toolbar .dt-label {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px; color: var(--navy);
+  }
+  .distro-count { margin-left: auto; font-size: 11px; color: var(--gray); }
+
+  .distro-table-wrap {
+    background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.04); overflow: auto; max-height: calc(100vh - 240px);
+  }
+  .distro-table { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
+  .distro-table thead tr.group-row th {
+    background: var(--navy); color: #fff;
+    font-family: 'Barlow', Arial, sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    padding: 5px 8px; text-align: center; border-right: 1px solid rgba(255,255,255,.15);
+    position: sticky; top: 0; z-index: 3;
+  }
+  .distro-table thead tr.group-row th.grp-basic    { background: #374151; }
+  .distro-table thead tr.group-row th.grp-geo      { background: #4B5563; }
+  .distro-table thead tr.group-row th.grp-ops      { background: #1F2937; }
+  .distro-table thead tr.group-row th.grp-expected { background: var(--blue); }
+  .distro-table thead tr.group-row th.grp-market   { background: #374151; }
+  .distro-table thead tr.group-row th.grp-actual   { background: #065F46; }
+  .distro-table thead tr.group-row th.grp-delta    { background: var(--red); }
+
+  .distro-table thead tr.col-row th {
+    background: #F9FAFB; color: var(--navy);
+    font-family: 'Barlow', Arial, sans-serif; font-size: 9.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px;
+    padding: 6px 8px; text-align: left; border-bottom: 2px solid var(--border);
+    white-space: nowrap; position: sticky; top: 23px; z-index: 2;
+  }
+  .distro-table tbody td {
+    padding: 5px 8px; border-bottom: 1px solid #F3F4F6; color: #374151;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .distro-table tbody tr:hover td { background: #F9FAFB; }
+  .distro-table tbody tr.pair-start td { border-top: 2px solid var(--navy); }
+  .distro-table td.num { text-align: right; font-family: 'SF Mono', Menlo, monospace; }
+  .distro-table td.neg { color: var(--red); }
+  .distro-table td.pos { color: #065F46; }
+  .distro-table td.rfq { font-weight: 700; color: var(--navy); }
+  .distro-table td.dir-ib { color: var(--blue); font-weight: 700; }
+  .distro-table td.dir-ob { color: var(--red); font-weight: 700; }
+  .distro-table td.inactive { color: #9CA3AF; font-style: italic; }
+  .distro-table tbody tr.inactive-row td { background: #FAFAFA; color: #9CA3AF; }
+  .distro-table .lane-link { color: var(--blue); text-decoration: none; cursor: pointer; }
+  .distro-table .lane-link:hover { text-decoration: underline; }
+
   .lc-credential {
     font-family: monospace; background: #F3F4F6; padding: 2px 6px;
     border-radius: 4px; font-size: 11px;
@@ -1116,6 +1199,7 @@
     </div>
     <button class="btn-home" id="btn-home" onclick="showLanding()" title="Ford General Info">Home</button>
     <button class="btn-home" id="btn-lanes" onclick="showLaneView()" title="Lane Dashboard">Lanes</button>
+    <button class="btn-home" id="btn-distro" onclick="showLaneDistro()" title="Lane Distro">Lane Distro</button>
   </div>
   <div class="topbar-right">
     <span class="topbar-user" id="topbar-user">—</span>
@@ -1192,6 +1276,38 @@
         <section class="landing-card"><h2>Shared Carriers<span class="count" id="cnt-carriers"></span></h2><div id="landing-carriers"></div></section>
         <section class="landing-card"><h2>Important Links<span class="count" id="cnt-links"></span></h2><div id="landing-links"></div></section>
         <section class="landing-card" id="landing-creds-card" hidden><h2>Credentials</h2><div id="landing-creds"></div></section>
+      </div>
+    </div>
+
+    <!-- ══ LANE DISTRO PAGE ══ -->
+    <div class="distro-page" id="distro-page" hidden>
+      <div class="distro-hero">
+        <h1>Lane Distro</h1>
+        <div class="distro-hero-stats">
+          <div class="distro-hero-stat"><div class="lbl">Lanes</div><div class="val" id="dh-lanes">—</div></div>
+          <div class="distro-hero-stat"><div class="lbl">Active</div><div class="val" id="dh-active">—</div></div>
+          <div class="distro-hero-stat"><div class="lbl">Exp Rev / Mo</div><div class="val" id="dh-exp-rev">—</div></div>
+          <div class="distro-hero-stat"><div class="lbl">Act Rev / Mo</div><div class="val" id="dh-act-rev">—</div></div>
+          <div class="distro-hero-stat"><div class="lbl">Net Δ / Mo</div><div class="val" id="dh-net-delta">—</div></div>
+        </div>
+      </div>
+      <div class="distro-toolbar">
+        <span class="dt-label">Search</span>
+        <input type="text" id="distro-search" placeholder="Origin, dest, RFQ, route, GSDB, admin…" oninput="filterDistro()">
+        <span class="dt-label">Admin</span>
+        <select id="distro-admin" onchange="filterDistro()"><option value="">All</option></select>
+        <span class="dt-label">Active</span>
+        <select id="distro-active" onchange="filterDistro()">
+          <option value="">All</option><option value="Yes" selected>Yes</option><option value="No">No</option>
+        </select>
+        <span class="dt-label">Direction</span>
+        <select id="distro-direction" onchange="filterDistro()">
+          <option value="">Both</option><option value="IB">IB only</option><option value="OB">OB only</option>
+        </select>
+        <span class="distro-count" id="distro-count">—</span>
+      </div>
+      <div class="distro-table-wrap">
+        <table class="distro-table" id="distro-table"><thead></thead><tbody></tbody></table>
       </div>
     </div>
 
@@ -3285,8 +3401,10 @@ function showLanding() {
   document.getElementById('landing-page').hidden = false;
   document.querySelector('.lane-info-card').hidden = true;
   document.getElementById('schedule-card').hidden = true;
+  document.getElementById('distro-page').hidden = true;
   document.getElementById('btn-home')?.classList.add('active');
   document.getElementById('btn-lanes')?.classList.remove('active');
+  document.getElementById('btn-distro')?.classList.remove('active');
   document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
   if (!landingLoaded) loadLanding();
 }
@@ -3303,10 +3421,12 @@ function showLaneView() {
     sbToggle.title = 'Collapse sidebar';
   }
   document.getElementById('landing-page').hidden = true;
+  document.getElementById('distro-page').hidden = true;
   document.querySelector('.lane-info-card').hidden = false;
   document.getElementById('schedule-card').hidden = false;
   document.getElementById('btn-home')?.classList.remove('active');
   document.getElementById('btn-lanes')?.classList.add('active');
+  document.getElementById('btn-distro')?.classList.remove('active');
   // Re-highlight the current lane in the sidebar (and expand its rep group)
   if (currentLaneIds?.length) {
     const selector = currentLaneIds.length > 1
@@ -3325,6 +3445,200 @@ function showLaneView() {
 
 // Kept for back-compat: selectLane calls hideLanding when user picks a lane
 function hideLanding() { showLaneView(); }
+
+// ─── Lane Distro page ────────────────────────────────────────────
+let distroLoaded = false;
+let distroRows = [];
+
+async function loadLaneDistro() {
+  const { data, error } = await db.from('ref_lane_distro').select('*').order('sort_order');
+  if (error) { console.error(error); return; }
+  distroRows = data || [];
+
+  const adminSel = document.getElementById('distro-admin');
+  const admins = [...new Set(distroRows.map(r => r.lane_admin).filter(Boolean))].sort();
+  adminSel.innerHTML = '<option value="">All</option>' +
+    admins.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  renderDistroHeader();
+  filterDistro();
+  distroLoaded = true;
+}
+
+function renderDistroHeader() {
+  const thead = document.querySelector('#distro-table thead');
+  thead.innerHTML = `
+    <tr class="group-row">
+      <th class="grp-basic" colspan="9">Basics</th>
+      <th class="grp-geo" colspan="8">Origin &amp; Destination</th>
+      <th class="grp-ops" colspan="4">Ops</th>
+      <th class="grp-expected" colspan="12">Expected</th>
+      <th class="grp-market" colspan="5">Market</th>
+      <th class="grp-actual" colspan="5">Actual (Mar 2026)</th>
+      <th class="grp-delta" colspan="4">Exp vs Actual / Market vs Actual</th>
+    </tr>
+    <tr class="col-row">
+      <th>Active</th><th>Last Update</th><th>RFQ #</th><th>Drop</th><th>Milk Run</th>
+      <th>Transit (hr)</th><th>Stops</th><th>Route #s</th><th>Dir</th>
+      <th>Origin GSDB</th><th>Origin</th><th>State</th>
+      <th>Dest GSDB</th><th>Act Dest GSDB</th><th>Dest</th><th>State</th>
+      <th>Admin</th>
+      <th>Backup</th><th>Trailers</th><th>Miles</th><th>RPM</th>
+      <th>Loads/Wk</th><th>Loads/Mo</th><th>Ford Rate</th><th>Fuel</th>
+      <th>Gross/Load</th><th>Gross/Wk</th><th>TTT/Load</th><th>Net/Load</th>
+      <th>TTT/Mo</th><th>Net/Mo (Exp Ct)</th><th>Net/Mo (Act Ct)</th>
+      <th>Mkt TTT/Load</th><th>Mkt Net/Load</th><th>Mkt TTT/Mo</th>
+      <th>Mkt Net/Mo (Exp)</th><th>Mkt Net/Mo (Act)</th>
+      <th>Loads</th><th>TTT</th><th>Gross Rev</th><th>Net Rev</th><th>Avg TTT/Load</th>
+      <th>Δ Loads</th><th>Δ Gross</th><th>Δ Net</th><th>Mkt vs Act Net</th>
+    </tr>`;
+}
+
+function fmtCurrency(v) {
+  if (v === null || v === undefined) return '—';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '—';
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function fmtNum(v, digits = 2) {
+  if (v === null || v === undefined) return '—';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '—';
+  return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+function fmtInt(v) {
+  if (v === null || v === undefined) return '—';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '—';
+  return Math.round(n).toLocaleString('en-US');
+}
+function signClass(v) {
+  if (v === null || v === undefined) return '';
+  const n = Number(v);
+  if (Number.isNaN(n) || n === 0) return '';
+  return n > 0 ? 'pos' : 'neg';
+}
+function fmtDateISO(v) {
+  if (!v) return '—';
+  try { return new Date(v + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+  catch { return v; }
+}
+
+function filterDistro() {
+  const q = document.getElementById('distro-search').value.trim().toLowerCase();
+  const admin = document.getElementById('distro-admin').value;
+  const active = document.getElementById('distro-active').value;
+  const dir = document.getElementById('distro-direction').value;
+
+  const rows = distroRows.filter(r => {
+    if (active && r.active !== active) return false;
+    if (admin && r.lane_admin !== admin) return false;
+    if (dir && r.ib_ob !== dir) return false;
+    if (q) {
+      const hay = [r.rfq_number, r.route_numbers, r.origin_city, r.origin_state, r.origin_gsdb,
+                   r.dest_city, r.dest_state, r.dest_gsdb, r.act_dest_gsdb, r.lane_admin, r.backup_admin]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  renderDistroBody(rows);
+
+  const tot = rows.length;
+  const activeCt = rows.filter(r => r.active === 'Yes').length;
+  document.getElementById('distro-count').textContent = `${tot} row${tot !== 1 ? 's' : ''}`;
+
+  // Hero stats (unique by RFQ, IB only to avoid double-counting)
+  const ibRows = rows.filter(r => r.ib_ob === 'IB');
+  const uniqueLanes = new Set(ibRows.map(r => r.rfq_number || r.id)).size;
+  const activeLanes = new Set(ibRows.filter(r => r.active === 'Yes').map(r => r.rfq_number || r.id)).size;
+  const expRev = ibRows.reduce((s, r) => s + (Number(r.exp_gross_rev_week) || 0) * 4.33, 0);
+  const actRev = ibRows.reduce((s, r) => s + (Number(r.act_gross_rev_month) || 0), 0);
+  const netDelta = ibRows.reduce((s, r) => s + (Number(r.delta_net_rev) || 0), 0);
+
+  document.getElementById('dh-lanes').textContent = uniqueLanes.toLocaleString();
+  document.getElementById('dh-active').textContent = activeLanes.toLocaleString();
+  document.getElementById('dh-exp-rev').textContent = fmtCurrency(expRev);
+  document.getElementById('dh-act-rev').textContent = fmtCurrency(actRev);
+  document.getElementById('dh-net-delta').textContent = fmtCurrency(netDelta);
+}
+
+function renderDistroBody(rows) {
+  const tbody = document.querySelector('#distro-table tbody');
+  let prevRfq = null;
+  tbody.innerHTML = rows.map(r => {
+    const pairStart = r.rfq_number !== prevRfq;
+    prevRfq = r.rfq_number;
+    const inactive = r.active === 'No';
+    const dirCls = r.ib_ob === 'IB' ? 'dir-ib' : 'dir-ob';
+    return `<tr class="${pairStart ? 'pair-start' : ''} ${inactive ? 'inactive-row' : ''}">
+      <td>${r.active || '—'}</td>
+      <td>${fmtDateISO(r.last_formal_update)}</td>
+      <td class="rfq">${r.rfq_number || '—'}</td>
+      <td>${r.drop_lane || '—'}</td>
+      <td>${r.milk_run || '—'}</td>
+      <td class="num">${r.transit_hours ?? '—'}</td>
+      <td>${r.stops || '—'}</td>
+      <td>${r.route_numbers || '—'}</td>
+      <td class="${dirCls}">${r.ib_ob || '—'}</td>
+      <td>${r.origin_gsdb || '—'}</td>
+      <td>${r.origin_city || '—'}</td>
+      <td>${r.origin_state || '—'}</td>
+      <td>${r.dest_gsdb || '—'}</td>
+      <td>${r.act_dest_gsdb || '—'}</td>
+      <td>${r.dest_city || '—'}</td>
+      <td>${r.dest_state || '—'}</td>
+      <td>${r.lane_admin || '—'}</td>
+      <td>${r.backup_admin || '—'}</td>
+      <td>${r.trailers_needed || '—'}</td>
+      <td class="num">${fmtInt(r.ford_miles)}</td>
+      <td class="num">${fmtNum(r.rpm, 3)}</td>
+      <td class="num">${fmtNum(r.exp_loads_week, 1)}</td>
+      <td class="num">${fmtNum(r.exp_loads_month, 1)}</td>
+      <td class="num">${fmtCurrency(r.exp_ford_rate)}</td>
+      <td class="num">${fmtCurrency(r.exp_fuel)}</td>
+      <td class="num">${fmtCurrency(r.exp_gross_rev_load)}</td>
+      <td class="num">${fmtCurrency(r.exp_gross_rev_week)}</td>
+      <td class="num">${fmtCurrency(r.exp_ttt_load)}</td>
+      <td class="num ${signClass(r.exp_net_rev_load)}">${fmtCurrency(r.exp_net_rev_load)}</td>
+      <td class="num">${fmtCurrency(r.exp_ttt_month)}</td>
+      <td class="num ${signClass(r.exp_net_rev_month_exp)}">${fmtCurrency(r.exp_net_rev_month_exp)}</td>
+      <td class="num ${signClass(r.exp_net_rev_month_act)}">${fmtCurrency(r.exp_net_rev_month_act)}</td>
+      <td class="num">${fmtCurrency(r.mkt_ttt_load)}</td>
+      <td class="num ${signClass(r.mkt_net_rev_load)}">${fmtCurrency(r.mkt_net_rev_load)}</td>
+      <td class="num">${fmtCurrency(r.mkt_ttt_month)}</td>
+      <td class="num ${signClass(r.mkt_net_rev_month_exp)}">${fmtCurrency(r.mkt_net_rev_month_exp)}</td>
+      <td class="num ${signClass(r.mkt_net_rev_month_act)}">${fmtCurrency(r.mkt_net_rev_month_act)}</td>
+      <td class="num">${fmtInt(r.act_loads_month)}</td>
+      <td class="num">${fmtCurrency(r.act_ttt_month)}</td>
+      <td class="num">${fmtCurrency(r.act_gross_rev_month)}</td>
+      <td class="num ${signClass(r.act_net_rev_month)}">${fmtCurrency(r.act_net_rev_month)}</td>
+      <td class="num">${fmtCurrency(r.act_avg_ttt_load)}</td>
+      <td class="num ${signClass(r.delta_loads)}">${fmtNum(r.delta_loads, 1)}</td>
+      <td class="num ${signClass(r.delta_gross_rev)}">${fmtCurrency(r.delta_gross_rev)}</td>
+      <td class="num ${signClass(r.delta_net_rev)}">${fmtCurrency(r.delta_net_rev)}</td>
+      <td class="num ${signClass(r.mkt_vs_act_net_rev)}">${fmtCurrency(r.mkt_vs_act_net_rev)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function showLaneDistro() {
+  const sb = document.getElementById('sidebar');
+  sb.hidden = false;
+  sb.classList.add('collapsed');
+  const sbToggle = document.getElementById('sidebar-toggle-btn');
+  if (sbToggle) { sbToggle.hidden = false; sbToggle.textContent = '›'; sbToggle.title = 'Expand sidebar'; }
+  document.getElementById('landing-page').hidden = true;
+  document.getElementById('distro-page').hidden = false;
+  document.querySelector('.lane-info-card').hidden = true;
+  document.getElementById('schedule-card').hidden = true;
+  document.getElementById('btn-home')?.classList.remove('active');
+  document.getElementById('btn-lanes')?.classList.remove('active');
+  document.getElementById('btn-distro')?.classList.add('active');
+  document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
+  if (!distroLoaded) loadLaneDistro();
+}
 
 // ─── Auth ─────────────────────────────────────────────────────────
 let authMode = 'signin';          // 'signin' | 'signup'
