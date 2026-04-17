@@ -2197,9 +2197,9 @@ function selectLane(el) {
   el.classList.add('active');
   const ids = el.dataset.laneIds ? el.dataset.laneIds.split(',') : el.dataset.laneId ? [el.dataset.laneId] : null;
   if (!ids) return;
-  hideLanding();
   currentLaneIds = ids;
   currentLaneId = ids[0];
+  hideLanding();
   loadLaneInfo(ids);
   loadLaneOccurrences(ids[0]);
   loadLaneNotes(ids[0]);
