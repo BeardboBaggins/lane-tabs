@@ -1488,16 +1488,16 @@
           <!-- Carrier Info -->
           <div class="li-contact-col">
             <h4>Carrier Info</h4>
-            <div class="li-contact-row"><span class="lk">Name</span><span class="ll">One Nation</span></div>
-            <div class="li-contact-row"><span class="lk">MC#</span><span class="ll">00020082</span></div>
-            <div class="li-contact-row"><span class="lk">POC</span><span class="ll"><select class="lv-select-inline"><option>Haroon</option><option>Ali</option><option>Other</option></select></span></div>
-            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a href="tel:3137431451">313-743-1451</a></span></div>
-            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a href="mailto:onenation396@gmail.com">onenation396@gmail.com</a></span></div>
+            <div class="li-contact-row"><span class="lk">Name</span><span class="ll" id="li-carrier-name">—</span></div>
+            <div class="li-contact-row"><span class="lk">POC</span><span class="ll"><select class="lv-select-inline" id="li-carrier-poc-sel"></select></span></div>
+            <div class="li-contact-row"><span class="lk">Phone</span><span class="ll"><a id="li-carrier-phone" href="#">—</a></span></div>
+            <div class="li-contact-row"><span class="lk">Email</span><span class="ll"><a id="li-carrier-email" href="#">—</a></span></div>
             <div class="li-rates-sub">
-              <div class="li-contact-row"><span class="lk">IB Rate</span><span class="ll">$575.00</span></div>
-              <div class="li-contact-row"><span class="lk">OB Rate</span><span class="ll">$575.00</span></div>
-              <div class="li-contact-row"><span class="lk">Rate Upd.</span><span class="ll">—</span></div>
+              <div class="li-contact-row"><span class="lk">IB Rate</span><span class="ll" id="li-carrier-ib-rate">—</span></div>
+              <div class="li-contact-row"><span class="lk">OB Rate</span><span class="ll" id="li-carrier-ob-rate">—</span></div>
+              <div class="li-contact-row"><span class="lk">Rate Upd.</span><span class="ll" id="li-carrier-rate-upd">—</span></div>
               <div class="li-contact-row"><span class="lk">Trailers</span><span class="ll" id="li-trailers">—</span></div>
+              <div class="li-contact-row"><span class="lk">MC#</span><span class="ll" id="li-carrier-mc">—</span></div>
             </div>
           </div>
 
@@ -2763,12 +2763,21 @@ async function loadLaneInfo(laneIds) {
 
   // Contacts are keyed by GSDB — look up by the lane's GSDB codes
   const laneGsdbs = [...new Set((gsdbRes.data || []).map(l => l.gsdb_code).filter(Boolean))];
-  const [suppRes, plantRes] = laneGsdbs.length
-    ? await Promise.all([
-        db.from('ref_supplier_contacts').select('*').in('gsdb', laneGsdbs).order('sort_order'),
-        db.from('ref_plant_contacts').select('*').in('gsdb', laneGsdbs).order('sort_order'),
-      ])
-    : [{ data: [] }, { data: [] }];
+  const [suppRes, plantRes, lcaRes] = await Promise.all([
+    laneGsdbs.length
+      ? db.from('ref_supplier_contacts').select('*').in('gsdb', laneGsdbs).order('sort_order')
+      : Promise.resolve({ data: [] }),
+    laneGsdbs.length
+      ? db.from('ref_plant_contacts').select('*').in('gsdb', laneGsdbs).order('sort_order')
+      : Promise.resolve({ data: [] }),
+    db.from('lane_carrier_assignments').select('mc_number, carrier_name').eq('lane_id', ids[0]).maybeSingle(),
+  ]);
+
+  // Carrier POCs come from ref_carriers matched by the assignment's MC#
+  const carrierAssignment = lcaRes.data;
+  const carrierPocsRes = carrierAssignment?.mc_number
+    ? await db.from('ref_carriers').select('*').eq('mc_number', carrierAssignment.mc_number).order('sort_order')
+    : { data: [] };
 
   const allLanes = lanesRes.data || [];
   if (!allLanes.length) return;
@@ -2865,6 +2874,9 @@ async function loadLaneInfo(laneIds) {
   suppSel.onchange = updateSupp;
   updateSupp();
 
+  // Carrier assignment + POCs
+  renderCarrierInfo(carrierAssignment, carrierPocsRes.data || []);
+
   // Plant contacts
   const plants = plantRes.data || [];
   const plantSel = document.getElementById('li-plant-sel');
@@ -2882,6 +2894,54 @@ async function loadLaneInfo(laneIds) {
   };
   plantSel.onchange = updatePlant;
   updatePlant();
+}
+
+function renderCarrierInfo(assignment, pocs) {
+  const nameEl = document.getElementById('li-carrier-name');
+  const mcEl   = document.getElementById('li-carrier-mc');
+  const pocSel = document.getElementById('li-carrier-poc-sel');
+  const phoneEl = document.getElementById('li-carrier-phone');
+  const emailEl = document.getElementById('li-carrier-email');
+
+  const ibRateEl = document.getElementById('li-carrier-ib-rate');
+  const obRateEl = document.getElementById('li-carrier-ob-rate');
+  const rateUpdEl = document.getElementById('li-carrier-rate-upd');
+
+  // Rates come from the old carriers table for now (per-POC rates live there).
+  // For the initial import we don't have per-assignment rates yet — show —.
+  ibRateEl.textContent = '—';
+  obRateEl.textContent = '—';
+  rateUpdEl.textContent = '—';
+
+  if (!assignment) {
+    nameEl.textContent = '—';
+    mcEl.textContent = '—';
+    pocSel.innerHTML = '<option value="">—</option>';
+    phoneEl.textContent = '—'; phoneEl.href = '#';
+    emailEl.textContent = '—'; emailEl.href = '#';
+    return;
+  }
+
+  nameEl.textContent = assignment.carrier_name || '—';
+  mcEl.textContent   = assignment.mc_number   || '—';
+
+  const withPoc = (pocs || []).filter(p => p.poc);
+  if (!withPoc.length) {
+    pocSel.innerHTML = '<option value="">—</option>';
+    phoneEl.textContent = '—'; phoneEl.href = '#';
+    emailEl.textContent = '—'; emailEl.href = '#';
+    return;
+  }
+  pocSel.innerHTML = withPoc.map(p => `<option value="${p.id}">${p.poc}</option>`).join('');
+  const update = () => {
+    const p = withPoc.find(x => x.id === pocSel.value) || withPoc[0];
+    phoneEl.textContent = p?.phone || '—';
+    phoneEl.href = p?.phone ? `tel:${p.phone.replace(/\D/g,'')}` : '#';
+    emailEl.textContent = p?.email || '—';
+    emailEl.href = p?.email ? `mailto:${p.email}` : '#';
+  };
+  pocSel.onchange = update;
+  update();
 }
 
 // ─── Occurrence Emails ────────────────────────────────────────────
