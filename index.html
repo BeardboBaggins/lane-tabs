@@ -77,6 +77,7 @@
     display: flex;
     flex: 1;
     overflow: hidden;
+    position: relative;
   }
 
   /* ─── SIDEBAR ─────────────────────────────────────────────── */
@@ -94,29 +95,38 @@
   .sidebar.collapsed { width: 32px; }
   .sidebar.collapsed .sidebar-search,
   .sidebar.collapsed #sidebar-lanes { display: none; }
+  /* Floating sidebar-toggle pill, half-overlapping the sidebar edge */
   .sidebar-toggle {
-    position: sticky; top: 0; z-index: 6;
-    background: #fff; border: none; border-bottom: 1px solid var(--border);
-    padding: 8px 0; cursor: pointer; font-size: 14px; color: var(--gray);
-    width: 100%; text-align: center; user-select: none;
-    font-family: 'Barlow', Arial, sans-serif; font-weight: 700;
+    position: absolute; top: 14px;
+    left: calc(var(--sidebar-w) - 12px);
+    width: 24px; height: 26px;
+    background: var(--blue); color: #fff;
+    border: 2px solid #fff; border-radius: 6px;
+    font-family: 'Barlow', Arial, sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; padding: 0; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    z-index: 20;
+    transition: left .18s ease, background .15s;
   }
-  .sidebar-toggle:hover { color: var(--navy); background: #F3F4F6; }
-  .sidebar.collapsed .sidebar-toggle { border-bottom: none; }
+  .sidebar-toggle:hover { background: #5488C2; }
+  .sidebar.collapsed ~ .sidebar-toggle { left: calc(32px - 12px); }
+
   .sidebar-search {
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 33px; background: #fff; z-index: 5;
+    position: sticky; top: 0; background: #fff; z-index: 5;
   }
   .sidebar-search input {
     width: 100%; padding: 6px 10px; border-radius: 6px;
     border: 1px solid var(--border); font-size: 12px; background: var(--page-bg);
   }
-  /* My Lanes toggle */
+  /* My Lanes toggle — sticks under the search bar so it stays visible while scrolling */
   .sidebar-myfilter {
     padding: 8px 12px; border-bottom: 1px solid var(--border);
     background: #fff; display: flex; align-items: center; gap: 8px;
     font-family: 'Barlow', Arial, sans-serif;
+    position: sticky; top: 47px; z-index: 4;
   }
   .sidebar.collapsed .sidebar-myfilter { display: none; }
   .sidebar-myfilter label {
@@ -521,6 +531,15 @@
     overflow: hidden;
     flex-shrink: 0;
   }
+  .schedule-card.collapsed .day-section { display: none; }
+  .schedule-collapse-btn {
+    font-size: 11px; color: rgba(255,255,255,.9);
+    background: var(--navy); border: none;
+    border-radius: 4px; padding: 4px 10px; cursor: pointer;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase;
+    letter-spacing: .5px; font-weight: 700;
+  }
+  .schedule-collapse-btn:hover { background: #24243e; }
   .schedule-toolbar {
     padding: 12px 20px;
     border-bottom: 1px solid var(--border);
@@ -1003,7 +1022,6 @@
 
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
   <aside class="sidebar" id="sidebar">
-    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
     <div class="sidebar-search">
       <input type="text" placeholder="Search lanes…" oninput="filterSidebar(this.value)" />
     </div>
@@ -1018,6 +1036,9 @@
 
     <div id="sidebar-lanes"><div class="sidebar-loading">Loading lanes…</div></div>
   </aside>
+
+  <!-- Floating sidebar toggle — sits on the sidebar's right edge, half-overlapping -->
+  <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar">‹</button>
 
   <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
   <main class="main-content">
@@ -1245,7 +1266,7 @@
 
 
     <!-- ── SECTION 2: SCHEDULE (BOTTOM) ────────────────────── -->
-    <div class="schedule-card">
+    <div class="schedule-card" id="schedule-card">
 
       <div class="schedule-toolbar">
         <div class="week-nav">
@@ -1266,6 +1287,7 @@
             <option>TONU</option>
             <option>Brokered</option>
           </select>
+          <button class="schedule-collapse-btn" id="schedule-toggle-btn" onclick="toggleSchedule()">Hide ▲</button>
         </div>
       </div>
 
@@ -1296,7 +1318,6 @@
                   <th>Trailer #</th>
                   <th>Trailer Status</th>
                   <th>Truck #</th>
-                  <th>Sekula Pro #</th>
                   <th>Notes</th>
                 </tr>
               </thead>
@@ -1507,6 +1528,27 @@ function toggleSidebar() {
   btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
   try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch {}
 }
+
+function toggleSchedule() {
+  const card = document.getElementById('schedule-card');
+  const btn  = document.getElementById('schedule-toggle-btn');
+  const collapsed = card.classList.toggle('collapsed');
+  btn.textContent = collapsed ? 'Show ▼' : 'Hide ▲';
+  try { localStorage.setItem('scheduleCollapsed', collapsed ? '1' : '0'); } catch {}
+}
+
+// Restore schedule collapsed state on load (default: open)
+(function restoreScheduleState() {
+  try {
+    if (localStorage.getItem('scheduleCollapsed') === '1') {
+      window.addEventListener('DOMContentLoaded', () => {
+        const card = document.getElementById('schedule-card');
+        const btn  = document.getElementById('schedule-toggle-btn');
+        if (card && btn) { card.classList.add('collapsed'); btn.textContent = 'Show ▼'; }
+      });
+    }
+  } catch {}
+})();
 
 // Restore sidebar collapsed state on load (default: open)
 (function restoreSidebarState() {
@@ -1752,7 +1794,7 @@ function makeLoadRow(row) {
   const fields = [
     ['pro_number','—',80],['tracking_number','—',90],['ship_number','—',80],
     ['driver_name','Driver name',100],['driver_cell','(###) ###-####',100],
-    ['trailer_number','—',70],['truck_number','—',60],['sekula_pro','—',70],['notes','Note…',160]
+    ['trailer_number','—',70],['truck_number','—',60],['notes','Note…',160]
   ];
   tr.innerHTML = `
     <td class="leg-ind" title="${isPickup?'Pickup':'Delivery'} leg"></td>
@@ -2632,7 +2674,7 @@ async function selectOccurrence(row) {
   const savedEl  = document.getElementById('occ-notes-saved');
   const saveBtn  = document.getElementById('occ-notes-save');
   savedEl.textContent = occRes.data?.notes_updated_at
-    ? `Saved ${fmtNow(occRes.data.notes_updated_at)}`
+    ? `Saved ${fmtNow(occRes.data.notes_updated_at)}${occRes.data.notes_updated_by_name ? ' by ' + occRes.data.notes_updated_by_name : ''}`
     : 'Not yet saved';
   saveBtn.disabled = true;
   saveBtn.textContent = occRes.data?.notes_updated_at ? 'Saved ✓' : 'Save';
@@ -2655,11 +2697,12 @@ async function saveOccNotes() {
   const btn = document.getElementById('occ-notes-save');
   const value = document.getElementById('occ-notes-ta').value;
   const nowIso = new Date().toISOString();
+  const byName = currentDisplayName();
   const { error } = await db.from('lane_occurrences')
-    .update({ notes: value, notes_updated_at: nowIso })
+    .update({ notes: value, notes_updated_at: nowIso, notes_updated_by_name: byName })
     .eq('id', currentOccurrenceId);
   if (reportDbError('Save notes failed', error)) return;
-  document.getElementById('occ-notes-saved').textContent = `Saved ${fmtNow(nowIso)}`;
+  document.getElementById('occ-notes-saved').textContent = `Saved ${fmtNow(nowIso)} by ${byName}`;
   btn.disabled = true;
   btn.textContent = 'Saved ✓';
 }
@@ -2700,9 +2743,19 @@ async function deleteOccurrence(btn) {
 }
 
 // ─── Lane Notes ───────────────────────────────────────────────────
-function setNotesSavedMeta(which, iso) {
+// Return the current user's best display name for timestamp labels
+function currentDisplayName() {
+  return currentProfile?.display_name
+      || currentUser?.user_metadata?.display_name
+      || currentUser?.email?.split('@')[0]
+      || 'Unknown';
+}
+
+function setNotesSavedMeta(which, iso, byName) {
   const el = document.getElementById(`${which}-notes-saved`);
-  el.textContent = iso ? `Saved ${fmtNow(iso)}` : 'Not yet saved';
+  el.textContent = iso
+    ? `Saved ${fmtNow(iso)}${byName ? ' by ' + byName : ''}`
+    : 'Not yet saved';
   const btn = document.getElementById(`${which}-notes-save`);
   btn.disabled = true;
   btn.textContent = 'Saved ✓';
@@ -2712,8 +2765,8 @@ async function loadLaneNotes(laneId) {
   const { data } = await db.from('lane_notes').select('*').eq('lane_id', laneId).maybeSingle();
   document.getElementById('lane-notes-ta').value    = data?.lane_notes    || '';
   document.getElementById('carrier-notes-ta').value = data?.carrier_notes || '';
-  setNotesSavedMeta('lane',    data?.updated_at);
-  setNotesSavedMeta('carrier', data?.updated_at);
+  setNotesSavedMeta('lane',    data?.updated_at, data?.updated_by_name);
+  setNotesSavedMeta('carrier', data?.updated_at, data?.updated_by_name);
 }
 
 function markLaneNotesDirty(which) {
@@ -2726,13 +2779,15 @@ async function saveLaneNotes(which) {
   const field = which === 'lane' ? 'lane_notes' : 'carrier_notes';
   const value = document.getElementById(`${which}-notes-ta`).value;
   const nowIso = new Date().toISOString();
+  const byName = currentDisplayName();
   const { error } = await db.from('lane_notes').upsert({
     lane_id:    currentLaneId,
     [field]:    value,
     updated_at: nowIso,
+    updated_by_name: byName,
   }, { onConflict: 'lane_id' });
   if (reportDbError(`Save ${which === 'lane' ? 'lane' : 'carrier'} notes failed`, error)) return;
-  setNotesSavedMeta(which, nowIso);
+  setNotesSavedMeta(which, nowIso, byName);
 }
 
 function toggleLaneInfo() {
