@@ -320,6 +320,13 @@
     padding: 5px 10px 5px 0; border-top: 1px solid #F3F4F6;
     vertical-align: middle; white-space: nowrap;
   }
+  .tz-label { font-weight: 400; }
+  .tz-current {
+    display: inline-block; margin-left: 6px;
+    font-family: monospace; font-size: 10px; font-weight: 700;
+    background: #E5E7EB; color: #374151;
+    padding: 2px 7px; border-radius: 10px;
+  }
   .gsdb-tag {
     font-family: monospace; font-size: 11px; font-weight: 700;
     background: #EFF6FF; color: #1D4ED8; padding: 2px 6px; border-radius: 4px;
@@ -531,7 +538,6 @@
     overflow: hidden;
     flex-shrink: 0;
   }
-  .schedule-card.collapsed .day-section { display: none; }
   .schedule-collapse-btn {
     font-size: 11px; color: rgba(255,255,255,.9);
     background: var(--navy); border: none;
@@ -1529,22 +1535,44 @@ function toggleSidebar() {
   try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch {}
 }
 
+// Collapse all day-bodies (leaving day headers visible & clickable), or expand them.
+// The day headers remain interactive so users can still pop a single day open.
 function toggleSchedule() {
   const card = document.getElementById('schedule-card');
   const btn  = document.getElementById('schedule-toggle-btn');
-  const collapsed = card.classList.toggle('collapsed');
-  btn.textContent = collapsed ? 'Show ▼' : 'Hide ▲';
-  try { localStorage.setItem('scheduleCollapsed', collapsed ? '1' : '0'); } catch {}
+  const wantCollapsed = !card.classList.contains('all-collapsed');
+  card.classList.toggle('all-collapsed', wantCollapsed);
+  card.querySelectorAll('.day-header').forEach(hdr => {
+    const body = hdr.nextElementSibling;
+    const chev = hdr.querySelector('.day-chevron');
+    if (wantCollapsed) {
+      body.classList.add('collapsed');
+      chev.classList.add('collapsed');
+      chev.textContent = '▸';
+    } else {
+      body.classList.remove('collapsed');
+      chev.classList.remove('collapsed');
+      chev.textContent = '▾';
+    }
+  });
+  btn.textContent = wantCollapsed ? 'Show ▼' : 'Hide ▲';
+  try { localStorage.setItem('scheduleAllCollapsed', wantCollapsed ? '1' : '0'); } catch {}
 }
 
 // Restore schedule collapsed state on load (default: open)
 (function restoreScheduleState() {
   try {
-    if (localStorage.getItem('scheduleCollapsed') === '1') {
+    if (localStorage.getItem('scheduleAllCollapsed') === '1') {
       window.addEventListener('DOMContentLoaded', () => {
-        const card = document.getElementById('schedule-card');
-        const btn  = document.getElementById('schedule-toggle-btn');
-        if (card && btn) { card.classList.add('collapsed'); btn.textContent = 'Show ▼'; }
+        // Wait for the schedule HTML to be present, then apply
+        const apply = () => {
+          const card = document.getElementById('schedule-card');
+          if (!card) return false;
+          // Use the same toggle function to flip the state
+          if (!card.classList.contains('all-collapsed')) toggleSchedule();
+          return true;
+        };
+        if (!apply()) setTimeout(apply, 200);
       });
     }
   } catch {}
@@ -2029,6 +2057,43 @@ function selectLane(el) {
   updateHash();
 }
 
+// ─── Location helpers ─────────────────────────────────────────────
+// Map our TZ abbreviations to IANA zones so Intl.DateTimeFormat can do the math
+const TZ_TO_IANA = {
+  ET:  'America/New_York',
+  CT:  'America/Chicago',
+  MT:  'America/Denver',
+  MST: 'America/Phoenix',   // no DST
+  PT:  'America/Los_Angeles',
+  AKT: 'America/Anchorage',
+  HAT: 'Pacific/Honolulu',
+};
+
+function currentTimeInZone(tz) {
+  const iana = TZ_TO_IANA[tz];
+  if (!iana) return null;
+  // Military time (24h), zero-padded hours
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: iana, hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(new Date());
+}
+
+function renderTimeZoneCell(tz) {
+  if (!tz) return '—';
+  const t = currentTimeInZone(tz);
+  return `<span class="tz-label">${tz}</span>${t
+    ? ` <span class="tz-current" data-tz="${tz}">${t}</span>`
+    : ''}`;
+}
+
+// Refresh the live times in the locations table every 30 seconds
+setInterval(() => {
+  document.querySelectorAll('.tz-current[data-tz]').forEach(el => {
+    const t = currentTimeInZone(el.dataset.tz);
+    if (t) el.textContent = t;
+  });
+}, 30000);
+
 // ─── Routes-table render helpers ──────────────────────────────────
 // Render a space-separated day string ("M W F") as a segmented bar
 // (Sunday-first to match the Grid and Timeline views)
@@ -2421,7 +2486,7 @@ async function loadLaneInfo(laneIds) {
       <td>${loc.name || '—'}</td>
       <td>${loc.address || '—'}</td>
       <td>${cityLine || '—'}</td>
-      <td>${loc.time_zone || '—'}</td>`;
+      <td>${renderTimeZoneCell(loc.time_zone)}</td>`;
     locsTbody.appendChild(tr);
   });
 
