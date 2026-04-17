@@ -93,6 +93,8 @@
     position: relative;
   }
   .sidebar.collapsed { width: 32px; }
+  .sidebar[hidden] { display: none !important; }
+  .lane-info-card[hidden], .schedule-card[hidden] { display: none !important; }
   .sidebar.collapsed .sidebar-search,
   .sidebar.collapsed #sidebar-lanes { display: none; }
   /* Floating sidebar-toggle pill, half-overlapping the sidebar edge */
@@ -914,6 +916,84 @@
   .toast.fade-out { opacity: 0; transition: opacity .25s; }
   @keyframes toast-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
   /* ─── AUTH OVERLAY ─────────────────────────────────────────── */
+  /* ─── LANDING PAGE ────────────────────────────────────────── */
+  .landing-page {
+    padding: 20px 24px 60px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .landing-hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #24243e 100%);
+    color: #fff; border-radius: 10px;
+    padding: 22px 26px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .landing-hero h1 {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 22px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; margin-bottom: 14px;
+  }
+  .hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+  .hero-stat {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px; padding: 12px 14px;
+  }
+  .hero-stat-label {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.65);
+    font-weight: 700;
+  }
+  .hero-stat-value {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 24px;
+    font-weight: 700; color: #fff; margin-top: 2px;
+  }
+  .hero-stat-sub { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; }
+
+  .landing-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .landing-card {
+    background: var(--card-bg); border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow: hidden;
+  }
+  .landing-card h2 {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 13px;
+    text-transform: uppercase; letter-spacing: .6px;
+    color: var(--navy); font-weight: 700; margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .landing-card h2 .count {
+    background: #EEF2FF; color: #4338CA;
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+  }
+  .lc-list { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+  .lc-list .row {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 4px 0; border-bottom: 1px dashed #F3F4F6;
+  }
+  .lc-list .row:last-child { border-bottom: none; }
+  .lc-key { font-weight: 700; color: #374151; min-width: 80px; flex-shrink: 0; }
+  .lc-val { color: #6B7280; flex: 1; }
+  .lc-val a { color: var(--blue); text-decoration: none; }
+  .lc-val a:hover { text-decoration: underline; }
+  .lc-muted { color: var(--gray); font-size: 11px; }
+  .lc-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  .lc-table th {
+    text-align: left; padding: 6px 8px; background: #F9FAFB;
+    font-family: 'Barlow', Arial, sans-serif; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .5px; color: var(--navy);
+    font-weight: 700; border-bottom: 1px solid var(--border);
+  }
+  .lc-table td { padding: 6px 8px; border-bottom: 1px solid #F3F4F6; color: #374151; }
+  .lc-credential {
+    font-family: monospace; background: #F3F4F6; padding: 2px 6px;
+    border-radius: 4px; font-size: 11px;
+  }
+
   .auth-overlay {
     position: fixed; inset: 0; z-index: 1000;
     display: flex; align-items: center; justify-content: center;
@@ -975,13 +1055,15 @@
   }
 
   /* ─── TOPBAR LOGOUT BTN (real) ─────────────────────────── */
-  .btn-logout {
+  .btn-logout, .btn-home {
     font-size: 11px; color: rgba(255,255,255,.8);
     background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
     border-radius: 4px; padding: 4px 10px; cursor: pointer;
     font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+    margin-right: 10px;
   }
-  .btn-logout:hover { background: rgba(255,255,255,.2); color: #fff; }
+  .btn-logout:hover, .btn-home:hover { background: rgba(255,255,255,.2); color: #fff; }
+  .btn-home.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 </style>
 </head>
 <body>
@@ -1030,6 +1112,8 @@
     <span>Lane Distribution Dashboard</span>
   </div>
   <div class="topbar-right">
+    <button class="btn-home" id="btn-home" onclick="showLanding()" title="Ford General Info">Home</button>
+    <button class="btn-home" id="btn-lanes" onclick="showLaneView()" title="Lane Dashboard">Lanes</button>
     <span class="topbar-user" id="topbar-user">—</span>
     <button class="btn-logout" onclick="signOut()">Log out</button>
   </div>
@@ -1065,6 +1149,47 @@
 
   <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
   <main class="main-content">
+
+    <!-- ══ LANDING PAGE (default view on login; also reachable via Home) ══ -->
+    <div class="landing-page" id="landing-page" hidden>
+      <div class="landing-hero">
+        <h1>Ford General Info</h1>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-label">Current FSC</div>
+            <div class="hero-stat-value" id="hero-fsc">—</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">12-Month Scorecard</div>
+            <div class="hero-stat-value" id="hero-scorecard">—</div>
+            <div class="hero-stat-sub">rolling average</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Support Team</div>
+            <div class="hero-stat-value" id="hero-support">—</div>
+            <div class="hero-stat-sub">members</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Active SOPs</div>
+            <div class="hero-stat-value" id="hero-sops">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="landing-grid">
+        <section class="landing-card"><h2>Support Team<span class="count" id="cnt-support"></span></h2><div id="landing-support"></div></section>
+        <section class="landing-card"><h2>Back Office<span class="count" id="cnt-back"></span></h2><div id="landing-back-office"></div></section>
+        <section class="landing-card"><h2>Standard Operating Procedures<span class="count" id="cnt-sops"></span></h2><div id="landing-sops"></div></section>
+        <section class="landing-card"><h2>BTMS Load Boards<span class="count" id="cnt-btms"></span></h2><div id="landing-btms"></div></section>
+        <section class="landing-card"><h2>Ops Codes<span class="count" id="cnt-ops"></span></h2><div id="landing-ops"></div></section>
+        <section class="landing-card"><h2>FSC Mileage Breaks</h2><div id="landing-fsc-breaks"></div></section>
+        <section class="landing-card" style="grid-column:span 2"><h2>Stop Charge Table</h2><div id="landing-stop-charges"></div></section>
+        <section class="landing-card"><h2>Standard Call Times</h2><div id="landing-call-times"></div></section>
+        <section class="landing-card"><h2>Shared Carriers<span class="count" id="cnt-carriers"></span></h2><div id="landing-carriers"></div></section>
+        <section class="landing-card"><h2>Important Links<span class="count" id="cnt-links"></span></h2><div id="landing-links"></div></section>
+        <section class="landing-card" id="landing-creds-card" hidden><h2>Credentials</h2><div id="landing-creds"></div></section>
+      </div>
+    </div>
 
     <!-- ── SECTION 1: LANE INFO (TOP) ──────────────────────── -->
     <div class="lane-info-card">
@@ -2068,6 +2193,7 @@ function selectLane(el) {
   el.classList.add('active');
   const ids = el.dataset.laneIds ? el.dataset.laneIds.split(',') : el.dataset.laneId ? [el.dataset.laneId] : null;
   if (!ids) return;
+  hideLanding();
   currentLaneIds = ids;
   currentLaneId = ids[0];
   loadLaneInfo(ids);
@@ -2995,6 +3121,173 @@ async function initPage() {
   }
 }
 
+// ─── Landing page ────────────────────────────────────────────────
+// Fetch every ref_* table once and render the landing sections.
+let landingLoaded = false;
+async function loadLanding() {
+  const [
+    contactsRes, breaksRes, scoreRes, callRes, codesRes, chargesRes,
+    linksRes, sopsRes, credRes
+  ] = await Promise.all([
+    db.from('ref_contacts').select('*').order('sort_order'),
+    db.from('ref_fsc_breaks').select('*').order('sort_order'),
+    db.from('ref_scorecard').select('*').order('sort_order'),
+    db.from('ref_call_times').select('*').order('sort_order'),
+    db.from('ref_codes').select('*').order('sort_order'),
+    db.from('ref_stop_charges').select('*').order('sort_order'),
+    db.from('ref_links').select('*').order('sort_order'),
+    db.from('ref_sops').select('*').order('sort_order'),
+    db.from('ref_credentials').select('*').order('sort_order'),
+  ]);
+
+  const contacts = contactsRes.data || [];
+  const byCat = cat => contacts.filter(c => c.category === cat);
+
+  // Hero stats
+  const currentFsc = currentDieselPrice != null ? `$${currentDieselPrice.toFixed(2)}` : '—';
+  document.getElementById('hero-fsc').textContent = currentFsc;
+  const twelveMo = (scoreRes.data || []).find(r => /avg/i.test(r.period || ''));
+  document.getElementById('hero-scorecard').textContent = twelveMo
+    ? (twelveMo.value * 100).toFixed(2) + '%' : '—';
+  document.getElementById('hero-support').textContent = byCat('support').length;
+  document.getElementById('hero-sops').textContent = (sopsRes.data || []).length;
+
+  // Counts
+  document.getElementById('cnt-support').textContent  = byCat('support').length;
+  document.getElementById('cnt-back').textContent     = byCat('back_office').length;
+  document.getElementById('cnt-sops').textContent     = (sopsRes.data || []).length;
+  document.getElementById('cnt-btms').textContent     = (linksRes.data || []).filter(l => l.category === 'btms_loadboard').length;
+  document.getElementById('cnt-ops').textContent      = (codesRes.data || []).filter(c => c.category === 'ops').length;
+  document.getElementById('cnt-carriers').textContent = byCat('carrier').length;
+  document.getElementById('cnt-links').textContent    = (linksRes.data || []).filter(l => l.category === 'important').length;
+
+  // Support Team
+  document.getElementById('landing-support').innerHTML = `<div class="lc-list">${
+    byCat('support').map(c => `<div class="row">
+      <span class="lc-key">${c.name}</span>
+      <span class="lc-val">
+        ${c.email ? `<a href="mailto:${c.email}">${c.email}</a>` : ''}
+        ${c.phone ? `<span class="lc-muted"> · ${c.phone}</span>` : ''}
+        ${c.supervisor ? `<span class="lc-muted"> · ${c.supervisor}</span>` : ''}
+      </span>
+    </div>`).join('')
+  }</div>`;
+
+  // Back Office
+  document.getElementById('landing-back-office').innerHTML = `<div class="lc-list">${
+    byCat('back_office').map(c => `<div class="row">
+      <span class="lc-key">${c.name}</span>
+      <span class="lc-val">
+        ${c.email ? `<a href="mailto:${c.email}">${c.email}</a>` : ''}
+        ${c.role ? `<span class="lc-muted"> · ${c.role}</span>` : ''}
+      </span>
+    </div>`).join('')
+  }</div>`;
+
+  // SOPs
+  document.getElementById('landing-sops').innerHTML = `<div class="lc-list">${
+    (sopsRes.data || []).map(s => `<div class="row">
+      <span class="lc-key">${s.number}</span>
+      <span class="lc-val">${s.title || ''}</span>
+    </div>`).join('')
+  }</div>`;
+
+  // BTMS Load Boards
+  document.getElementById('landing-btms').innerHTML = `<div class="lc-list">${
+    (linksRes.data || []).filter(l => l.category === 'btms_loadboard')
+      .map(l => `<div class="row"><span class="lc-val">${l.label}</span></div>`).join('')
+  }</div>`;
+
+  // Ops Codes
+  document.getElementById('landing-ops').innerHTML = `<table class="lc-table"><thead><tr><th>Code</th><th>Description</th></tr></thead><tbody>${
+    (codesRes.data || []).filter(c => c.category === 'ops')
+      .map(c => `<tr><td style="font-family:monospace;font-weight:700">${c.code}</td><td>${c.description || ''}</td></tr>`).join('')
+  }</tbody></table>`;
+
+  // FSC Mileage Breaks
+  document.getElementById('landing-fsc-breaks').innerHTML = `<table class="lc-table"><thead><tr><th>Mileage Band</th><th>MPG Divisor</th></tr></thead><tbody>${
+    (breaksRes.data || []).map(b => `<tr><td>${b.mileage_band}</td><td style="font-family:monospace">${b.mpg_divisor}</td></tr>`).join('')
+  }</tbody></table>`;
+
+  // Stop Charge Table
+  const sc = chargesRes.data || [];
+  document.getElementById('landing-stop-charges').innerHTML = `<table class="lc-table">
+    <thead><tr><th>Mileage Band (One-Way)</th><th>+1 (+$0.40)</th><th>+2 (+$0.80)</th><th>+3 (+$1.20)</th><th>+4 (+$1.60)</th><th>+5 (+$2.00)</th></tr></thead>
+    <tbody>${sc.map(r => `<tr${r.is_base_row ? ' style="background:#F9FAFB;font-weight:700"' : ''}>
+      <td>${r.mileage_band}</td><td>${r.incr_1}</td><td>${r.incr_2}</td><td>${r.incr_3}</td><td>${r.incr_4}</td><td>${r.incr_5}</td>
+    </tr>`).join('')}</tbody></table>`;
+
+  // Standard Call Times
+  const ct = callRes.data || [];
+  const ibTimes = ct.filter(t => t.direction === 'inbound').map(t => `<li>${t.timing}</li>`).join('');
+  const obTimes = ct.filter(t => t.direction === 'outbound').map(t => `<li>${t.timing}</li>`).join('');
+  document.getElementById('landing-call-times').innerHTML =
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+      <div><div class="lc-key" style="margin-bottom:4px">Inbound</div><ol style="margin-left:16px;color:#6B7280">${ibTimes}</ol></div>
+      <div><div class="lc-key" style="margin-bottom:4px">Outbound</div><ol style="margin-left:16px;color:#6B7280">${obTimes}</ol></div>
+    </div>`;
+
+  // Carriers
+  document.getElementById('landing-carriers').innerHTML = `<div class="lc-list">${
+    byCat('carrier').map(c => `<div class="row"><span class="lc-val">${c.name}</span></div>`).join('')
+  }</div>`;
+
+  // Important Links
+  document.getElementById('landing-links').innerHTML = `<div class="lc-list">${
+    (linksRes.data || []).filter(l => l.category === 'important')
+      .map(l => `<div class="row"><span class="lc-val">${l.url ? `<a href="${l.url}" target="_blank">${l.label}</a>` : l.label}</span></div>`).join('')
+  }</div>`;
+
+  // Credentials (gated by RLS; if user isn't lane_admin, credRes.data will be [])
+  const creds = credRes.data || [];
+  if (creds.length) {
+    document.getElementById('landing-creds-card').hidden = false;
+    document.getElementById('landing-creds').innerHTML = `<div class="lc-list">${
+      creds.map(c => `<div class="row">
+        <span class="lc-key">${c.service_name}</span>
+        <span class="lc-val">
+          ${c.url ? `<a href="${c.url}" target="_blank">${c.url}</a><br>` : ''}
+          ${c.username ? `<span class="lc-credential">${c.username}</span> ` : ''}
+          ${c.password ? `<span class="lc-credential">${c.password}</span>` : ''}
+          ${c.notes ? `<div class="lc-muted" style="margin-top:2px">${c.notes}</div>` : ''}
+        </span>
+      </div>`).join('')
+    }</div>`;
+  }
+
+  landingLoaded = true;
+}
+
+function showLanding() {
+  // Full-screen landing: hide the sidebar, the floating toggle, and the lane views.
+  document.getElementById('landing-page').hidden = false;
+  document.getElementById('sidebar').hidden = true;
+  const sbToggle = document.getElementById('sidebar-toggle-btn');
+  if (sbToggle) sbToggle.hidden = true;
+  document.querySelector('.lane-info-card').hidden = true;
+  document.getElementById('schedule-card').hidden = true;
+  document.getElementById('btn-home')?.classList.add('active');
+  document.getElementById('btn-lanes')?.classList.remove('active');
+  // Clear active sidebar highlighting
+  document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
+  if (!landingLoaded) loadLanding();
+}
+
+function showLaneView() {
+  // Lane dashboard mode: show sidebar + lane views, hide landing.
+  document.getElementById('landing-page').hidden = true;
+  document.getElementById('sidebar').hidden = false;
+  const sbToggle = document.getElementById('sidebar-toggle-btn');
+  if (sbToggle) sbToggle.hidden = false;
+  document.querySelector('.lane-info-card').hidden = false;
+  document.getElementById('schedule-card').hidden = false;
+  document.getElementById('btn-home')?.classList.remove('active');
+  document.getElementById('btn-lanes')?.classList.add('active');
+}
+
+// Kept for back-compat: selectLane calls hideLanding when user picks a lane
+function hideLanding() { showLaneView(); }
+
 // ─── Auth ─────────────────────────────────────────────────────────
 let authMode = 'signin';          // 'signin' | 'signup'
 let currentUser = null;           // auth.users row
@@ -3127,6 +3420,12 @@ async function applySignedInState(session) {
   if (!appInitialized) {
     appInitialized = true;
     await initPage();
+    // Default view after sign-in is the landing page unless a URL hash
+    // points at a specific lane, in which case keep lane view visible.
+    const hashLanes = getHashState().lanes;
+    if (!hashLanes.length) {
+      showLanding();
+    }
   }
 }
 
