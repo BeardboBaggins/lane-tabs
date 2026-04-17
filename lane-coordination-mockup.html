@@ -642,6 +642,10 @@
   }
   .time-val { font-family: monospace; font-weight: 600; font-size: 12px; }
   .date-val { color: #4B5563; }
+  .locked-val {
+    font-family: monospace; color: #4B5563; font-size: 12px;
+    padding: 2px 4px; white-space: nowrap;
+  }
   .empty-cell { color: #D1D5DB; }
 
   input.cell-input {
@@ -1685,9 +1689,9 @@ function makeLoadRow(row) {
   tr.innerHTML = `
     <td class="leg-ind" title="${isPickup?'Pickup':'Delivery'} leg"></td>
     <td>${makeStatusSelect(row.status || 'Active')}</td>
-    <td class="date-val">${fmtDate(row.load_date)}</td>
-    <td><input class="cell-input" data-field="time_et" value="${row.time_et||''}" placeholder="—" style="min-width:60px" onchange="updateLoad(this,'${row.id}')"></td>
-    <td><input class="cell-input" data-field="route_number" value="${row.route_number||''}" placeholder="—" style="min-width:80px" onchange="updateLoad(this,'${row.id}')"></td>
+    <td class="locked-val">${fmtDate(row.load_date)}</td>
+    <td class="locked-val">${row.time_et || '—'}</td>
+    <td class="locked-val">${row.route_number || '—'}</td>
     ${fields.slice(0,3).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
     ${fields.slice(3,5).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
     ${fields.slice(5,6).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
