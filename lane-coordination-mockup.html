@@ -602,12 +602,31 @@
   /* Group routes visually with a faint top border */
   table.sched tr.route-top td { border-top: 2px solid var(--border); }
   table.sched tr.route-top:first-child td { border-top: none; }
-  /* Leg indicator */
+  /* Leg indicator — doubles as a drag handle (grip dots) */
   td.leg-ind {
-    width: 4px; padding: 0;
+    width: 14px; min-width: 14px; padding: 0; position: relative;
   }
-  tr.route-top td.leg-ind { background: #BFDBFE; }
-  tr.route-bot td.leg-ind { background: #FDE68A; }
+  td.leg-ind::after {
+    /* 3x2 grid of white dots suggesting grippability */
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,.7) 1px, transparent 1.5px);
+    background-size: 5px 5px;
+    background-position: center;
+    opacity: .85;
+  }
+  /* Brand colors: IB = Avenger Blue, OB = Avenger Red */
+  tr.route-top td.leg-ind { background: #659AD2; cursor: grab; }
+  tr.route-bot td.leg-ind { background: #AC171C; cursor: grab; }
+  tr.route-top:active td.leg-ind,
+  tr.route-bot:active td.leg-ind { cursor: grabbing; }
+
+  /* Drag state for draggable load pairs */
+  tr.route-top.dragging, tr.route-bot.dragging { opacity: .35; }
+  tr.route-top.drop-before td,
+  tr.route-bot.drop-before td { box-shadow: inset 0 3px 0 0 var(--blue); }
+  tr.route-top.drop-after td,
+  tr.route-bot.drop-after td { box-shadow: inset 0 -3px 0 0 var(--blue); }
 
   /* Status pill */
   .status-sel {
@@ -1561,12 +1580,13 @@ async function populateWeekFromRoutes(laneIds, weekStart) {
     delDate.setDate(delDate.getDate() + daysForward);
     const delDateStr = delDate.toISOString().split('T')[0];
 
+    const pairId = crypto.randomUUID();
     const pu = { lane_id: laneId, week_start: weekStart, status: 'Active',
                  leg: 'pickup',   load_date: puDateStr, time_et: puTime,
-                 route_number: routeNum, is_ib: isIb };
+                 route_number: routeNum, is_ib: isIb, pair_id: pairId };
     const dl = { lane_id: laneId, week_start: weekStart, status: 'Active',
                  leg: 'delivery', load_date: delDateStr, time_et: delTime,
-                 route_number: routeNum, is_ib: isIb };
+                 route_number: routeNum, is_ib: isIb, pair_id: pairId };
     if (!existingKeys.has(key(pu))) { rows.push(pu); existingKeys.add(key(pu)); }
     if (!existingKeys.has(key(dl))) { rows.push(dl); existingKeys.add(key(dl)); }
   };
@@ -1619,44 +1639,56 @@ async function loadSchedule(laneIds, weekStart) {
   document.querySelectorAll('.day-count-val').forEach(el => el.textContent = '');
 
   let { data } = await db.from('loads').select('*')
-    .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
+    .in('lane_id', ids).eq('week_start', weekStart)
+    .order('sort_order', { nullsFirst: false }).order('created_at');
 
   // Auto-populate empty weeks from Section 3 route schedule
   if (!data || !data.length) {
     const inserted = await populateWeekFromRoutes(ids, weekStart);
     if (inserted > 0) {
       const refetch = await db.from('loads').select('*')
-        .in('lane_id', ids).eq('week_start', weekStart).order('created_at');
+        .in('lane_id', ids).eq('week_start', weekStart)
+        .order('sort_order', { nullsFirst: false }).order('created_at');
       data = refetch.data;
     }
   }
 
   if (!data || !data.length) return;
 
-  // Pair rows in creation order: pickup immediately followed by its delivery
-  const sorted = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  let i = 0;
-  while (i < sorted.length) {
-    const row = sorted[i];
-    if (row.leg === 'pickup') {
-      const dl = sorted[i + 1]?.leg === 'delivery' ? sorted[i + 1] : null;
-      const puDate = new Date(row.load_date + 'T00:00:00');
-      const offset = Math.round((puDate - weekBaseDate) / 86400000);
-      const tbody = DAY_IDS[offset] ? document.getElementById(DAY_IDS[offset] + '-tbody') : null;
-      if (tbody) {
-        tbody.appendChild(makeLoadRow(row));
-        if (dl) tbody.appendChild(makeLoadRow(dl));
-      }
-      i += dl ? 2 : 1;
-    } else {
-      // Orphan delivery — place by its own date
-      const dlDate = new Date(row.load_date + 'T00:00:00');
-      const offset = Math.round((dlDate - weekBaseDate) / 86400000);
-      const tbody = DAY_IDS[offset] ? document.getElementById(DAY_IDS[offset] + '-tbody') : null;
-      if (tbody) tbody.appendChild(makeLoadRow(row));
-      i++;
-    }
+  // Group by pair_id so pickup + delivery always render together (pickup first).
+  // The pair is anchored to the pickup's day; if a pickup is missing, the
+  // delivery falls back to its own day.
+  const byPair = new Map(); // pair_id → { pu, dl }
+  data.forEach(row => {
+    const p = byPair.get(row.pair_id) || {};
+    p[row.leg === 'pickup' ? 'pu' : 'dl'] = row;
+    byPair.set(row.pair_id, p);
+  });
+
+  // Sort pairs for each day by sort_order of their anchor row
+  const anchorDay = p => {
+    const anchor = p.pu || p.dl;
+    const d = new Date(anchor.load_date + 'T00:00:00');
+    return Math.round((d - weekBaseDate) / 86400000);
+  };
+  const anchorSort = p => (p.pu || p.dl).sort_order ?? Infinity;
+
+  const pairsByDay = {};
+  for (const p of byPair.values()) {
+    const offset = anchorDay(p);
+    (pairsByDay[offset] = pairsByDay[offset] || []).push(p);
   }
+  Object.values(pairsByDay).forEach(arr =>
+    arr.sort((a, b) => anchorSort(a) - anchorSort(b)));
+
+  DAY_IDS.forEach((day, offset) => {
+    const tbody = document.getElementById(day + '-tbody');
+    if (!tbody) return;
+    (pairsByDay[offset] || []).forEach(p => {
+      if (p.pu) tbody.appendChild(makeLoadRow(p.pu));
+      if (p.dl) tbody.appendChild(makeLoadRow(p.dl));
+    });
+  });
 
   // Apply filter + update route counts
   applyStatusFilter();
@@ -1701,6 +1733,13 @@ function makeLoadRow(row) {
   const tr = document.createElement('tr');
   tr.className = isPickup ? 'route-top' : 'route-bot';
   tr.dataset.id = row.id;
+  tr.dataset.pairId = row.pair_id || '';
+  tr.draggable = true; // both pickup and delivery rows can initiate a pair drag
+  tr.addEventListener('dragstart',  onLoadPairDragStart);
+  tr.addEventListener('dragover',   onLoadPairDragOver);
+  tr.addEventListener('dragleave',  onLoadPairDragLeave);
+  tr.addEventListener('drop',       onLoadPairDrop);
+  tr.addEventListener('dragend',    onLoadPairDragEnd);
   const fields = [
     ['pro_number','—',80],['tracking_number','—',90],['ship_number','—',80],
     ['driver_name','Driver name',100],['driver_cell','(###) ###-####',100],
@@ -1737,6 +1776,153 @@ const updateLoad = debounce(async (input, loadId) => {
   await db.from('loads').update({ [input.dataset.field]: input.value, updated_at: new Date().toISOString() }).eq('id', loadId);
 }, 600);
 
+// ─── Drag-and-drop: reorder load pairs within a day ──────────────
+// Core invariant: a "pair" is two rows sharing data-pair-id (pickup + delivery).
+// Partner lookup goes through pair_id, not DOM adjacency, so pairs stay
+// intact even if the DOM is ever transiently out of sync.
+let draggedPairId = null;
+
+function pairRows(tbody, pairId) {
+  return [...tbody.querySelectorAll(`[data-pair-id="${pairId}"]`)];
+}
+
+function clearDropMarkers(tbody) {
+  tbody.querySelectorAll('.drop-before, .drop-after').forEach(tr =>
+    tr.classList.remove('drop-before', 'drop-after'));
+}
+
+// Given any row, return its pair's top row (pickup if exists; else self)
+function pairTopRow(tr) {
+  const tbody = tr.closest('tbody');
+  const rows = pairRows(tbody, tr.dataset.pairId);
+  return rows.find(r => r.classList.contains('route-top')) || rows[0] || tr;
+}
+function pairBotRow(tr) {
+  const tbody = tr.closest('tbody');
+  const rows = pairRows(tbody, tr.dataset.pairId);
+  return rows.find(r => r.classList.contains('route-bot')) || null;
+}
+
+function onLoadPairDragStart(ev) {
+  const tr = ev.currentTarget;
+  if (!tr.dataset.pairId) return;
+  draggedPairId = tr.dataset.pairId;
+  const tbody = tr.closest('tbody');
+  const rows = pairRows(tbody, draggedPairId);
+
+  // Build a custom drag image that includes BOTH rows of the pair
+  // (clone before applying .dragging so the ghost stays full-opacity).
+  const origTable = tr.closest('table');
+  const ghost = origTable.cloneNode(false); // copy table's classes
+  const ghostBody = document.createElement('tbody');
+  rows.forEach(r => {
+    const clone = r.cloneNode(true);
+    clone.classList.remove('dragging');
+    ghostBody.appendChild(clone);
+  });
+  ghost.appendChild(ghostBody);
+  Object.assign(ghost.style, {
+    position: 'absolute', top: '-2000px', left: '-2000px',
+    width: origTable.offsetWidth + 'px',
+    background: '#fff',
+    boxShadow: '0 4px 12px rgba(0,0,0,.25)',
+    pointerEvents: 'none',
+  });
+  document.body.appendChild(ghost);
+
+  const rect = tr.getBoundingClientRect();
+  // Offset the ghost under the cursor roughly where the user grabbed
+  ev.dataTransfer.setDragImage(ghost, ev.clientX - rect.left, ev.clientY - rect.top);
+  // Browser snapshots on next tick; remove after so we don't leak DOM
+  setTimeout(() => ghost.remove(), 0);
+
+  rows.forEach(r => r.classList.add('dragging'));
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', draggedPairId);
+}
+
+function onLoadPairDragOver(ev) {
+  if (!draggedPairId) return;
+  const tr = ev.currentTarget;
+  const tbody = tr.closest('tbody');
+  // Only allow drop within the same day (tbody) and not onto the dragged pair itself
+  if (tr.dataset.pairId === draggedPairId) return;
+  const draggedTbody = document.querySelector(`[data-pair-id="${draggedPairId}"]`)?.closest('tbody');
+  if (tbody !== draggedTbody) return;
+  ev.preventDefault();
+  clearDropMarkers(tbody);
+  // Indicator anchors to the pair's top row
+  const top = pairTopRow(tr);
+  const pairTopRect = top.getBoundingClientRect();
+  const bot = pairBotRow(tr);
+  const pairBottom = bot ? bot.getBoundingClientRect().bottom : pairTopRect.bottom;
+  const pairMid = (pairTopRect.top + pairBottom) / 2;
+  const before = ev.clientY < pairMid;
+  top.classList.add(before ? 'drop-before' : 'drop-after');
+}
+
+function onLoadPairDragLeave() { /* markers cleared on next dragover */ }
+
+async function onLoadPairDrop(ev) {
+  if (!draggedPairId) return;
+  ev.preventDefault();
+  const tr = ev.currentTarget;
+  const tbody = tr.closest('tbody');
+  const draggedTbody = document.querySelector(`[data-pair-id="${draggedPairId}"]`)?.closest('tbody');
+  if (tbody !== draggedTbody) return;
+  if (tr.dataset.pairId === draggedPairId) return;
+
+  const top = pairTopRow(tr);
+  const bot = pairBotRow(tr);
+  const pairTopRect = top.getBoundingClientRect();
+  const pairBottom = bot ? bot.getBoundingClientRect().bottom : pairTopRect.bottom;
+  const pairMid = (pairTopRect.top + pairBottom) / 2;
+  const before = ev.clientY < pairMid;
+
+  // Move the dragged pair's rows (pickup first, delivery second) to the anchor position
+  const dragged = pairRows(tbody, draggedPairId);
+  const pu = dragged.find(r => r.classList.contains('route-top')) || dragged[0];
+  const dl = dragged.find(r => r.classList.contains('route-bot'));
+
+  if (before) {
+    tbody.insertBefore(pu, top);
+    if (dl) tbody.insertBefore(dl, top);
+  } else {
+    const insertAfter = bot || top;
+    const refNode = insertAfter.nextSibling;
+    tbody.insertBefore(pu, refNode);
+    if (dl) tbody.insertBefore(dl, refNode);
+  }
+
+  clearDropMarkers(tbody);
+
+  // Persist: walk tbody in DOM order, renumber pairs with step 10 (pickup) / +1 (delivery)
+  const pairsSeen = new Set();
+  const updates = [];
+  let n = 0;
+  for (const node of tbody.children) {
+    const pid = node.dataset.pairId;
+    if (!pid || pairsSeen.has(pid)) continue;
+    pairsSeen.add(pid);
+    n++;
+    const rows = pairRows(tbody, pid);
+    for (const r of rows) {
+      const isTop = r.classList.contains('route-top');
+      updates.push({ id: r.dataset.id, sort_order: n * 10 + (isTop ? 0 : 1) });
+    }
+  }
+  await Promise.all(updates.map(u =>
+    db.from('loads').update({ sort_order: u.sort_order, updated_at: new Date().toISOString() }).eq('id', u.id)
+  ));
+}
+
+function onLoadPairDragEnd() {
+  document.querySelectorAll('.dragging').forEach(r => r.classList.remove('dragging'));
+  document.querySelectorAll('.drop-before, .drop-after').forEach(tr =>
+    tr.classList.remove('drop-before', 'drop-after'));
+  draggedPairId = null;
+}
+
 async function addLoadRow(dayOffset = 0) {
   const puDate = new Date(currentWeekStart + 'T00:00:00');
   puDate.setDate(puDate.getDate() + dayOffset);
@@ -1744,7 +1930,8 @@ async function addLoadRow(dayOffset = 0) {
   const dlDate = new Date(puDate);
   dlDate.setDate(dlDate.getDate() + 1);
   const dlDateStr = dlDate.toISOString().split('T')[0];
-  const base = { lane_id: currentLaneIds[0], week_start: currentWeekStart, status: 'Active' };
+  const pairId = crypto.randomUUID();
+  const base = { lane_id: currentLaneIds[0], week_start: currentWeekStart, status: 'Active', pair_id: pairId };
   const [{ data: pu }, { data: dl }] = await Promise.all([
     db.from('loads').insert({ ...base, leg: 'pickup',   load_date: puDateStr, is_ib: true  }).select().single(),
     db.from('loads').insert({ ...base, leg: 'delivery', load_date: dlDateStr, is_ib: false }).select().single(),
