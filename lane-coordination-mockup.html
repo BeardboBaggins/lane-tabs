@@ -362,10 +362,10 @@
   }
   .rt-day-label { text-align: center; }
   .rt-route-label {
-    font-family: monospace; font-weight: 700; font-size: 11px;
+    font-family: monospace; font-size: 11px;
     padding: 6px 0; line-height: 1.2;
+    display: flex; flex-direction: column; gap: 3px;
   }
-  .rt-route-label-sub { display: block; font-weight: 400; font-size: 10px; color: var(--gray); }
   .rt-track {
     position: relative; height: 28px;
     /* 6-hour sub-grid (light) + day boundaries (strong, 2px). 7 days × 4 chunks = 28 cells */
@@ -1719,9 +1719,16 @@ function renderRoutesTimeline(routes) {
     }
 
     const pill = renderLiveDropPill(route.pu_live_drop);
+    const dockText = route.pu_dock || '';
     html += `<div class="rt-route-label">
-      ${route.ib_route || '—'}${route.ob_route ? ' / '+route.ob_route : ''}
-      <span class="rt-route-label-sub">${pill}</span>
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ib_route || '—'}</span>
+        <span>${pill}</span>
+      </div>
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ob_route || '—'}</span>
+        <span class="rg-route-dock">${dockText}</span>
+      </div>
     </div>
     <div class="rt-track">${bars}</div>`;
   });
