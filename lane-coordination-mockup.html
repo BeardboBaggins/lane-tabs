@@ -822,9 +822,112 @@
   .toast--info    { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
   .toast.fade-out { opacity: 0; transition: opacity .25s; }
   @keyframes toast-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* ─── AUTH OVERLAY ─────────────────────────────────────────── */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #192633 0%, #0F1A24 100%);
+  }
+  .auth-overlay[hidden] { display: none !important; }
+  .auth-card {
+    width: 360px; max-width: calc(100vw - 32px);
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    padding: 28px 26px; font-family: 'Lato', Arial, sans-serif;
+  }
+  .auth-brand {
+    font-family: 'Barlow', Arial, sans-serif; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    font-size: 20px; color: var(--navy); text-align: center;
+    margin-bottom: 4px;
+  }
+  .auth-subtitle {
+    text-align: center; font-size: 11px; color: var(--gray);
+    letter-spacing: .3px; margin-bottom: 22px;
+  }
+  .auth-field { margin-bottom: 12px; }
+  .auth-field label {
+    display: block; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--gray); margin-bottom: 4px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .auth-field input {
+    width: 100%; padding: 9px 12px; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 5px;
+    font-family: inherit; background: #fff;
+  }
+  .auth-field input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(101,154,210,.25); }
+  .auth-submit {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: var(--blue); color: #fff; border: none;
+    border-radius: 5px; font-size: 13px; font-weight: 700;
+    cursor: pointer; letter-spacing: .3px;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase;
+  }
+  .auth-submit:hover { background: #5488C2; }
+  .auth-submit:disabled { opacity: .5; cursor: not-allowed; }
+  .auth-toggle {
+    margin-top: 14px; text-align: center; font-size: 12px; color: var(--gray);
+  }
+  .auth-toggle a {
+    color: var(--blue); text-decoration: none; font-weight: 700; cursor: pointer;
+  }
+  .auth-toggle a:hover { text-decoration: underline; }
+  .auth-error {
+    background: #FEE2E2; color: #991B1B; padding: 8px 12px; border-radius: 5px;
+    font-size: 12px; margin-bottom: 12px; border: 1px solid #FECACA;
+  }
+  .auth-info {
+    background: #DBEAFE; color: #1E40AF; padding: 8px 12px; border-radius: 5px;
+    font-size: 12px; margin-bottom: 12px; border: 1px solid #BFDBFE;
+  }
+
+  /* ─── TOPBAR LOGOUT BTN (real) ─────────────────────────── */
+  .btn-logout {
+    font-size: 11px; color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 4px; padding: 4px 10px; cursor: pointer;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.2); color: #fff; }
 </style>
 </head>
 <body>
+
+<!-- ═══ AUTH OVERLAY ═══════════════════════════════════════════ -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-brand">AVGD Automotive</div>
+    <div class="auth-subtitle">Lane Distribution Dashboard</div>
+
+    <div class="auth-error"    id="auth-error"    hidden></div>
+    <div class="auth-info"     id="auth-info"     hidden></div>
+
+    <form id="auth-form" onsubmit="submitAuth(event)">
+      <div class="auth-field" id="auth-name-field" hidden>
+        <label for="auth-name">Display Name</label>
+        <input type="text" id="auth-name" autocomplete="name" placeholder="e.g., Trey Elliott" />
+      </div>
+      <div class="auth-field">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" autocomplete="email" required />
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" autocomplete="current-password" minlength="6" required />
+      </div>
+      <button type="submit" class="auth-submit" id="auth-submit">Sign In</button>
+    </form>
+
+    <div class="auth-toggle" id="auth-toggle-to-signup">
+      Need an account? <a onclick="setAuthMode('signup')">Sign up</a>
+    </div>
+    <div class="auth-toggle" id="auth-toggle-to-signin" hidden>
+      Already have an account? <a onclick="setAuthMode('signin')">Sign in</a>
+    </div>
+  </div>
+</div>
 
 <div id="toast-stack"></div>
 
@@ -836,8 +939,8 @@
     <span>Lane Distribution Dashboard</span>
   </div>
   <div class="topbar-right">
-    <span class="topbar-user">Trey Elliott</span>
-    <button class="btn-logout">Log out</button>
+    <span class="topbar-user" id="topbar-user">—</span>
+    <button class="btn-logout" onclick="signOut()">Log out</button>
   </div>
 </header>
 <div class="topbar-accent"></div>
@@ -2444,7 +2547,143 @@ async function initPage() {
   }
 }
 
-initPage();
+// ─── Auth ─────────────────────────────────────────────────────────
+let authMode = 'signin';          // 'signin' | 'signup'
+let currentUser = null;           // auth.users row
+let currentProfile = null;        // user_profiles row
+let appInitialized = false;
+
+const authEls = {
+  overlay:     () => document.getElementById('auth-overlay'),
+  form:        () => document.getElementById('auth-form'),
+  email:       () => document.getElementById('auth-email'),
+  password:    () => document.getElementById('auth-password'),
+  nameField:   () => document.getElementById('auth-name-field'),
+  name:        () => document.getElementById('auth-name'),
+  submit:      () => document.getElementById('auth-submit'),
+  errorBox:    () => document.getElementById('auth-error'),
+  infoBox:     () => document.getElementById('auth-info'),
+  toSignup:    () => document.getElementById('auth-toggle-to-signup'),
+  toSignin:    () => document.getElementById('auth-toggle-to-signin'),
+  topbarUser:  () => document.getElementById('topbar-user'),
+};
+
+function authMsg(type, text) {
+  const err = authEls.errorBox(), info = authEls.infoBox();
+  err.hidden = true; info.hidden = true;
+  if (!text) return;
+  const el = type === 'error' ? err : info;
+  el.textContent = text;
+  el.hidden = false;
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isSignup = mode === 'signup';
+  authEls.submit().textContent = isSignup ? 'Create Account' : 'Sign In';
+  authEls.nameField().hidden   = !isSignup;
+  authEls.toSignup().hidden    =  isSignup;
+  authEls.toSignin().hidden    = !isSignup;
+  authEls.password().autocomplete = isSignup ? 'new-password' : 'current-password';
+  authMsg(null);
+}
+
+async function submitAuth(ev) {
+  ev.preventDefault();
+  const email = authEls.email().value.trim();
+  const password = authEls.password().value;
+  const displayName = authEls.name().value.trim();
+  authEls.submit().disabled = true;
+  authMsg(null);
+
+  try {
+    if (authMode === 'signup') {
+      const { data, error } = await db.auth.signUp({
+        email, password,
+        options: { data: { display_name: displayName || email.split('@')[0] } }
+      });
+      if (error) throw error;
+      if (!data.session) {
+        // Email confirmation required — session will arrive via verification link
+        setAuthMode('signin');
+        authMsg('info', 'Account created. Check your inbox for a verification link to sign in.');
+        return;
+      }
+      // Auto-confirmed — onAuthStateChange will pick this up
+    } else {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    }
+  } catch (err) {
+    authMsg('error', err.message || 'Something went wrong. Please try again.');
+  } finally {
+    authEls.submit().disabled = false;
+  }
+}
+
+async function signOut() {
+  await db.auth.signOut();
+  // onAuthStateChange will re-show the overlay; clear URL hash so we land fresh next time
+  location.hash = '';
+  location.reload();
+}
+
+async function applySignedInState(session) {
+  currentUser = session?.user || null;
+  if (!currentUser) {
+    authEls.overlay().hidden = false;
+    authEls.topbarUser().textContent = '—';
+    return;
+  }
+
+  // Hide auth overlay
+  authEls.overlay().hidden = true;
+
+  // Load user_profile (may not exist yet if trigger hasn't fired)
+  let profile = null;
+  for (let tries = 0; tries < 3 && !profile; tries++) {
+    const { data } = await db.from('user_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+    profile = data;
+    if (!profile) await new Promise(r => setTimeout(r, 400)); // wait for trigger
+  }
+  currentProfile = profile;
+
+  // Top bar name: profile display_name → user metadata → email prefix
+  const name = profile?.display_name
+    || currentUser.user_metadata?.display_name
+    || currentUser.email?.split('@')[0]
+    || 'User';
+  authEls.topbarUser().textContent = name;
+
+  // Link user ↔ rep by matching display name (best-effort, one-time)
+  // reps has no email column yet, so we match on name equality.
+  if (name) {
+    const { data: repMatch } = await db.from('reps')
+      .select('id,name,user_id')
+      .ilike('name', name)
+      .maybeSingle();
+    if (repMatch && !repMatch.user_id) {
+      await db.from('reps').update({ user_id: currentUser.id }).eq('id', repMatch.id);
+    }
+  }
+
+  // Initialize the app only once per session
+  if (!appInitialized) {
+    appInitialized = true;
+    await initPage();
+  }
+}
+
+// Listen for auth state changes (SIGNED_IN / SIGNED_OUT)
+db.auth.onAuthStateChange((event, session) => {
+  applySignedInState(session);
+});
+
+// Initial check on page load
+(async () => {
+  const { data: { session } } = await db.auth.getSession();
+  await applySignedInState(session);
+})();
 </script>
 </body>
 </html>
