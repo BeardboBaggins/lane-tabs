@@ -898,7 +898,7 @@
           <button class="btn-today" onclick="goToToday()">Today</button>
         </div>
         <div class="schedule-toolbar-right">
-          <select class="status-filter">
+          <select class="status-filter" onchange="filterByStatus(this.value)">
             <option value="">All statuses</option>
             <option>Active</option>
             <option>Booked</option>
@@ -909,7 +909,6 @@
             <option>TONU</option>
             <option>Brokered</option>
           </select>
-          <button class="btn-add-row" onclick="addLoadRow()">+ Add Row</button>
         </div>
       </div>
 
@@ -1329,11 +1328,39 @@ async function loadSchedule(laneIds, weekStart) {
     }
   }
 
-  // Update route counts
+  // Apply filter + update route counts
+  applyStatusFilter();
+}
+
+// Status filter — hide rows whose status-sel value doesn't match.
+// A pickup and its paired delivery hide together so the grid isn't confusing.
+let currentStatusFilter = '';
+function filterByStatus(val) {
+  currentStatusFilter = val || '';
+  applyStatusFilter();
+}
+
+function applyStatusFilter() {
+  const filter = currentStatusFilter;
   DAY_IDS.forEach((day, offset) => {
     const tb = document.getElementById(day + '-tbody');
     if (!tb) return;
-    const n = tb.querySelectorAll('.route-top').length;
+    const trs = [...tb.children];
+    for (let i = 0; i < trs.length; i++) {
+      const tr = trs[i];
+      const next = trs[i + 1];
+      const isPair = tr.classList.contains('route-top') && next?.classList.contains('route-bot');
+      const statusOf = el => el.querySelector('.status-sel')?.value || '';
+      const show = !filter
+        ? true
+        : isPair
+          ? (statusOf(tr) === filter || statusOf(next) === filter)
+          : (statusOf(tr) === filter);
+      tr.style.display = show ? '' : 'none';
+      if (isPair) { next.style.display = show ? '' : 'none'; i++; }
+    }
+    // Update count of visible routes
+    const n = [...tb.querySelectorAll('.route-top')].filter(tr => tr.style.display !== 'none').length;
     const el = document.querySelector(`.day-header[data-day-offset="${offset}"] .day-count-val`);
     if (el) el.textContent = n ? `${n} route${n !== 1 ? 's' : ''}` : '';
   });
@@ -1405,6 +1432,8 @@ async function addLoadRow(dayOffset = 0) {
 function onStatusChange(sel) {
   const cls = statusClasses[sel.value] || 'status-Active';
   sel.className = 'status-sel ' + cls;
+  // Re-apply filter in case this row's new status no longer matches the active filter
+  if (currentStatusFilter) applyStatusFilter();
 }
 
 function toggleDay(header) {
