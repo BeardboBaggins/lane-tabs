@@ -621,6 +621,12 @@
   tr.route-top:active td.leg-ind,
   tr.route-bot:active td.leg-ind { cursor: grabbing; }
 
+  /* Canceled rows: red strikethrough on text (leg indicator + status pill stay intact) */
+  tr.row-canceled td { color: #AC171C; text-decoration: line-through; text-decoration-color: #AC171C; }
+  tr.row-canceled td input.cell-input { color: #AC171C; text-decoration: line-through; text-decoration-color: #AC171C; }
+  tr.row-canceled td.leg-ind, tr.row-canceled td.leg-ind::after { text-decoration: none; }
+  tr.row-canceled td .status-sel { text-decoration: none; }
+
   /* Drag state for draggable load pairs */
   tr.route-top.dragging, tr.route-bot.dragging { opacity: .35; }
   tr.route-top.drop-before td,
@@ -1732,6 +1738,7 @@ function makeLoadRow(row) {
   const isPickup = row.leg === 'pickup';
   const tr = document.createElement('tr');
   tr.className = isPickup ? 'route-top' : 'route-bot';
+  if (row.status === 'Canceled') tr.classList.add('row-canceled');
   tr.dataset.id = row.id;
   tr.dataset.pairId = row.pair_id || '';
   tr.draggable = true; // both pickup and delivery rows can initiate a pair drag
@@ -1949,6 +1956,9 @@ async function addLoadRow(dayOffset = 0) {
 function onStatusChange(sel) {
   const cls = statusClasses[sel.value] || 'status-Active';
   sel.className = 'status-sel ' + cls;
+  // Mark the row so CSS can strike through canceled loads
+  const tr = sel.closest('tr');
+  if (tr) tr.classList.toggle('row-canceled', sel.value === 'Canceled');
   // Re-apply filter in case this row's new status no longer matches the active filter
   if (currentStatusFilter) applyStatusFilter();
 }
