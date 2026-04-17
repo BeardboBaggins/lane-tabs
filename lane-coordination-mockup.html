@@ -112,6 +112,21 @@
     width: 100%; padding: 6px 10px; border-radius: 6px;
     border: 1px solid var(--border); font-size: 12px; background: var(--page-bg);
   }
+  /* My Lanes toggle */
+  .sidebar-myfilter {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    background: #fff; display: flex; align-items: center; gap: 8px;
+    font-family: 'Barlow', Arial, sans-serif;
+  }
+  .sidebar.collapsed .sidebar-myfilter { display: none; }
+  .sidebar-myfilter label {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--gray); user-select: none;
+  }
+  .sidebar-myfilter label.disabled { cursor: not-allowed; opacity: .55; }
+  .sidebar-myfilter input[type="checkbox"] { cursor: inherit; }
+  .sidebar-myfilter .myfilter-hint { font-size: 10px; color: var(--gray); font-weight: 400; margin-left: auto; }
   .rep-group { border-bottom: 1px solid var(--border); }
   .rep-header {
     padding: 8px 14px 6px;
@@ -953,6 +968,14 @@
     <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
     <div class="sidebar-search">
       <input type="text" placeholder="Search lanes…" oninput="filterSidebar(this.value)" />
+    </div>
+
+    <div class="sidebar-myfilter">
+      <label id="myfilter-label" title="">
+        <input type="checkbox" id="my-lanes-toggle" onchange="toggleMyLanes(this.checked)" />
+        My Lanes Only
+      </label>
+      <span class="myfilter-hint" id="myfilter-hint"></span>
     </div>
 
     <div id="sidebar-lanes"><div class="sidebar-loading">Loading lanes…</div></div>
@@ -1924,8 +1947,17 @@ function stripOriginCode(origin) {
 }
 
 async function loadSidebar() {
+  // Base query; when "My Lanes Only" is on AND the user is linked to a rep,
+  // scope to only that rep's lanes.
+  let lanesQuery = db.from('lanes')
+    .select('id, origin, destination, rep_id, lane_group, is_alerted, reps(name)')
+    .eq('status','Active')
+    .order('origin');
+  if (myLanesOnly && currentUserRepId) {
+    lanesQuery = lanesQuery.eq('rep_id', currentUserRepId);
+  }
   const [lanesRes, locsRes] = await Promise.all([
-    db.from('lanes').select('id, origin, destination, rep_id, lane_group, is_alerted, reps(name)').eq('status','Active').order('origin'),
+    lanesQuery,
     db.from('lane_locations').select('lane_id, gsdb_code, stop_order').not('gsdb_code', 'is', null).order('stop_order'),
   ]);
 
@@ -1969,6 +2001,18 @@ async function loadSidebar() {
 
   const container = document.getElementById('sidebar-lanes');
   const hashReps = getHashState().reps.map(r => r.toLowerCase());
+
+  // Empty state when "My Lanes Only" is on but the rep has no active lanes
+  if (!items.length) {
+    container.innerHTML = `<div style="padding:20px 16px;font-size:12px;color:var(--gray);line-height:1.5">
+      ${myLanesOnly
+        ? (currentUserRepId
+            ? `No active lanes assigned to <strong>${currentUserRepName}</strong>.`
+            : 'You\u2019re not linked to a rep yet.')
+        : 'No lanes to show.'}
+    </div>`;
+    return;
+  }
 
   container.innerHTML = Object.entries(byRep)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -2551,7 +2595,10 @@ async function initPage() {
 let authMode = 'signin';          // 'signin' | 'signup'
 let currentUser = null;           // auth.users row
 let currentProfile = null;        // user_profiles row
+let currentUserRepId = null;      // reps.id linked to this user (null if unlinked)
+let currentUserRepName = null;    // reps.name for display in My Lanes label
 let appInitialized = false;
+let myLanesOnly = false;          // "My Lanes Only" filter state (restored from localStorage)
 
 const authEls = {
   overlay:     () => document.getElementById('auth-overlay'),
@@ -2655,23 +2702,60 @@ async function applySignedInState(session) {
     || 'User';
   authEls.topbarUser().textContent = name;
 
-  // Link user ↔ rep by matching display name (best-effort, one-time)
-  // reps has no email column yet, so we match on name equality.
-  if (name) {
-    const { data: repMatch } = await db.from('reps')
-      .select('id,name,user_id')
-      .ilike('name', name)
-      .maybeSingle();
-    if (repMatch && !repMatch.user_id) {
-      await db.from('reps').update({ user_id: currentUser.id }).eq('id', repMatch.id);
+  // Link user ↔ rep: first look for a rep already linked to this user; else try
+  // name match and auto-link. Stash the id so "My Lanes" can filter by it.
+  currentUserRepId = null;
+  currentUserRepName = null;
+  {
+    let { data: rep } = await db.from('reps').select('id,name').eq('user_id', currentUser.id).maybeSingle();
+    if (!rep && name) {
+      const { data: match } = await db.from('reps').select('id,name,user_id').ilike('name', name).maybeSingle();
+      if (match && !match.user_id) {
+        await db.from('reps').update({ user_id: currentUser.id }).eq('id', match.id);
+        rep = match;
+      }
     }
+    if (rep) { currentUserRepId = rep.id; currentUserRepName = rep.name; }
   }
+  updateMyLanesToggleState();
 
   // Initialize the app only once per session
   if (!appInitialized) {
     appInitialized = true;
     await initPage();
   }
+}
+
+// ─── My Lanes filter ─────────────────────────────────────────────
+function updateMyLanesToggleState() {
+  const box = document.getElementById('my-lanes-toggle');
+  const label = document.getElementById('myfilter-label');
+  const hint = document.getElementById('myfilter-hint');
+  if (!box) return;
+  const linked = !!currentUserRepId;
+  box.disabled = !linked;
+  label.classList.toggle('disabled', !linked);
+  label.title = linked
+    ? `Show only lanes assigned to ${currentUserRepName}`
+    : 'Your account is not yet linked to a rep. Ask an admin to link you.';
+  hint.textContent = linked ? currentUserRepName : 'Not linked';
+  // Restore prior choice (if any)
+  try {
+    const saved = localStorage.getItem('myLanesOnly');
+    if (linked && saved === '1') {
+      myLanesOnly = true;
+      box.checked = true;
+    } else {
+      myLanesOnly = false;
+      box.checked = false;
+    }
+  } catch { myLanesOnly = false; }
+}
+
+async function toggleMyLanes(on) {
+  myLanesOnly = !!on;
+  try { localStorage.setItem('myLanesOnly', myLanesOnly ? '1' : '0'); } catch {}
+  await loadSidebar();
 }
 
 // Listen for auth state changes (SIGNED_IN / SIGNED_OUT)
