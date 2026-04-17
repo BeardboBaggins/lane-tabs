@@ -1009,68 +1009,85 @@
       </div>
 
       <div class="li-body" id="li-body">
-      <!-- ── Section 1: Rates & Frequency ── -->
+      <!-- ── Section 1: Summary ── -->
       <div class="li-section">
-        <div class="li-rates">
-          <div class="li-field"><label>Weekly Frequency</label><div class="lv" id="li-freq">—</div></div>
-          <div class="li-field"><label>Stop Charge</label><div class="lv" id="li-stop-charge">—</div></div>
-          <div class="li-field"><label>Backup Admin</label><div class="lv" id="li-backup-admin">—</div></div>
-          <div class="li-field"><label>Transit Hours</label><div class="lv" id="li-transit">—</div></div>
-          <div class="li-field"><label>IB Linehaul</label><div class="lv" id="li-ib-lh">—</div></div>
-          <div class="li-field"><label>OB Linehaul</label><div class="lv" id="li-ob-lh">—</div></div>
-          <div class="li-field"><label>IB FSC</label><div class="lv" id="li-ib-fsc">—</div></div>
-          <div class="li-field"><label>OB FSC</label><div class="lv" id="li-ob-fsc">—</div></div>
+        <div class="occ-header-row" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Summary</span>
+          <span class="occ-chevron">▾</span>
+        </div>
+        <div class="li-section-body">
+          <div class="li-rates">
+            <div class="li-field"><label>Weekly Frequency</label><div class="lv" id="li-freq">—</div></div>
+            <div class="li-field"><label>Stop Charge</label><div class="lv" id="li-stop-charge">—</div></div>
+            <div class="li-field"><label>Backup Admin</label><div class="lv" id="li-backup-admin">—</div></div>
+            <div class="li-field"><label>Transit Hours</label><div class="lv" id="li-transit">—</div></div>
+            <div class="li-field"><label>IB Linehaul</label><div class="lv" id="li-ib-lh">—</div></div>
+            <div class="li-field"><label>OB Linehaul</label><div class="lv" id="li-ob-lh">—</div></div>
+            <div class="li-field"><label>IB FSC</label><div class="lv" id="li-ib-fsc">—</div></div>
+            <div class="li-field"><label>OB FSC</label><div class="lv" id="li-ob-fsc">—</div></div>
+          </div>
         </div>
       </div>
 
       <!-- ── Section 2: Locations ── -->
       <div class="li-section">
-        <div class="li-table-scroll">
-        <table class="li-locs">
-          <thead>
-            <tr>
-              <th>GSDB Code</th>
-              <th>Name</th>
-              <th>Address</th>
-              <th>City / State / Zip</th>
-              <th>Time Zone</th>
-              <th>Ford Miles</th>
-            </tr>
-          </thead>
-          <tbody id="li-locs-tbody"></tbody>
-        </table>
+        <div class="occ-header-row" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Locations</span>
+          <span class="occ-chevron">▾</span>
+        </div>
+        <div class="li-section-body">
+          <div class="li-table-scroll">
+          <table class="li-locs">
+            <thead>
+              <tr>
+                <th>GSDB Code</th>
+                <th>Name</th>
+                <th>Address</th>
+                <th>City / State / Zip</th>
+                <th>Time Zone</th>
+              </tr>
+            </thead>
+            <tbody id="li-locs-tbody"></tbody>
+          </table>
+          </div>
         </div>
       </div>
 
       <!-- ── Section 3: Routes & Schedule ── -->
       <div class="li-section">
-        <div class="routes-view-toggle">
-          <button class="rv-btn active" data-view="table" onclick="setRoutesView('table')">Table</button>
-          <button class="rv-btn" data-view="grid" onclick="setRoutesView('grid')">Grid</button>
-          <button class="rv-btn" data-view="timeline" onclick="setRoutesView('timeline')">Timeline</button>
+        <div class="occ-header-row" onclick="toggleLiSection(this)">
+          <span class="occ-header-title">Routes &amp; Schedule</span>
+          <span class="occ-chevron">▾</span>
+          <div class="routes-view-toggle" onclick="event.stopPropagation()" style="margin-left:auto;margin-bottom:0">
+            <button class="rv-btn active" data-view="table" onclick="setRoutesView('table')">Table</button>
+            <button class="rv-btn" data-view="grid" onclick="setRoutesView('grid')">Grid</button>
+            <button class="rv-btn" data-view="timeline" onclick="setRoutesView('timeline')">Timeline</button>
+          </div>
         </div>
-        <div class="li-table-scroll routes-view routes-view-table">
-        <table class="li-routes">
-          <thead>
-            <tr>
-              <th>IB Route(s)</th>
-              <th>OB Route(s)</th>
-              <th>PU Days</th>
-              <th>PU Times</th>
-              <th>DEL Days</th>
-              <th>DEL Times</th>
-              <th>Live/Drop</th>
-              <th>Dock</th>
-            </tr>
-          </thead>
-          <tbody id="li-routes-tbody"></tbody>
-        </table>
-        </div>
-        <div class="li-table-scroll routes-view routes-view-grid" style="display:none">
-          <div id="li-routes-grid"></div>
-        </div>
-        <div class="li-table-scroll routes-view routes-view-timeline" style="display:none">
-          <div id="li-routes-timeline"></div>
+        <div class="li-section-body">
+          <div class="li-table-scroll routes-view routes-view-table">
+          <table class="li-routes">
+            <thead>
+              <tr>
+                <th>IB Route(s)</th>
+                <th>OB Route(s)</th>
+                <th>PU Days</th>
+                <th>PU Times</th>
+                <th>DEL Days</th>
+                <th>DEL Times</th>
+                <th>Live/Drop</th>
+                <th>Dock</th>
+              </tr>
+            </thead>
+            <tbody id="li-routes-tbody"></tbody>
+          </table>
+          </div>
+          <div class="li-table-scroll routes-view routes-view-grid" style="display:none">
+            <div id="li-routes-grid"></div>
+          </div>
+          <div class="li-table-scroll routes-view routes-view-timeline" style="display:none">
+            <div id="li-routes-timeline"></div>
+          </div>
         </div>
       </div>
 
@@ -1243,6 +1260,7 @@
                   <th>Date</th>
                   <th>Time (ET)</th>
                   <th>Route #</th>
+                  <th>Miles</th>
                   <th>Pro #</th>
                   <th>Tracking #</th>
                   <th>Ship #</th>
@@ -1581,9 +1599,20 @@ async function populateWeekFromRoutes(laneIds, weekStart) {
   return rows.length;
 }
 
+// Module-level cache so makeLoadRow (rendered in lock-step) can read lane miles.
+let currentLaneMiles = null; // total Ford miles across the current lane(s)
+
 async function loadSchedule(laneIds, weekStart) {
   const ids = Array.isArray(laneIds) ? laneIds : [laneIds];
   const weekBaseDate = new Date(weekStart + 'T00:00:00');
+
+  // Fetch total lane miles (max ford_miles across this lane's stops)
+  {
+    const { data: milesRows } = await db.from('lane_locations')
+      .select('ford_miles').in('lane_id', ids).not('ford_miles', 'is', null);
+    const vals = (milesRows || []).map(r => Number(r.ford_miles)).filter(n => !Number.isNaN(n));
+    currentLaneMiles = vals.length ? Math.max(...vals) : null;
+  }
 
   // Update day-date labels
   document.querySelectorAll('.day-header[data-day-offset]').forEach(hdr => {
@@ -1694,6 +1723,7 @@ function makeLoadRow(row) {
     <td class="locked-val">${fmtDate(row.load_date)}</td>
     <td class="locked-val">${row.time_et || '—'}</td>
     <td class="locked-val">${row.route_number || '—'}</td>
+    <td class="locked-val">${currentLaneMiles != null ? currentLaneMiles + ' mi' : '—'}</td>
     ${fields.slice(0,3).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
     ${fields.slice(3,5).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
     ${fields.slice(5,6).map(([f,p,w])=>`<td><input class="cell-input" data-field="${f}" value="${row[f]||''}" placeholder="${p}" style="min-width:${w}px" onchange="updateLoad(this,'${row.id}')"></td>`).join('')}
@@ -2162,8 +2192,7 @@ async function loadLaneInfo(laneIds) {
       <td>${loc.name || '—'}</td>
       <td>${loc.address || '—'}</td>
       <td>${cityLine || '—'}</td>
-      <td>${loc.time_zone || '—'}</td>
-      <td>${loc.ford_miles ? `${loc.ford_miles} mi` : '—'}</td>`;
+      <td>${loc.time_zone || '—'}</td>`;
     locsTbody.appendChild(tr);
   });
 
