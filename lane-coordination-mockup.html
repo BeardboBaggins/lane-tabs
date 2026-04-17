@@ -1622,7 +1622,7 @@ function renderRoutesGrid(routes) {
 
     // Route-label cell — IB/OB stacked, pill inline with IB, dock inline with OB
     const pill = renderLiveDropPill(route.pu_live_drop);
-    const dockText = route.pu_dock ? `Dock ${route.pu_dock}` : '';
+    const dockText = route.pu_dock || '';
     html += `<div class="rg-cell rg-route">
       <div class="rg-route-row">
         <span class="rg-route-num">${route.ib_route || '—'}</span>
