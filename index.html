@@ -2761,16 +2761,23 @@ function reportDbError(prefix, error) {
   return true;
 }
 
-function refreshOccEmailsUpdated() {
+// When a mutating action (add/remove) happens, pass its ts + actor so the
+// footer reflects whoever triggered the change. On initial render (no args),
+// fall back to the most-recently-added chip's created_at / addedBy.
+function refreshOccEmailsUpdated(ts, by) {
   const chips = [...document.querySelectorAll('#occ-email-box .occ-chip')];
   const el = document.getElementById('occ-emails-updated');
-  if (!chips.length) { el.textContent = 'No emails yet'; return; }
-  const latest = chips
-    .map(c => c.dataset.createdAt)
-    .filter(Boolean)
-    .sort()
-    .pop();
-  el.textContent = latest ? `Last updated ${fmtNow(latest)}` : `Last updated ${fmtNow()}`;
+  if (!chips.length && !ts) { el.textContent = 'No emails yet'; return; }
+  if (!ts) {
+    const latestChip = chips
+      .filter(c => c.dataset.createdAt)
+      .sort((a, b) => a.dataset.createdAt.localeCompare(b.dataset.createdAt))
+      .pop();
+    ts = latestChip?.dataset.createdAt;
+    by = latestChip?.dataset.addedBy;
+  }
+  const stamp = ts ? fmtNow(ts) : fmtNow();
+  el.textContent = `Last updated ${stamp}${by ? ' by ' + by : ''}`;
 }
 
 function fmtChipDate(iso) {
@@ -2784,6 +2791,7 @@ function makeEmailChip(row) {
   span.className = 'occ-chip' + (locked ? ' occ-chip--locked' : '');
   span.dataset.id = row.id;
   span.dataset.createdAt = row.created_at || new Date().toISOString();
+  span.dataset.addedBy = row.added_by_name || '';
   span.dataset.locked = locked ? '1' : '';
   const action = locked
     ? `<span class="occ-chip-lock" title="Locked">🔒</span>`
@@ -2797,7 +2805,7 @@ async function removeOccEmail(chip) {
   const { error } = await db.from('lane_occurrence_emails').delete().eq('id', chip.dataset.id);
   if (reportDbError('Remove email failed', error)) return;
   chip.remove();
-  refreshOccEmailsUpdated();
+  refreshOccEmailsUpdated(new Date().toISOString(), currentDisplayName());
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2808,13 +2816,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = input.value.trim();
     if (!email) return;
     const { data, error } = await db.from('lane_occurrence_emails')
-      .insert({ occurrence_id: currentOccurrenceId, email }).select().single();
+      .insert({ occurrence_id: currentOccurrenceId, email, added_by_name: currentDisplayName() }).select().single();
     if (reportDbError('Add email failed', error)) return;
     if (data) {
       const box = document.getElementById('occ-email-box');
       box.insertBefore(makeEmailChip(data), input);
       input.value = '';
-      refreshOccEmailsUpdated();
+      refreshOccEmailsUpdated(data.created_at, data.added_by_name);
     }
   });
 });
@@ -2917,7 +2925,7 @@ async function selectOccurrence(row) {
   document.querySelector('#occ-detail .occ-detail-type').textContent = row.querySelector('.occ-row-type').textContent;
 
   const [occRes, emailsRes] = await Promise.all([
-    db.from('lane_occurrences').select('notes, notes_updated_at').eq('id', id).maybeSingle(),
+    db.from('lane_occurrences').select('notes, notes_updated_at, notes_updated_by_name').eq('id', id).maybeSingle(),
     db.from('lane_occurrence_emails').select('*').eq('occurrence_id', id).order('created_at'),
   ]);
 
