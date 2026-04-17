@@ -244,6 +244,7 @@
   }
   .live-badge  { background: #D1FAE5; color: #065F46; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
   .drop-badge  { background: #FEF3C7; color: #92400E; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .multi-badge { background: #DBEAFE; color: #1E40AF; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
 
   /* Routes table */
   table.li-routes {
@@ -1399,12 +1400,14 @@ function renderDayDots(daysStr) {
   ).join('')}</span>`;
 }
 
-// Render Live/Drop value as a colored pill (Live=green, Drop=yellow)
+// Render Live/Drop value as a colored pill
+//   Live=green, Drop=yellow, Multi=blue (match Multi before Drop to avoid false hits)
 function renderLiveDropPill(val) {
   if (!val) return '—';
   const s = val.trim();
-  if (/live/i.test(s)) return `<span class="live-badge">${s}</span>`;
-  if (/drop/i.test(s)) return `<span class="drop-badge">${s}</span>`;
+  if (/^multi/i.test(s)) return `<span class="multi-badge">${s}</span>`;
+  if (/live/i.test(s))   return `<span class="live-badge">${s}</span>`;
+  if (/drop/i.test(s))   return `<span class="drop-badge">${s}</span>`;
   return s;
 }
 
