@@ -88,11 +88,25 @@
     flex-direction: column;
     overflow-y: auto;
     flex-shrink: 0;
+    transition: width .18s ease;
+    position: relative;
   }
+  .sidebar.collapsed { width: 32px; }
+  .sidebar.collapsed .sidebar-search,
+  .sidebar.collapsed #sidebar-lanes { display: none; }
+  .sidebar-toggle {
+    position: sticky; top: 0; z-index: 6;
+    background: #fff; border: none; border-bottom: 1px solid var(--border);
+    padding: 8px 0; cursor: pointer; font-size: 14px; color: var(--gray);
+    width: 100%; text-align: center; user-select: none;
+    font-family: 'Barlow', Arial, sans-serif; font-weight: 700;
+  }
+  .sidebar-toggle:hover { color: var(--navy); background: #F3F4F6; }
+  .sidebar.collapsed .sidebar-toggle { border-bottom: none; }
   .sidebar-search {
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; background: #fff; z-index: 5;
+    position: sticky; top: 33px; background: #fff; z-index: 5;
   }
   .sidebar-search input {
     width: 100%; padding: 6px 10px; border-radius: 6px;
@@ -668,7 +682,8 @@
 <div class="app-body">
 
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
     <div class="sidebar-search">
       <input type="text" placeholder="Search lanes…" oninput="filterSidebar(this.value)" />
     </div>
@@ -1127,6 +1142,30 @@ function goToToday() {
   updateWeekLabel(currentWeekStart);
   loadSchedule(currentLaneIds, currentWeekStart);
 }
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const collapsed = sb.classList.toggle('collapsed');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  btn.textContent = collapsed ? '›' : '‹';
+  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch {}
+}
+
+// Restore sidebar collapsed state on load (default: open)
+(function restoreSidebarState() {
+  try {
+    if (localStorage.getItem('sidebarCollapsed') === '1') {
+      const sb = document.getElementById('sidebar');
+      const btn = document.getElementById('sidebar-toggle-btn');
+      if (sb && btn) {
+        sb.classList.add('collapsed');
+        btn.textContent = '›';
+        btn.title = 'Expand sidebar';
+      }
+    }
+  } catch {}
+})();
 
 function filterSidebar(query) {
   const q = query.toLowerCase();
