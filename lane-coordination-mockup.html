@@ -287,6 +287,127 @@
   }
   .day-dot.on { background: var(--blue); color: #fff; }
 
+  /* Routes view toggle (Table / Grid) */
+  .routes-view-toggle {
+    display: inline-flex; gap: 2px; margin-bottom: 10px;
+    background: #F3F4F6; border-radius: 6px; padding: 2px;
+  }
+  .rv-btn {
+    background: none; border: none; cursor: pointer; padding: 4px 12px;
+    font-size: 11px; font-weight: 700; color: var(--gray); border-radius: 4px;
+    font-family: 'Barlow', Arial, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .rv-btn:hover { color: var(--navy); }
+  .rv-btn.active { background: #fff; color: var(--navy); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  /* Routes grid view */
+  .routes-grid {
+    display: grid;
+    grid-template-columns: minmax(140px, auto) repeat(7, minmax(72px, 1fr));
+    font-size: 11px;
+    border-top: 1px solid #F3F4F6;
+  }
+  .routes-grid .rg-cell {
+    padding: 8px 6px; border-bottom: 1px solid #F3F4F6;
+    text-align: center; vertical-align: middle;
+  }
+  .routes-grid .rg-head {
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--navy); font-weight: 700;
+    padding: 0 6px 5px; border-bottom: 1px solid var(--border);
+  }
+  .routes-grid .rg-route {
+    text-align: left; display: flex; flex-direction: column; gap: 3px;
+  }
+  .rg-route-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .rg-route-num {
+    font-family: monospace; font-weight: 700; font-size: 11px;
+  }
+  .rg-route-dock {
+    font-family: monospace; font-size: 10px; color: var(--gray); white-space: nowrap;
+  }
+  .rg-marker {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-family: monospace;
+  }
+  .rg-marker + .rg-marker { margin-top: 2px; }
+  .rg-marker-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; border-radius: 50%; font-size: 9px;
+    font-weight: 700; color: #fff;
+  }
+  .rg-pu .rg-marker-icon { background: var(--blue); }
+  .rg-del .rg-marker-icon { background: #059669; }
+  .rg-empty { color: #E5E7EB; }
+  .rg-row-meta {
+    padding: 8px 6px; border-bottom: 1px solid #F3F4F6;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+
+  /* Routes timeline (Gantt-style) */
+  .routes-timeline { font-size: 11px; }
+  .rt-grid {
+    display: grid; grid-template-columns: 140px 1fr;
+    column-gap: 10px; row-gap: 2px; align-items: center;
+  }
+  .rt-day-labels {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    font-family: 'Barlow', Arial, sans-serif;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--navy); font-weight: 700;
+    padding-bottom: 5px; border-bottom: 1px solid var(--border);
+  }
+  .rt-day-label { text-align: center; }
+  .rt-route-label {
+    font-family: monospace; font-weight: 700; font-size: 11px;
+    padding: 6px 0; line-height: 1.2;
+  }
+  .rt-route-label-sub { display: block; font-weight: 400; font-size: 10px; color: var(--gray); }
+  .rt-track {
+    position: relative; height: 28px;
+    /* 6-hour sub-grid (light) + day boundaries (strong, 2px). 7 days × 4 chunks = 28 cells */
+    background:
+      linear-gradient(to right,
+        transparent calc(100%/7 - 2px), #6B7280 calc(100%/7 - 2px),
+        #6B7280 calc(100%/7), transparent calc(100%/7)
+      ),
+      linear-gradient(to right,
+        transparent calc(100%/28 - 1px), #E5E7EB calc(100%/28 - 1px),
+        #E5E7EB calc(100%/28), transparent calc(100%/28)
+      );
+    background-size: calc(100%/7) 100%, calc(100%/28) 100%;
+    border-bottom: 1px solid #F3F4F6;
+  }
+
+  /* Bottom time ruler (6h marks: 00, 06, 12, 18) */
+  .rt-time-ruler {
+    display: grid; grid-template-columns: repeat(28, 1fr);
+    font-family: monospace; font-size: 8px; color: var(--gray);
+    padding-top: 3px; border-top: 1px solid #E5E7EB;
+  }
+  .rt-time-ruler > span {
+    text-align: left; padding-left: 2px; white-space: nowrap;
+  }
+  .rt-bar {
+    position: absolute; top: 6px; height: 16px;
+    background: #DBEAFE; border: 1px solid var(--blue);
+    border-radius: 8px; display: flex; align-items: center; overflow: hidden;
+    min-width: 10px;
+  }
+  .rt-bar-pu, .rt-bar-del {
+    width: 10px; height: 100%; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 8px; color: #fff; flex-shrink: 0;
+  }
+  .rt-bar-pu  { background: var(--blue); }
+  .rt-bar-del { background: #059669; margin-left: auto; }
+  /* Wrapped bars — flatten the "cut" edge so the split reads clearly */
+  .rt-bar--continues { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-style: dashed; }
+  .rt-bar--continued { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-style: dashed; }
+
   /* Lane meta strip */
   .li-meta {
     display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
@@ -743,7 +864,12 @@
 
       <!-- ── Section 3: Routes & Schedule ── -->
       <div class="li-section">
-        <div class="li-table-scroll">
+        <div class="routes-view-toggle">
+          <button class="rv-btn active" data-view="table" onclick="setRoutesView('table')">Table</button>
+          <button class="rv-btn" data-view="grid" onclick="setRoutesView('grid')">Grid</button>
+          <button class="rv-btn" data-view="timeline" onclick="setRoutesView('timeline')">Timeline</button>
+        </div>
+        <div class="li-table-scroll routes-view routes-view-table">
         <table class="li-routes">
           <thead>
             <tr>
@@ -759,6 +885,12 @@
           </thead>
           <tbody id="li-routes-tbody"></tbody>
         </table>
+        </div>
+        <div class="li-table-scroll routes-view routes-view-grid" style="display:none">
+          <div id="li-routes-grid"></div>
+        </div>
+        <div class="li-table-scroll routes-view routes-view-timeline" style="display:none">
+          <div id="li-routes-timeline"></div>
         </div>
       </div>
 
@@ -1468,6 +1600,159 @@ function renderDayDots(daysStr) {
   ).join('')}</span>`;
 }
 
+// Day-column grid view (alternative to the routes table) — Sunday first to match dispatch flow
+const GRID_DAY_ORDER = ['U','M','T','W','R','F','S'];
+const GRID_DAY_LABEL = { M:'Mon', T:'Tue', W:'Wed', R:'Thu', F:'Fri', S:'Sat', U:'Sun' };
+
+function renderRoutesGrid(routes) {
+  const host = document.getElementById('li-routes-grid');
+  if (!host) return;
+  if (!routes.length) { host.innerHTML = '<div style="padding:12px;color:var(--gray);font-size:12px">No routes</div>'; return; }
+
+  // Header row: "Route" + 7 day columns
+  let html = `<div class="routes-grid">`;
+  html += `<div class="rg-head" style="text-align:left">Route</div>`;
+  GRID_DAY_ORDER.forEach(d => { html += `<div class="rg-head">${GRID_DAY_LABEL[d]}</div>`; });
+
+  routes.forEach(route => {
+    const puDays = new Set((route.pu_days || '').split(/\s+/).filter(Boolean));
+    const delDays = new Set((route.del_days || '').split(/\s+/).filter(Boolean));
+    const puT = route.pu_times || '';
+    const delT = route.del_times || '';
+
+    // Route-label cell — IB/OB stacked, pill inline with IB, dock inline with OB
+    const pill = renderLiveDropPill(route.pu_live_drop);
+    const dockText = route.pu_dock ? `Dock ${route.pu_dock}` : '';
+    html += `<div class="rg-cell rg-route">
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ib_route || '—'}</span>
+        <span>${pill}</span>
+      </div>
+      <div class="rg-route-row">
+        <span class="rg-route-num">${route.ob_route || '—'}</span>
+        <span class="rg-route-dock">${dockText}</span>
+      </div>
+    </div>`;
+
+    // Day cells — PU marker ▲ + DEL marker ▼ as applicable
+    GRID_DAY_ORDER.forEach(d => {
+      const parts = [];
+      if (puDays.has(d)) {
+        parts.push(`<span class="rg-marker rg-pu"><span class="rg-marker-icon">▲</span>${puT || ''}</span>`);
+      }
+      if (delDays.has(d)) {
+        parts.push(`<span class="rg-marker rg-del"><span class="rg-marker-icon">▼</span>${delT || ''}</span>`);
+      }
+      html += `<div class="rg-cell" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+        ${parts.length ? parts.join('') : '<span class="rg-empty">—</span>'}
+      </div>`;
+    });
+  });
+
+  html += `</div>`;
+  host.innerHTML = html;
+}
+
+// Horizontal weekly timeline (Gantt): PU→DEL bars across M–Sun for each route
+function parseTimeToMins(t) {
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  return m ? parseInt(m[1],10)*60 + parseInt(m[2],10) : null;
+}
+// Sunday-first to match dispatch flow (Sun=0, Mon=1, ... Sat=6)
+const DAY_IDX = { U:0, M:1, T:2, W:3, R:4, F:5, S:6 };
+
+function renderRoutesTimeline(routes) {
+  const host = document.getElementById('li-routes-timeline');
+  if (!host) return;
+  if (!routes.length) { host.innerHTML = '<div style="padding:12px;color:var(--gray);font-size:12px">No routes</div>'; return; }
+
+  const WEEK_MINS = 7*24*60;
+
+  // Header row: empty corner + 7 day labels
+  let html = `<div class="routes-timeline">
+    <div class="rt-grid">
+      <div></div>
+      <div class="rt-day-labels">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="rt-day-label">${d}</div>`).join('')}
+      </div>`;
+
+  routes.forEach(route => {
+    const puDays = (route.pu_days || '').split(/\s+/).filter(Boolean);
+    const delDays = (route.del_days || '').split(/\s+/).filter(Boolean);
+    const puMin = parseTimeToMins(route.pu_times);
+    const delMin = parseTimeToMins(route.del_times);
+
+    // Build bars — position pair by index (PU[i] paired with DEL[i], next-week wrap if DEL < PU)
+    let bars = '';
+    if (puDays.length && puMin != null) {
+      puDays.forEach((puDay, i) => {
+        const delDay = delDays[i] ?? puDay;
+        const puStart = DAY_IDX[puDay] * 1440 + puMin;
+        let delEnd   = DAY_IDX[delDay] * 1440 + (delMin != null ? delMin : puMin);
+        if (delEnd <= puStart) delEnd += WEEK_MINS; // wrap to next week
+        const title = `${route.ib_route || ''}${route.ob_route ? ' / '+route.ob_route : ''}\nPU ${puDay} ${route.pu_times || ''}\nDEL ${delDay} ${route.del_times || ''}`;
+        const titleAttr = title.replace(/"/g,'&quot;');
+
+        if (delEnd <= WEEK_MINS) {
+          // Normal bar — fits within the week
+          const left  = (puStart / WEEK_MINS) * 100;
+          const width = ((delEnd - puStart) / WEEK_MINS) * 100;
+          bars += `<div class="rt-bar" style="left:${left}%;width:${width}%" title="${titleAttr}">
+            <span class="rt-bar-pu">▲</span>
+            <span class="rt-bar-del">▼</span>
+          </div>`;
+        } else {
+          // Wraps — draw two partial bars (continues right, continued on left)
+          const left1  = (puStart / WEEK_MINS) * 100;
+          const width1 = ((WEEK_MINS - puStart) / WEEK_MINS) * 100;
+          bars += `<div class="rt-bar rt-bar--continues" style="left:${left1}%;width:${width1}%" title="${titleAttr}">
+            <span class="rt-bar-pu">▲</span>
+          </div>`;
+          const wrapEnd = delEnd - WEEK_MINS;
+          const width2  = (wrapEnd / WEEK_MINS) * 100;
+          bars += `<div class="rt-bar rt-bar--continued" style="left:0%;width:${width2}%" title="${titleAttr}">
+            <span class="rt-bar-del">▼</span>
+          </div>`;
+        }
+      });
+    }
+
+    const pill = renderLiveDropPill(route.pu_live_drop);
+    html += `<div class="rt-route-label">
+      ${route.ib_route || '—'}${route.ob_route ? ' / '+route.ob_route : ''}
+      <span class="rt-route-label-sub">${pill}</span>
+    </div>
+    <div class="rt-track">${bars}</div>`;
+  });
+
+  // Bottom time ruler — 6h marks repeating (00, 06, 12, 18) × 7 days
+  const rulerLabels = Array.from({length: 28}, (_, i) => ['00','06','12','18'][i % 4]);
+  html += `<div></div>
+    <div class="rt-time-ruler">
+      ${rulerLabels.map(l => `<span>${l}</span>`).join('')}
+    </div>`;
+
+  html += `</div></div>`;
+  host.innerHTML = html;
+}
+
+function setRoutesView(view) {
+  document.querySelectorAll('.rv-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelector('.routes-view-table').style.display    = view === 'table'    ? '' : 'none';
+  document.querySelector('.routes-view-grid').style.display     = view === 'grid'     ? '' : 'none';
+  document.querySelector('.routes-view-timeline').style.display = view === 'timeline' ? '' : 'none';
+  try { localStorage.setItem('routesView', view); } catch {}
+}
+
+// Restore last view preference
+(function restoreRoutesView() {
+  try {
+    const v = localStorage.getItem('routesView');
+    if (v && v !== 'table') window.addEventListener('DOMContentLoaded', () => setRoutesView(v));
+  } catch {}
+})();
+
 // Render Live/Drop value as a colored pill
 //   Live=green, Drop=yellow, Multi=blue (match Multi before Drop to avoid false hits)
 function renderLiveDropPill(val) {
@@ -1680,6 +1965,8 @@ async function loadLaneInfo(laneIds) {
       <td>${route.pu_dock || '—'}</td>`;
     routesTbody.appendChild(tr);
   });
+  renderRoutesGrid(routesRes.data || []);
+  renderRoutesTimeline(routesRes.data || []);
 
   // Supplier contacts
   const supps = suppRes.data || [];
