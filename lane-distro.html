@@ -1,0 +1,135 @@
+<style>
+  /* ─── LANE DISTRO PAGE ────────────────────────────────────── */
+  .distro-page[hidden] { display: none !important; }
+  .distro-page { padding: 20px 24px 60px; display: flex; flex-direction: column; gap: 16px; }
+  .distro-hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #24243e 100%);
+    color: #fff; border-radius: 10px; padding: 18px 24px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .distro-hero h1 {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 20px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .distro-hero-stats { display: flex; gap: 18px; flex-wrap: wrap; }
+  .distro-hero-stat {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px; padding: 6px 12px; min-width: 100px;
+  }
+  .distro-hero-stat .lbl {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.65);
+  }
+  .distro-hero-stat .val {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 18px; font-weight: 700; color: #fff;
+  }
+  .distro-toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    background: var(--card-bg); padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .distro-toolbar input, .distro-toolbar select {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px;
+    font-size: 12px; font-family: inherit; background: #fff; color: #111827;
+  }
+  .distro-toolbar input { min-width: 220px; }
+  .distro-toolbar .dt-label {
+    font-family: 'Barlow', Arial, sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px; color: var(--navy);
+  }
+  .distro-count { margin-left: auto; font-size: 11px; color: var(--gray); }
+
+  .distro-table-wrap {
+    background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.04); overflow: auto; max-height: calc(100vh - 240px);
+  }
+  .distro-table { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
+  .distro-table thead tr.group-row th {
+    background: var(--navy); color: #fff;
+    font-family: 'Barlow', Arial, sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    padding: 5px 8px; text-align: center; border-right: 1px solid rgba(255,255,255,.15);
+    position: sticky; top: 0; z-index: 3;
+  }
+  .distro-table thead tr.group-row th.grp-basic    { background: #374151; }
+  .distro-table thead tr.group-row th.grp-geo      { background: #4B5563; }
+  .distro-table thead tr.group-row th.grp-ops      { background: #1F2937; }
+  .distro-table thead tr.group-row th.grp-expected { background: var(--blue); }
+  .distro-table thead tr.group-row th.grp-market   { background: #374151; }
+  .distro-table thead tr.group-row th.grp-actual   { background: #065F46; }
+  .distro-table thead tr.group-row th.grp-delta    { background: var(--red); }
+
+  .distro-table thead tr.col-row th {
+    background: #F9FAFB; color: var(--navy);
+    font-family: 'Barlow', Arial, sans-serif; font-size: 9.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px;
+    padding: 6px 8px; text-align: center; border-bottom: 2px solid var(--border);
+    white-space: nowrap; position: sticky; top: 23px; z-index: 2;
+  }
+  .distro-table tbody td {
+    padding: 5px 8px; border-bottom: 1px solid #F3F4F6; color: #374151;
+    white-space: nowrap; font-variant-numeric: tabular-nums; text-align: center;
+  }
+  /* Route #s column (8th col) — narrow + wrap at two-per-line */
+  .distro-table thead tr.col-row th:nth-child(8),
+  .distro-table tbody td:nth-child(8) {
+    max-width: 100px; white-space: normal; word-break: break-word; line-height: 1.25;
+  }
+  .distro-table tbody tr:hover td { background: #F9FAFB; }
+  .distro-table tbody tr.pair-start td { border-top: 2px solid var(--navy); }
+  .distro-table td.num { font-family: 'SF Mono', Menlo, monospace; }
+  .distro-table td.neg { color: var(--red); }
+  .distro-table td.pos { color: #065F46; }
+  .distro-table td.rfq { font-weight: 700; color: var(--navy); }
+  .distro-table td.dir-ib { color: var(--blue); font-weight: 700; }
+  .distro-table td.dir-ob { color: var(--red); font-weight: 700; }
+  .distro-table td.inactive { color: #9CA3AF; font-style: italic; }
+  .distro-table tbody tr.inactive-row td { background: #FAFAFA; color: #9CA3AF; }
+  .distro-table .lane-link { color: var(--blue); text-decoration: none; cursor: pointer; }
+  .distro-table .lane-link:hover { text-decoration: underline; }
+
+  /* Collapsible column groups — group header is always clickable. When a
+     group is collapsed, its per-column headers and data cells hide; the
+     group header cell shrinks to a single column. */
+  .distro-table .group-row th { cursor: pointer; user-select: none; }
+  .distro-table .group-row th .grp-chev { margin-right: 4px; display: inline-block; }
+  .distro-table.distro-hide-basics   [data-group="basics"]:not(.grp-header),
+  .distro-table.distro-hide-geo      [data-group="geo"]:not(.grp-header),
+  .distro-table.distro-hide-ops      [data-group="ops"]:not(.grp-header),
+  .distro-table.distro-hide-expected [data-group="expected"]:not(.grp-header),
+  .distro-table.distro-hide-market   [data-group="market"]:not(.grp-header),
+  .distro-table.distro-hide-actual   [data-group="actual"]:not(.grp-header),
+  .distro-table.distro-hide-delta    [data-group="delta"]:not(.grp-header) { display: none; }
+</style>
+
+<div class="distro-page" id="distro-page" hidden>
+  <div class="distro-hero">
+    <h1>Lane Distro</h1>
+    <div class="distro-hero-stats">
+      <div class="distro-hero-stat"><div class="lbl">Lanes</div><div class="val" id="dh-lanes">—</div></div>
+      <div class="distro-hero-stat"><div class="lbl">Active</div><div class="val" id="dh-active">—</div></div>
+      <div class="distro-hero-stat"><div class="lbl">Exp Rev / Mo</div><div class="val" id="dh-exp-rev">—</div></div>
+      <div class="distro-hero-stat"><div class="lbl">Act Rev / Mo</div><div class="val" id="dh-act-rev">—</div></div>
+      <div class="distro-hero-stat"><div class="lbl">Net Δ / Mo</div><div class="val" id="dh-net-delta">—</div></div>
+    </div>
+  </div>
+  <div class="distro-toolbar">
+    <span class="dt-label">Search</span>
+    <input type="text" id="distro-search" placeholder="Origin, dest, RFQ, route, GSDB, admin…" oninput="filterDistro()">
+    <span class="dt-label">Admin</span>
+    <select id="distro-admin" onchange="filterDistro()"><option value="">All</option></select>
+    <span class="dt-label">Active</span>
+    <select id="distro-active" onchange="filterDistro()">
+      <option value="">All</option><option value="Yes" selected>Yes</option><option value="No">No</option>
+    </select>
+    <span class="dt-label">Direction</span>
+    <select id="distro-direction" onchange="filterDistro()">
+      <option value="">Both</option><option value="IB">IB only</option><option value="OB">OB only</option>
+    </select>
+    <button class="sb-collapse-all" id="distro-collapse-all-btn" onclick="toggleAllDistroGroups()">Hide All</button>
+    <span class="distro-count" id="distro-count">—</span>
+  </div>
+  <div class="distro-table-wrap">
+    <table class="distro-table" id="distro-table"><thead></thead><tbody></tbody></table>
+  </div>
+</div>

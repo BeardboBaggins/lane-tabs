@@ -96,7 +96,7 @@
   }
   .sidebar.collapsed { width: 32px; }
   .sidebar[hidden], .sidebar-toggle[hidden] { display: none !important; }
-  .lane-info-card[hidden], .schedule-card[hidden], .landing-page[hidden], .distro-page[hidden] { display: none !important; }
+  .lane-info-card[hidden], .schedule-card[hidden], .landing-page[hidden] { display: none !important; }
   .sidebar.collapsed .sidebar-search,
   .sidebar.collapsed #sidebar-lanes { display: none; }
   /* Floating sidebar-toggle pill, half-overlapping the sidebar edge */
@@ -991,106 +991,7 @@
     font-weight: 700; border-bottom: 1px solid var(--border);
   }
   .lc-table td { padding: 6px 8px; border-bottom: 1px solid #F3F4F6; color: #374151; }
-  /* ─── LANE DISTRO PAGE ────────────────────────────────────── */
-  .distro-page { padding: 20px 24px 60px; display: flex; flex-direction: column; gap: 16px; }
-  .distro-hero {
-    background: linear-gradient(135deg, var(--navy) 0%, #24243e 100%);
-    color: #fff; border-radius: 10px; padding: 18px 24px;
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
-  }
-  .distro-hero h1 {
-    font-family: 'Barlow', Arial, sans-serif; font-size: 20px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .05em;
-  }
-  .distro-hero-stats { display: flex; gap: 18px; flex-wrap: wrap; }
-  .distro-hero-stat {
-    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
-    border-radius: 6px; padding: 6px 12px; min-width: 100px;
-  }
-  .distro-hero-stat .lbl {
-    font-family: 'Barlow', Arial, sans-serif; font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.65);
-  }
-  .distro-hero-stat .val {
-    font-family: 'Barlow', Arial, sans-serif; font-size: 18px; font-weight: 700; color: #fff;
-  }
-  .distro-toolbar {
-    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-    background: var(--card-bg); padding: 10px 14px; border-radius: 8px;
-    border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.04);
-  }
-  .distro-toolbar input, .distro-toolbar select {
-    padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px;
-    font-size: 12px; font-family: inherit; background: #fff; color: #111827;
-  }
-  .distro-toolbar input { min-width: 220px; }
-  .distro-toolbar .dt-label {
-    font-family: 'Barlow', Arial, sans-serif; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .5px; color: var(--navy);
-  }
-  .distro-count { margin-left: auto; font-size: 11px; color: var(--gray); }
-
-  .distro-table-wrap {
-    background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);
-    box-shadow: 0 1px 4px rgba(0,0,0,.04); overflow: auto; max-height: calc(100vh - 240px);
-  }
-  .distro-table { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
-  .distro-table thead tr.group-row th {
-    background: var(--navy); color: #fff;
-    font-family: 'Barlow', Arial, sans-serif; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .6px;
-    padding: 5px 8px; text-align: center; border-right: 1px solid rgba(255,255,255,.15);
-    position: sticky; top: 0; z-index: 3;
-  }
-  .distro-table thead tr.group-row th.grp-basic    { background: #374151; }
-  .distro-table thead tr.group-row th.grp-geo      { background: #4B5563; }
-  .distro-table thead tr.group-row th.grp-ops      { background: #1F2937; }
-  .distro-table thead tr.group-row th.grp-expected { background: var(--blue); }
-  .distro-table thead tr.group-row th.grp-market   { background: #374151; }
-  .distro-table thead tr.group-row th.grp-actual   { background: #065F46; }
-  .distro-table thead tr.group-row th.grp-delta    { background: var(--red); }
-
-  .distro-table thead tr.col-row th {
-    background: #F9FAFB; color: var(--navy);
-    font-family: 'Barlow', Arial, sans-serif; font-size: 9.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .4px;
-    padding: 6px 8px; text-align: center; border-bottom: 2px solid var(--border);
-    white-space: nowrap; position: sticky; top: 23px; z-index: 2;
-  }
-  .distro-table tbody td {
-    padding: 5px 8px; border-bottom: 1px solid #F3F4F6; color: #374151;
-    white-space: nowrap; font-variant-numeric: tabular-nums; text-align: center;
-  }
-  /* Route #s column (8th col) — narrow + wrap at two-per-line */
-  .distro-table thead tr.col-row th:nth-child(8),
-  .distro-table tbody td:nth-child(8) {
-    max-width: 100px; white-space: normal; word-break: break-word; line-height: 1.25;
-  }
-  .distro-table tbody tr:hover td { background: #F9FAFB; }
-  .distro-table tbody tr.pair-start td { border-top: 2px solid var(--navy); }
-  .distro-table td.num { font-family: 'SF Mono', Menlo, monospace; }
-  .distro-table td.neg { color: var(--red); }
-  .distro-table td.pos { color: #065F46; }
-  .distro-table td.rfq { font-weight: 700; color: var(--navy); }
-  .distro-table td.dir-ib { color: var(--blue); font-weight: 700; }
-  .distro-table td.dir-ob { color: var(--red); font-weight: 700; }
-  .distro-table td.inactive { color: #9CA3AF; font-style: italic; }
-  .distro-table tbody tr.inactive-row td { background: #FAFAFA; color: #9CA3AF; }
-  .distro-table .lane-link { color: var(--blue); text-decoration: none; cursor: pointer; }
-  .distro-table .lane-link:hover { text-decoration: underline; }
-
-  /* Collapsible column groups — group header is always clickable. When a
-     group is collapsed, its per-column headers and data cells hide; the
-     group header cell shrinks to a single column. */
-  .distro-table .group-row th { cursor: pointer; user-select: none; }
-  .distro-table .group-row th .grp-chev { margin-right: 4px; display: inline-block; }
-  .distro-table.distro-hide-basics   [data-group="basics"]:not(.grp-header),
-  .distro-table.distro-hide-geo      [data-group="geo"]:not(.grp-header),
-  .distro-table.distro-hide-ops      [data-group="ops"]:not(.grp-header),
-  .distro-table.distro-hide-expected [data-group="expected"]:not(.grp-header),
-  .distro-table.distro-hide-market   [data-group="market"]:not(.grp-header),
-  .distro-table.distro-hide-actual   [data-group="actual"]:not(.grp-header),
-  .distro-table.distro-hide-delta    [data-group="delta"]:not(.grp-header) { display: none; }
+  /* Lane Distro styles live in lane-distro.html (loaded on first show). */
 
   .lc-credential {
     font-family: monospace; background: #F3F4F6; padding: 2px 6px;
@@ -1297,38 +1198,8 @@
       </div>
     </div>
 
-    <!-- ══ LANE DISTRO PAGE ══ -->
-    <div class="distro-page" id="distro-page" hidden>
-      <div class="distro-hero">
-        <h1>Lane Distro</h1>
-        <div class="distro-hero-stats">
-          <div class="distro-hero-stat"><div class="lbl">Lanes</div><div class="val" id="dh-lanes">—</div></div>
-          <div class="distro-hero-stat"><div class="lbl">Active</div><div class="val" id="dh-active">—</div></div>
-          <div class="distro-hero-stat"><div class="lbl">Exp Rev / Mo</div><div class="val" id="dh-exp-rev">—</div></div>
-          <div class="distro-hero-stat"><div class="lbl">Act Rev / Mo</div><div class="val" id="dh-act-rev">—</div></div>
-          <div class="distro-hero-stat"><div class="lbl">Net Δ / Mo</div><div class="val" id="dh-net-delta">—</div></div>
-        </div>
-      </div>
-      <div class="distro-toolbar">
-        <span class="dt-label">Search</span>
-        <input type="text" id="distro-search" placeholder="Origin, dest, RFQ, route, GSDB, admin…" oninput="filterDistro()">
-        <span class="dt-label">Admin</span>
-        <select id="distro-admin" onchange="filterDistro()"><option value="">All</option></select>
-        <span class="dt-label">Active</span>
-        <select id="distro-active" onchange="filterDistro()">
-          <option value="">All</option><option value="Yes" selected>Yes</option><option value="No">No</option>
-        </select>
-        <span class="dt-label">Direction</span>
-        <select id="distro-direction" onchange="filterDistro()">
-          <option value="">Both</option><option value="IB">IB only</option><option value="OB">OB only</option>
-        </select>
-        <button class="sb-collapse-all" id="distro-collapse-all-btn" onclick="toggleAllDistroGroups()">Hide All</button>
-        <span class="distro-count" id="distro-count">—</span>
-      </div>
-      <div class="distro-table-wrap">
-        <table class="distro-table" id="distro-table"><thead></thead><tbody></tbody></table>
-      </div>
-    </div>
+    <!-- ══ LANE DISTRO PAGE — markup + styles loaded from lane-distro.html on first show ══ -->
+    <div id="distro-mount"></div>
 
     <!-- ── SECTION 1: LANE INFO (TOP) ──────────────────────── -->
     <div class="lane-info-card">
@@ -3516,7 +3387,7 @@ function showLanding() {
   document.getElementById('landing-page').hidden = false;
   document.querySelector('.lane-info-card').hidden = true;
   document.getElementById('schedule-card').hidden = true;
-  document.getElementById('distro-page').hidden = true;
+  { const d = document.getElementById('distro-page'); if (d) d.hidden = true; }
   document.getElementById('btn-home')?.classList.add('active');
   document.getElementById('btn-lanes')?.classList.remove('active');
   document.getElementById('btn-distro')?.classList.remove('active');
@@ -3538,7 +3409,7 @@ function showLaneView() {
     sbToggle.title = 'Collapse sidebar';
   }
   document.getElementById('landing-page').hidden = true;
-  document.getElementById('distro-page').hidden = true;
+  { const d = document.getElementById('distro-page'); if (d) d.hidden = true; }
   document.querySelector('.lane-info-card').hidden = false;
   document.getElementById('schedule-card').hidden = false;
   document.getElementById('btn-home')?.classList.remove('active');
@@ -3565,252 +3436,7 @@ function showLaneView() {
 // Kept for back-compat: selectLane calls hideLanding when user picks a lane
 function hideLanding() { showLaneView(); }
 
-// ─── Lane Distro page ────────────────────────────────────────────
-let distroLoaded = false;
-let distroRows = [];
-
-async function loadLaneDistro() {
-  const { data, error } = await db.from('ref_lane_distro').select('*').order('sort_order');
-  if (error) { console.error(error); return; }
-  distroRows = data || [];
-
-  const adminSel = document.getElementById('distro-admin');
-  const admins = [...new Set(distroRows.map(r => r.lane_admin).filter(Boolean))].sort();
-  adminSel.innerHTML = '<option value="">All</option>' +
-    admins.map(a => `<option value="${a}">${a}</option>`).join('');
-
-  renderDistroHeader();
-  filterDistro();
-  distroLoaded = true;
-}
-
-const DISTRO_GROUPS = [
-  { key:'basics',   label:'Basics',                            cls:'grp-basic' },
-  { key:'geo',      label:'Origin & Destination',              cls:'grp-geo' },
-  { key:'ops',      label:'Ops',                               cls:'grp-ops' },
-  { key:'expected', label:'Expected',                          cls:'grp-expected' },
-  { key:'market',   label:'Market',                            cls:'grp-market' },
-  { key:'actual',   label:'Actual (Mar 2026)',                 cls:'grp-actual' },
-  { key:'delta',    label:'Exp vs Actual / Market vs Actual',  cls:'grp-delta' },
-];
-const DISTRO_COLS = [
-  ['basics','Active'], ['basics','Last Update'], ['basics','RFQ #'], ['basics','Drop'],
-  ['basics','Milk Run'], ['basics','Transit (hr)'], ['basics','Stops'],
-  ['basics','Route #s'], ['basics','Dir'],
-  ['geo','Origin GSDB'], ['geo','Origin'], ['geo','State'],
-  ['geo','Dest GSDB'], ['geo','Act Dest GSDB'], ['geo','Dest'], ['geo','State'], ['geo','Admin'],
-  ['ops','Backup'], ['ops','Trailers'], ['ops','Miles'], ['ops','RPM'],
-  ['expected','Loads/Wk'], ['expected','Loads/Mo'], ['expected','Ford Rate'], ['expected','Fuel'],
-  ['expected','Gross/Load'], ['expected','Gross/Wk'], ['expected','TTT/Load'], ['expected','Net/Load'],
-  ['expected','TTT/Mo'], ['expected','Net/Mo (Exp Ct)'], ['expected','Net/Mo (Act Ct)'],
-  ['market','Mkt TTT/Load'], ['market','Mkt Net/Load'], ['market','Mkt TTT/Mo'],
-  ['market','Mkt Net/Mo (Exp)'], ['market','Mkt Net/Mo (Act)'],
-  ['actual','Loads'], ['actual','TTT'], ['actual','Gross Rev'], ['actual','Net Rev'], ['actual','Avg TTT/Load'],
-  ['delta','Δ Loads'], ['delta','Δ Gross'], ['delta','Δ Net'], ['delta','Mkt vs Act Net'],
-];
-const collapsedDistroGroups = new Set();
-
-function renderDistroHeader() {
-  const thead = document.querySelector('#distro-table thead');
-  const groupCounts = Object.fromEntries(DISTRO_GROUPS.map(g => [g.key, 0]));
-  DISTRO_COLS.forEach(([g]) => groupCounts[g]++);
-  const groupRow = DISTRO_GROUPS.map(g => {
-    const c = collapsedDistroGroups.has(g.key);
-    const span = c ? 1 : groupCounts[g.key];
-    const chev = c ? '▸' : '▾';
-    return `<th class="${g.cls} grp-header" data-group="${g.key}" colspan="${span}"
-      onclick="toggleDistroGroup('${g.key}')"
-      title="${c ? 'Expand' : 'Collapse'} ${g.label.replace(/"/g, '')}"><span class="grp-chev">${chev}</span>${g.label}</th>`;
-  }).join('');
-  const colRow = DISTRO_COLS.map(([g, h]) => `<th data-group="${g}">${h}</th>`).join('');
-  thead.innerHTML = `<tr class="group-row">${groupRow}</tr><tr class="col-row">${colRow}</tr>`;
-}
-
-function toggleDistroGroup(key) {
-  if (collapsedDistroGroups.has(key)) collapsedDistroGroups.delete(key);
-  else collapsedDistroGroups.add(key);
-  const table = document.getElementById('distro-table');
-  table.classList.toggle('distro-hide-' + key, collapsedDistroGroups.has(key));
-  renderDistroHeader();
-  updateDistroCollapseAllBtn();
-}
-
-function toggleAllDistroGroups() {
-  const table = document.getElementById('distro-table');
-  const anyExpanded = DISTRO_GROUPS.some(g => !collapsedDistroGroups.has(g.key));
-  if (anyExpanded) {
-    // Collapse everything
-    DISTRO_GROUPS.forEach(g => {
-      collapsedDistroGroups.add(g.key);
-      table.classList.add('distro-hide-' + g.key);
-    });
-  } else {
-    // Expand everything
-    DISTRO_GROUPS.forEach(g => {
-      collapsedDistroGroups.delete(g.key);
-      table.classList.remove('distro-hide-' + g.key);
-    });
-  }
-  renderDistroHeader();
-  updateDistroCollapseAllBtn();
-}
-
-function updateDistroCollapseAllBtn() {
-  const btn = document.getElementById('distro-collapse-all-btn');
-  if (!btn) return;
-  const anyExpanded = DISTRO_GROUPS.some(g => !collapsedDistroGroups.has(g.key));
-  btn.textContent = anyExpanded ? 'Hide All' : 'Show All';
-}
-
-function fmtCurrency(v) {
-  if (v === null || v === undefined) return '—';
-  const n = Number(v);
-  if (Number.isNaN(n)) return '—';
-  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-function fmtNum(v, digits = 2) {
-  if (v === null || v === undefined) return '—';
-  const n = Number(v);
-  if (Number.isNaN(n)) return '—';
-  return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
-function fmtInt(v) {
-  if (v === null || v === undefined) return '—';
-  const n = Number(v);
-  if (Number.isNaN(n)) return '—';
-  return Math.round(n).toLocaleString('en-US');
-}
-function signClass(v) {
-  if (v === null || v === undefined) return '';
-  const n = Number(v);
-  if (Number.isNaN(n) || n === 0) return '';
-  return n > 0 ? 'pos' : 'neg';
-}
-function fmtDateISO(v) {
-  if (!v) return '—';
-  try { return new Date(v + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
-  catch { return v; }
-}
-
-function filterDistro() {
-  const q = document.getElementById('distro-search').value.trim().toLowerCase();
-  const admin = document.getElementById('distro-admin').value;
-  const active = document.getElementById('distro-active').value;
-  const dir = document.getElementById('distro-direction').value;
-
-  const rows = distroRows.filter(r => {
-    if (active && r.active !== active) return false;
-    if (admin && r.lane_admin !== admin) return false;
-    if (dir && r.ib_ob !== dir) return false;
-    if (q) {
-      const hay = [r.rfq_number, r.route_numbers, r.origin_city, r.origin_state, r.origin_gsdb,
-                   r.dest_city, r.dest_state, r.dest_gsdb, r.act_dest_gsdb, r.lane_admin, r.backup_admin]
-        .filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-
-  renderDistroBody(rows);
-
-  const tot = rows.length;
-  const activeCt = rows.filter(r => r.active === 'Yes').length;
-  document.getElementById('distro-count').textContent = `${tot} row${tot !== 1 ? 's' : ''}`;
-
-  // Hero stats (unique by RFQ, IB only to avoid double-counting)
-  const ibRows = rows.filter(r => r.ib_ob === 'IB');
-  const uniqueLanes = new Set(ibRows.map(r => r.rfq_number || r.id)).size;
-  const activeLanes = new Set(ibRows.filter(r => r.active === 'Yes').map(r => r.rfq_number || r.id)).size;
-  const expRev = ibRows.reduce((s, r) => s + (Number(r.exp_gross_rev_week) || 0) * 4.33, 0);
-  const actRev = ibRows.reduce((s, r) => s + (Number(r.act_gross_rev_month) || 0), 0);
-  const netDelta = ibRows.reduce((s, r) => s + (Number(r.delta_net_rev) || 0), 0);
-
-  document.getElementById('dh-lanes').textContent = uniqueLanes.toLocaleString();
-  document.getElementById('dh-active').textContent = activeLanes.toLocaleString();
-  document.getElementById('dh-exp-rev').textContent = fmtCurrency(expRev);
-  document.getElementById('dh-act-rev').textContent = fmtCurrency(actRev);
-  document.getElementById('dh-net-delta').textContent = fmtCurrency(netDelta);
-}
-
-function renderDistroBody(rows) {
-  const tbody = document.querySelector('#distro-table tbody');
-  let prevRfq = null;
-  tbody.innerHTML = rows.map(r => {
-    const pairStart = r.rfq_number !== prevRfq;
-    prevRfq = r.rfq_number;
-    const inactive = r.active === 'No';
-    const dirCls = r.ib_ob === 'IB' ? 'dir-ib' : 'dir-ob';
-    const td = (grp, content, cls = '') =>
-      `<td data-group="${grp}"${cls ? ` class="${cls}"` : ''}>${content}</td>`;
-    return `<tr class="${pairStart ? 'pair-start' : ''} ${inactive ? 'inactive-row' : ''}">
-      ${td('basics', r.active || '—')}
-      ${td('basics', fmtDateISO(r.last_formal_update))}
-      ${td('basics', r.rfq_number ? String(r.rfq_number).replace(/-\d+$/, '') : '—', 'rfq')}
-      ${td('basics', r.drop_lane || '—')}
-      ${td('basics', r.milk_run || '—')}
-      ${td('basics', r.transit_hours ?? '—', 'num')}
-      ${td('basics', r.stops && r.stops !== 'NA' ? r.stops : '—')}
-      ${td('basics', r.route_numbers || '—')}
-      ${td('basics', r.ib_ob || '—', dirCls)}
-      ${td('geo', r.origin_gsdb || '—')}
-      ${td('geo', r.origin_city || '—')}
-      ${td('geo', r.origin_state || '—')}
-      ${td('geo', r.dest_gsdb || '—')}
-      ${td('geo', r.act_dest_gsdb || '—')}
-      ${td('geo', r.dest_city || '—')}
-      ${td('geo', r.dest_state || '—')}
-      ${td('geo', r.lane_admin || '—')}
-      ${td('ops', r.backup_admin || '—')}
-      ${td('ops', r.trailers_needed || '—')}
-      ${td('ops', fmtInt(r.ford_miles), 'num')}
-      ${td('ops', fmtNum(r.rpm, 3), 'num')}
-      ${td('expected', fmtNum(r.exp_loads_week, 1), 'num')}
-      ${td('expected', fmtNum(r.exp_loads_month, 1), 'num')}
-      ${td('expected', fmtCurrency(r.exp_ford_rate), 'num')}
-      ${td('expected', fmtCurrency(r.exp_fuel), 'num')}
-      ${td('expected', fmtCurrency(r.exp_gross_rev_load), 'num')}
-      ${td('expected', fmtCurrency(r.exp_gross_rev_week), 'num')}
-      ${td('expected', fmtCurrency(r.exp_ttt_load), 'num')}
-      ${td('expected', fmtCurrency(r.exp_net_rev_load), 'num ' + signClass(r.exp_net_rev_load))}
-      ${td('expected', fmtCurrency(r.exp_ttt_month), 'num')}
-      ${td('expected', fmtCurrency(r.exp_net_rev_month_exp), 'num ' + signClass(r.exp_net_rev_month_exp))}
-      ${td('expected', fmtCurrency(r.exp_net_rev_month_act), 'num ' + signClass(r.exp_net_rev_month_act))}
-      ${td('market', fmtCurrency(r.mkt_ttt_load), 'num')}
-      ${td('market', fmtCurrency(r.mkt_net_rev_load), 'num ' + signClass(r.mkt_net_rev_load))}
-      ${td('market', fmtCurrency(r.mkt_ttt_month), 'num')}
-      ${td('market', fmtCurrency(r.mkt_net_rev_month_exp), 'num ' + signClass(r.mkt_net_rev_month_exp))}
-      ${td('market', fmtCurrency(r.mkt_net_rev_month_act), 'num ' + signClass(r.mkt_net_rev_month_act))}
-      ${td('actual', fmtInt(r.act_loads_month), 'num')}
-      ${td('actual', fmtCurrency(r.act_ttt_month), 'num')}
-      ${td('actual', fmtCurrency(r.act_gross_rev_month), 'num')}
-      ${td('actual', fmtCurrency(r.act_net_rev_month), 'num ' + signClass(r.act_net_rev_month))}
-      ${td('actual', fmtCurrency(r.act_avg_ttt_load), 'num')}
-      ${td('delta', fmtNum(r.delta_loads, 1), 'num ' + signClass(r.delta_loads))}
-      ${td('delta', fmtCurrency(r.delta_gross_rev), 'num ' + signClass(r.delta_gross_rev))}
-      ${td('delta', fmtCurrency(r.delta_net_rev), 'num ' + signClass(r.delta_net_rev))}
-      ${td('delta', fmtCurrency(r.mkt_vs_act_net_rev), 'num ' + signClass(r.mkt_vs_act_net_rev))}
-    </tr>`;
-  }).join('');
-}
-
-function showLaneDistro() {
-  const sb = document.getElementById('sidebar');
-  sb.hidden = false;
-  sb.classList.add('collapsed');
-  const sbToggle = document.getElementById('sidebar-toggle-btn');
-  if (sbToggle) { sbToggle.hidden = false; sbToggle.textContent = '›'; sbToggle.title = 'Expand sidebar'; }
-  document.getElementById('landing-page').hidden = true;
-  document.getElementById('distro-page').hidden = false;
-  document.querySelector('.lane-info-card').hidden = true;
-  document.getElementById('schedule-card').hidden = true;
-  document.getElementById('btn-home')?.classList.remove('active');
-  document.getElementById('btn-lanes')?.classList.remove('active');
-  document.getElementById('btn-distro')?.classList.add('active');
-  document.querySelectorAll('.lane-item.active').forEach(i => i.classList.remove('active'));
-  currentView = 'distro';
-  updateHash();
-  if (!distroLoaded) loadLaneDistro();
-}
+// Lane Distro page — implemented in lane-distro.js (loaded via <script> tag)
 
 // ─── Auth ─────────────────────────────────────────────────────────
 let authMode = 'signin';          // 'signin' | 'signup'
@@ -3996,5 +3622,6 @@ db.auth.onAuthStateChange((event, session) => {
   await applySignedInState(session);
 })();
 </script>
+<script src="lane-distro.js"></script>
 </body>
 </html>
