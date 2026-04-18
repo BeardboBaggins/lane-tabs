@@ -2779,6 +2779,23 @@ async function loadLaneInfo(laneIds) {
     ? await db.from('ref_carriers').select('*').eq('mc_number', carrierAssignment.mc_number).order('sort_order')
     : { data: [] };
 
+  // IB/OB carrier rates come from ref_lane_distro.exp_ttt_load, matched by
+  // the lane's first IB/OB route number.
+  const allRoutes = (routesRes.data || []);
+  const firstIbRoute = allRoutes.map(r => r.ib_route).find(Boolean)?.split(/\s+/)[0];
+  const firstObRoute = allRoutes.map(r => r.ob_route).find(Boolean)?.split(/\s+/)[0];
+  const distroRates = { ib: null, ob: null, updated: null };
+  const distroQueries = [];
+  if (firstIbRoute) distroQueries.push(
+    db.from('ref_lane_distro').select('exp_ttt_load, last_formal_update')
+      .eq('ib_ob', 'IB').ilike('route_numbers', `%${firstIbRoute}%`).limit(1).maybeSingle()
+      .then(r => { distroRates.ib = r.data?.exp_ttt_load; distroRates.updated = distroRates.updated || r.data?.last_formal_update; }));
+  if (firstObRoute) distroQueries.push(
+    db.from('ref_lane_distro').select('exp_ttt_load, last_formal_update')
+      .eq('ib_ob', 'OB').ilike('route_numbers', `%${firstObRoute}%`).limit(1).maybeSingle()
+      .then(r => { distroRates.ob = r.data?.exp_ttt_load; distroRates.updated = distroRates.updated || r.data?.last_formal_update; }));
+  await Promise.all(distroQueries);
+
   const allLanes = lanesRes.data || [];
   if (!allLanes.length) return;
   const lane = allLanes[0];
@@ -2875,7 +2892,7 @@ async function loadLaneInfo(laneIds) {
   updateSupp();
 
   // Carrier assignment + POCs
-  renderCarrierInfo(carrierAssignment, carrierPocsRes.data || []);
+  renderCarrierInfo(carrierAssignment, carrierPocsRes.data || [], lane, distroRates);
 
   // Plant contacts
   const plants = plantRes.data || [];
@@ -2896,7 +2913,7 @@ async function loadLaneInfo(laneIds) {
   updatePlant();
 }
 
-function renderCarrierInfo(assignment, pocs) {
+function renderCarrierInfo(assignment, pocs, lane, distroRates) {
   const nameEl = document.getElementById('li-carrier-name');
   const mcEl   = document.getElementById('li-carrier-mc');
   const pocSel = document.getElementById('li-carrier-poc-sel');
@@ -2907,11 +2924,14 @@ function renderCarrierInfo(assignment, pocs) {
   const obRateEl = document.getElementById('li-carrier-ob-rate');
   const rateUpdEl = document.getElementById('li-carrier-rate-upd');
 
-  // Rates come from the old carriers table for now (per-POC rates live there).
-  // For the initial import we don't have per-assignment rates yet — show —.
-  ibRateEl.textContent = '—';
-  obRateEl.textContent = '—';
-  rateUpdEl.textContent = '—';
+  // Carrier rates = ref_lane_distro.exp_ttt_load (falls back to lane linehaul)
+  const fmt$ = v => v != null ? '$' + Number(v).toFixed(2) : '—';
+  ibRateEl.textContent = fmt$(distroRates?.ib ?? lane?.ib_linehaul);
+  obRateEl.textContent = fmt$(distroRates?.ob ?? lane?.ob_linehaul);
+  const rateUpdDate = distroRates?.updated ?? lane?.last_rate_update;
+  rateUpdEl.textContent = rateUpdDate
+    ? new Date(rateUpdDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : '—';
 
   if (!assignment) {
     nameEl.textContent = '—';
